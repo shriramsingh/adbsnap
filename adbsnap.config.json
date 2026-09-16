@@ -1,0 +1,59 @@
+{
+  "app": "ADBSnap Showcase",
+  "package": "com.brave.browser",
+  "theme": "studioLight",
+  "frame": "iphone-16-pro",
+  "font": "modern",
+  "layout": "appstore",
+  "stars": true,
+  "auth": {
+    "username": "demo@adbsnap.dev",
+    "password": "ProductionPassword2026!"
+  },
+  "targets": ["apple-6.9", "apple-6.7", "apple-6.5", "google-phone"],
+  "flow": [
+    {
+      "type": "launch",
+      "package": "com.brave.browser"
+    },
+    {
+      "type": "snap",
+      "name": "01-home",
+      "title": "Lightning-Fast Mobile Browsing",
+      "subtitle": "Zero trackers, total privacy, and unmatched speed."
+    },
+    {
+      "type": "tap",
+      "target": "Subscriptions",
+      "waitMs": 800
+    },
+    {
+      "type": "snap",
+      "name": "02-subscriptions",
+      "title": "Curated Trending Feeds",
+      "subtitle": "Discover breaking news and content with ease."
+    },
+    {
+      "type": "tap",
+      "target": "Home",
+      "waitMs": 500
+    }
+  ],
+  "screens": [
+    {
+      "name": "01-home",
+      "title": "Clean Minimal Workspace",
+      "subtitle": "Everything you need to focus on what matters"
+    },
+    {
+      "name": "02-analytics",
+      "title": "Real-Time Health Analytics",
+      "subtitle": "Track your progress with precision metrics"
+    },
+    {
+      "name": "03-checkout",
+      "title": "Instant 1-Click Payments",
+      "subtitle": "Encrypted and certified by industry standards"
+    }
+  ]
+}

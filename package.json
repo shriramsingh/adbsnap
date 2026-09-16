@@ -1,0 +1,78 @@
+{
+  "name": "adbsnap",
+  "version": "1.0.0",
+  "description": "Automated mobile screenshot capture, 4K vector device framing & App Store / Google Play asset studio",
+  "main": "dist/bin/cli.js",
+  "bin": {
+    "adbsnap": "./dist/bin/cli.js",
+    "snapshot": "./dist/bin/cli.js"
+  },
+  "author": "Shriram Singh",
+  "license": "MIT",
+  "keywords": [
+    "adb",
+    "android",
+    "screenshot",
+    "appstore",
+    "google-play",
+    "mockup",
+    "device-frames",
+    "sharp",
+    "mobile-showcase",
+    "cli"
+  ],
+  "files": [
+    "dist/bin",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build:cli": "node scripts/build-cli.mjs",
+    "build": "node scripts/build-cli.mjs",
+    "snap": "tsx bin/cli.ts snap",
+    "export": "tsx bin/cli.ts export",
+    "devices": "tsx bin/cli.ts devices",
+    "doctor": "tsx bin/cli.ts doctor",
+    "explore": "tsx bin/cli.ts explore",
+    "test:devices": "tsx scripts/test-devices.ts",
+    "test:capture": "tsx scripts/test-capture.ts",
+    "test:composite": "tsx scripts/test-composite.ts",
+    "test:lifecycle": "tsx scripts/test-lifecycle.ts",
+    "test:wifi": "tsx scripts/test-wifi.ts",
+    "studio": "next dev -p 3000",
+    "studio:start": "next start -p 3000"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shriramsingh/adbsnap.git"
+  },
+  "homepage": "https://github.com/shriramsingh/adbsnap#readme",
+  "bugs": {
+    "url": "https://github.com/shriramsingh/adbsnap/issues"
+  },
+  "devDependencies": {
+    "@types/archiver": "^8.0.0",
+    "@types/node": "^26.4.1",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "autoprefixer": "^10.5.5",
+    "chalk": "^6.0.0",
+    "esbuild": "^0.28.2",
+    "lucide-react": "^1.42.0",
+    "next": "^16.3.4",
+    "postcss": "^8.5.28",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "tailwindcss": "^3.4.19",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "archiver": "^8.0.0",
+    "sharp": "^0.35.4"
+  }
+}

@@ -1,0 +1,7 @@
+export const CONFIG = {
+  DEFAULT_PORT: 5555,
+  DEFAULT_OUTPUT_DIR: './output',
+  DEFAULT_TIMEOUT_MS: 10000,
+  DEFAULT_DEVICE_FRAME: 'minimal',
+  ADB_DEFAULT_HOST: '127.0.0.1',
+} as const;
