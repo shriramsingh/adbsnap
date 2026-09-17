@@ -1,6 +1,6 @@
 export const APP_INFO = {
   NAME: 'ADBSnap',
-  VERSION: '1.1.7',
+  VERSION: '1.2.0',
   TAGLINE: 'Automated Mobile Showcase & App Store Asset Studio',
   DESCRIPTION: 'CLI tool to capture, frame, and export mobile screenshots directly via ADB.',
 } as const;
@@ -23,7 +23,7 @@ COMMANDS:
   wifi [ip|off]        Switch device to wireless ADB mode or turn off (adbsnap wifi off)
   usb                  Reset ADB connection back to USB mode (turn off wireless)
   doctor               Verify ADB installation, device health, and permissions
-  studio               Launch the local Next.js interactive web dashboard (http://localhost:3000)
+  studio               Launch the desktop interactive web dashboard (http://adbsnap.localhost:3000)
   help                 Display this guide
 
 
