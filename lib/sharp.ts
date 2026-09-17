@@ -1,4 +1,6 @@
 import sharp, { type OverlayOptions } from 'sharp';
+// @ts-ignore
+import { GIFEncoder, quantize, applyPalette } from 'gifenc';
 import { BEZEL_PRESETS, GRADIENT_PRESETS, LAYOUT_PRESETS, FONT_PRESETS, STORE_TARGETS, type BezelSpec, type LayoutMode, type StoreTarget } from '../constants/themes';
 import { generateBezelSvg, generateScreenCornerMask } from './bezel-generator';
 import { generateGradientSvg, generateTypographySvg } from './backdrop-generator';
@@ -231,7 +233,7 @@ export async function exportMultiStore(options: MultiStoreExportOptions): Promis
 
 /**
  * Assembles multiple frame buffers into an ultra-lightweight animated GIF slideshow.
- * Standardizes resolution and loops infinitely.
+ * Uses gifenc to produce a true multi-frame looping GIF with per-frame quantization.
  */
 export async function createAnimatedGif(
   frameBuffers: Buffer[],
@@ -247,42 +249,22 @@ export async function createAnimatedGif(
   const w = targetWidth;
   const h = Math.round(w * aspect);
 
-  const resizedFrames: Buffer[] = [];
+  const gif = GIFEncoder();
+
   for (const buf of frameBuffers) {
-    const resized = await sharp(buf)
-      .resize(w, h, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-      .png()
+    const rawRgba = await sharp(buf)
+      .resize(w, h, { fit: 'contain', background: { r: 10, g: 11, b: 14, alpha: 1 } })
+      .ensureAlpha()
+      .raw()
       .toBuffer();
-    resizedFrames.push(resized);
+
+    const palette = quantize(rawRgba, 256);
+    const index = applyPalette(rawRgba, palette);
+    gif.writeFrame(index, w, h, { palette, delay: delayMs, repeat: 0 });
   }
 
-  const totalHeight = h * resizedFrames.length;
-  const compositeList = resizedFrames.map((buf, i) => ({
-    input: buf,
-    top: i * h,
-    left: 0,
-  }));
-
-  const stacked = await sharp({
-    create: {
-      width: w,
-      height: totalHeight,
-      channels: 4,
-      background: { r: 0, g: 0, b: 0, alpha: 0 },
-    },
-  })
-    .composite(compositeList)
-    .raw()
-    .toBuffer();
-
-  return await sharp(stacked, {
-    raw: { width: w, height: totalHeight, channels: 4 },
-  })
-    .gif({
-      pageHeight: h,
-      loop: 0,
-      delay: Array(resizedFrames.length).fill(delayMs),
-    } as any)
-    .toBuffer();
+  gif.finish();
+  return Buffer.from(gif.bytes());
 }
+
 
