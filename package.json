@@ -46,7 +46,7 @@
     "test:composite": "tsx scripts/test-composite.ts",
     "test:lifecycle": "tsx scripts/test-lifecycle.ts",
     "test:wifi": "tsx scripts/test-wifi.ts",
-    "studio": "next dev -p 3000",
+    "studio": "tsx bin/cli.ts studio",
     "studio:start": "next start -p 3000",
     "build:vscode": "node vscode/esbuild.mjs",
     "watch:vscode": "node vscode/esbuild.mjs --watch",
