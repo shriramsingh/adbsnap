@@ -2,7 +2,7 @@
   "name": "adbsnap",
   "displayName": "ADBSnap — Mobile Screenshot & Asset Studio",
   "description": "Instant 4K mobile screenshot capture, vector device bezels (iPhone 16 Pro, Pixel 9 Pro) & store asset studio via ADB.",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "publisher": "shriramsingh",
   "icon": "icon.png",
   "engines": {
@@ -167,7 +167,7 @@
         {
           "id": "adbsnap-sidebar",
           "title": "ADBSnap",
-          "icon": "icon.png"
+          "icon": "assets/sidebar.svg"
         }
       ]
     },

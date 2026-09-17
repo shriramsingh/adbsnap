@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Mobile phone chassis -->
+  <rect x="5" y="2" width="14" height="20" rx="3" ry="3"/>
+  <!-- Top speaker / camera bar -->
+  <line x1="10" y1="5" x2="14" y2="5"/>
+  <!-- Center camera lens / aperture shutter -->
+  <circle cx="12" cy="12" r="3.2"/>
+  <circle cx="12" cy="12" r="1.2" fill="currentColor"/>
+  <!-- Camera flash / snap spark -->
+  <line x1="15.5" y1="8" x2="16.5" y2="8"/>
+  <!-- Home indicator line -->
+  <line x1="9.5" y1="19" x2="14.5" y2="19"/>
+</svg>
