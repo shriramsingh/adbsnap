@@ -1,7 +1,6 @@
-import type { Metadata } from 'next';
 import './globals.css';
 
-export const metadata: Metadata = {
+export const metadata = {
   title: 'ADBSnap Studio — Automated Mobile Mockups',
   description: 'Automated mobile screenshot capture and App Store / Google Play marketing asset studio.',
 };
