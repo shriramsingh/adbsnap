@@ -102,16 +102,31 @@ adbsnap doctor
   [USB] Pixel 8 Pro (1A2B3C4D) -> READY
 ```
 
-### 7. `adbsnap devices` & `adbsnap wifi`
-List all connected USB, Wi-Fi, and emulator devices, or switch to wireless mode:
+### 7. `adbsnap devices`, `adbsnap wifi` & `adbsnap usb`
+List all connected USB, Wi-Fi, and emulator devices, switch to wireless mode, or cleanly revert back to USB:
 
 ```bash
+# List all attached devices and authorization health
 adbsnap devices
+
+# 1-Click switch attached USB device to wireless mode
 adbsnap wifi
+
+# Disconnect Wi-Fi mode and revert phone connection back to USB
+adbsnap wifi off
+# or alias:
+adbsnap usb
 ```
 
 ### 8. `adbsnap studio`
 Launches the visual web-based drag-and-drop studio on `http://localhost:3000`.
+
+### 9. 💻 VS Code Extension
+Use ADBSnap directly inside Visual Studio Code without leaving your editor:
+- **Activity Bar Sidebar:** Live connected devices tree with 1-click capture & recent gallery.
+- **Shortcuts:** `Ctrl+Alt+S` for instant 4K framed capture, `Ctrl+Alt+C` to copy directly to clipboard.
+- **Visual Asset Studio:** Embedded interactive preview tab with dynamic theme swatches and headline editing.
+- Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=shriramsingh.adbsnap) or search **"ADBSnap"** in the Extensions tab (`Ctrl+Shift+X`).
 
 ---
 
