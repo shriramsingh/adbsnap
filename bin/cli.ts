@@ -831,10 +831,18 @@ async function handleStudio(options: Record<string, unknown>) {
     cmdArgs = ['next', 'dev', '--webpack', '-p', port];
   }
 
+  const parentNodeModules = path.resolve(packageRoot, '..');
+  const localNodeModules = path.join(packageRoot, 'node_modules');
+  const nodePath = [localNodeModules, parentNodeModules, process.env.NODE_PATH].filter(Boolean).join(path.delimiter);
+
   const child = spawn(cmdExecutable, cmdArgs, {
     stdio: 'inherit',
     cwd: packageRoot,
     shell: process.platform === 'win32',
+    env: {
+      ...process.env,
+      NODE_PATH: nodePath,
+    },
   });
 
   child.on('error', (err) => {
