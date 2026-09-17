@@ -257,17 +257,31 @@ export class AndroidDriver implements DeviceDriver {
   /**
    * Connects directly to an existing wireless device endpoint (IP:Port).
    */
-  async connectWifi(ip: string, port: number = CONFIG.DEFAULT_PORT): Promise<boolean> {
-    const output = await this.exec(ADB_COMMANDS.CONNECT(ip, port));
-    return output.includes('connected to');
+  async connectWifi(ip: string, port: number = CONFIG.DEFAULT_PORT): Promise<{ success: boolean; message: string }> {
+    try {
+      const output = await this.exec(ADB_COMMANDS.CONNECT(ip, port));
+      if (output.includes('connected to') || output.includes('already connected')) {
+        return { success: true, message: output };
+      }
+      return { success: false, message: output || 'Failed to connect' };
+    } catch (err) {
+      return { success: false, message: err instanceof Error ? err.message : String(err) };
+    }
   }
 
   /**
    * Pairs an Android 11+ device using pairing code and pairing port.
    */
-  async pairWifi(ip: string, port: number, code: string): Promise<boolean> {
-    const output = await this.exec(ADB_COMMANDS.PAIR(ip, port, code));
-    return output.includes('Successfully paired');
+  async pairWifi(ip: string, port: number, code: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const output = await this.exec(ADB_COMMANDS.PAIR(ip, port, code));
+      if (output.includes('Successfully paired') || output.includes('already paired')) {
+        return { success: true, message: output };
+      }
+      return { success: false, message: output || 'Pairing failed' };
+    } catch (err) {
+      return { success: false, message: err instanceof Error ? err.message : String(err) };
+    }
   }
 
   /**

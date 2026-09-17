@@ -122,6 +122,8 @@ export default function StudioPage() {
   const [wifiPairingCode, setWifiPairingCode] = useState('');
   const [isPairingMode, setIsPairingMode] = useState(false);
   const [isConnectingIp, setIsConnectingIp] = useState(false);
+  const [wifiModalError, setWifiModalError] = useState<string | null>(null);
+  const [wifiModalSuccess, setWifiModalSuccess] = useState<string | null>(null);
 
   // Customization Options
   const [themeId, setThemeId] = useState('studioLight');
@@ -361,14 +363,27 @@ export default function StudioPage() {
 
   // Connects or pairs directly via manual IP input
   const handleConnectIp = async () => {
-    if (!wifiIpInput.trim() || isConnectingIp) return;
+    setWifiModalError(null);
+    setWifiModalSuccess(null);
+
+    let cleanIp = wifiIpInput.trim();
+    let cleanPort = wifiPortInput.trim() || '5555';
+    if (cleanIp.includes(':')) {
+      const parts = cleanIp.split(':');
+      cleanIp = parts[0];
+      if (parts[1]) cleanPort = parts[1];
+    }
+
+    if (!cleanIp) {
+      setWifiModalError('Please enter device IP address (e.g. 192.168.1.45)');
+      return;
+    }
+
     setIsConnectingIp(true);
     try {
       if (isPairingMode) {
         if (!wifiPairingCode.trim()) {
-          if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-          setToastMessage('⚠️ Please enter 6-digit pairing code');
-          toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2500);
+          setWifiModalError('Please enter 6-digit pairing code shown on your phone');
           setIsConnectingIp(false);
           return;
         }
@@ -377,8 +392,8 @@ export default function StudioPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'pair_wifi',
-            ip: wifiIpInput.trim(),
-            port: wifiPortInput.trim() || '5555',
+            ip: cleanIp,
+            port: cleanPort,
             code: wifiPairingCode.trim(),
           }),
         });
@@ -393,29 +408,30 @@ export default function StudioPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'connect_ip',
-          ip: wifiIpInput.trim(),
-          port: wifiPortInput.trim() || '5555',
+          ip: cleanIp,
+          port: cleanPort,
         }),
       });
       const data = await res.json();
       if (data.success) {
         if (data.devices) setDevices(data.devices);
         if (data.endpoint) setSelectedDevice(data.endpoint);
-        setIsWifiModalOpen(false);
-        setWifiIpInput('');
-        setWifiPairingCode('');
+        setWifiModalSuccess(`Connected successfully to ${data.endpoint}!`);
         if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
         setToastMessage(`📶 Connected to wireless device ${data.endpoint}!`);
-        toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 3000);
-      } else {
-        if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-        setToastMessage(`❌ Connection failed: ${data.error}`);
         toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 3500);
+
+        setTimeout(() => {
+          setIsWifiModalOpen(false);
+          setWifiIpInput('');
+          setWifiPairingCode('');
+          setWifiModalSuccess(null);
+        }, 800);
+      } else {
+        setWifiModalError(data.error || 'Connection failed');
       }
     } catch (err) {
-      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-      setToastMessage(`❌ Error: ${err instanceof Error ? err.message : String(err)}`);
-      toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 3500);
+      setWifiModalError(err instanceof Error ? err.message : String(err));
     } finally {
       setIsConnectingIp(false);
     }
@@ -895,12 +911,16 @@ export default function StudioPage() {
             {/* Manual Connect / Pair Popover Trigger */}
             <button
               type="button"
-              onClick={() => setIsWifiModalOpen(true)}
-              className="p-1 px-1.5 text-slate-400 hover:text-white rounded-full hover:bg-slate-800 transition cursor-pointer flex items-center gap-1 text-[11px]"
-              title="Connect to a phone via IP address or Android 11+ wireless debugging"
+              onClick={() => {
+                setWifiModalError(null);
+                setWifiModalSuccess(null);
+                setIsWifiModalOpen(true);
+              }}
+              className="px-2.5 py-1 text-slate-300 hover:text-white rounded-full bg-slate-800/90 hover:bg-slate-700 border border-slate-700/60 transition cursor-pointer flex items-center gap-1.5 text-[11px] font-medium shadow-sm"
+              title="Connect to a phone via Wi-Fi IP address or Android 11+ wireless debugging"
             >
-              <Globe className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="text-[10px] hidden xl:inline text-slate-400">IP Connect</span>
+              <Globe className="w-3 h-3 text-cyan-400 shrink-0" />
+              <span>IP Connect</span>
             </button>
           </div>
 
@@ -1799,7 +1819,10 @@ export default function StudioPage() {
               <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-[#0a0b0e] border border-[#232733] text-xs">
                 <button
                   type="button"
-                  onClick={() => setIsPairingMode(false)}
+                  onClick={() => {
+                    setIsPairingMode(false);
+                    setWifiModalError(null);
+                  }}
                   className={`py-1.5 px-3 rounded-md font-medium transition cursor-pointer text-center ${
                     !isPairingMode
                       ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
@@ -1810,7 +1833,10 @@ export default function StudioPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsPairingMode(true)}
+                  onClick={() => {
+                    setIsPairingMode(true);
+                    setWifiModalError(null);
+                  }}
                   className={`py-1.5 px-3 rounded-md font-medium transition cursor-pointer text-center ${
                     isPairingMode
                       ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
@@ -1821,9 +1847,27 @@ export default function StudioPage() {
                 </button>
               </div>
 
+              {/* In-Modal Error Feedback */}
+              {wifiModalError && (
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2.5 animate-in fade-in duration-150">
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <div className="flex-1 font-mono text-[11px] leading-relaxed break-all">
+                    {wifiModalError}
+                  </div>
+                </div>
+              )}
+
+              {/* In-Modal Success Feedback */}
+              {wifiModalSuccess && (
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in duration-150">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span className="font-semibold">{wifiModalSuccess}</span>
+                </div>
+              )}
+
               {!isPairingMode ? (
                 <div className="space-y-3">
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-400 leading-relaxed">
                     Connect directly to an Android device already listening on TCP/IP or with wireless debugging enabled.
                   </p>
                   <div className="grid grid-cols-3 gap-2">
@@ -1832,7 +1876,17 @@ export default function StudioPage() {
                       <input
                         type="text"
                         value={wifiIpInput}
-                        onChange={(e) => setWifiIpInput(e.target.value)}
+                        onChange={(e) => {
+                          setWifiModalError(null);
+                          const val = e.target.value.trim();
+                          if (val.includes(':')) {
+                            const parts = val.split(':');
+                            setWifiIpInput(parts[0]);
+                            if (parts[1]) setWifiPortInput(parts[1]);
+                          } else {
+                            setWifiIpInput(val);
+                          }
+                        }}
                         placeholder="e.g. 192.168.1.45"
                         className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
                       />
@@ -1842,17 +1896,23 @@ export default function StudioPage() {
                       <input
                         type="text"
                         value={wifiPortInput}
-                        onChange={(e) => setWifiPortInput(e.target.value)}
+                        onChange={(e) => {
+                          setWifiModalError(null);
+                          setWifiPortInput(e.target.value.trim());
+                        }}
                         placeholder="5555"
                         className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
                       />
                     </div>
                   </div>
+                  <p className="text-[10px] text-slate-500">
+                    💡 Tip: If your phone shows <code className="text-cyan-400">192.168.1.45:41235</code>, pasting it into the IP box automatically splits the port.
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <div className="p-2.5 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-[11px] text-indigo-300">
-                    On your phone, navigate to <strong>Settings → Developer options → Wireless debugging → Pair device with pairing code</strong>.
+                  <div className="p-2.5 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-[11px] text-indigo-300 leading-relaxed">
+                    On your phone: go to <strong>Settings → Developer options → Wireless debugging → Pair device with pairing code</strong>.
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <div className="col-span-2">
@@ -1860,7 +1920,17 @@ export default function StudioPage() {
                       <input
                         type="text"
                         value={wifiIpInput}
-                        onChange={(e) => setWifiIpInput(e.target.value)}
+                        onChange={(e) => {
+                          setWifiModalError(null);
+                          const val = e.target.value.trim();
+                          if (val.includes(':')) {
+                            const parts = val.split(':');
+                            setWifiIpInput(parts[0]);
+                            if (parts[1]) setWifiPortInput(parts[1]);
+                          } else {
+                            setWifiIpInput(val);
+                          }
+                        }}
                         placeholder="e.g. 192.168.1.45"
                         className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
                       />
@@ -1870,7 +1940,10 @@ export default function StudioPage() {
                       <input
                         type="text"
                         value={wifiPortInput}
-                        onChange={(e) => setWifiPortInput(e.target.value)}
+                        onChange={(e) => {
+                          setWifiModalError(null);
+                          setWifiPortInput(e.target.value.trim());
+                        }}
                         placeholder="e.g. 38491"
                         className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
                       />
@@ -1881,7 +1954,10 @@ export default function StudioPage() {
                     <input
                       type="text"
                       value={wifiPairingCode}
-                      onChange={(e) => setWifiPairingCode(e.target.value)}
+                      onChange={(e) => {
+                        setWifiModalError(null);
+                        setWifiPairingCode(e.target.value.trim());
+                      }}
                       placeholder="e.g. 123456"
                       maxLength={6}
                       className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono tracking-widest text-center text-sm font-bold"
@@ -1913,7 +1989,7 @@ export default function StudioPage() {
                   ) : (
                     <>
                       <Wifi className="w-3.5 h-3.5" />
-                      <span>{isPairingMode ? 'Pair & Connect' : 'Connect Device'}</span>
+                      <span>{isPairingMode ? 'Pair Device' : 'Connect Device'}</span>
                     </>
                   )}
                 </button>

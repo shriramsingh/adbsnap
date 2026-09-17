@@ -73,13 +73,22 @@ export async function POST(req: Request) {
       if (!ip) {
         return NextResponse.json({ success: false, error: 'IP address is required' }, { status: 400 });
       }
-      const targetPort = port ? Number(port) : 5555;
-      const connected = await androidDriver.connectWifi(ip, targetPort);
-      if (!connected) {
+      let cleanIp = String(ip).trim();
+      let targetPort = port ? Number(port) : 5555;
+      if (cleanIp.includes(':')) {
+        const parts = cleanIp.split(':');
+        cleanIp = parts[0];
+        if (parts[1] && !isNaN(Number(parts[1]))) {
+          targetPort = Number(parts[1]);
+        }
+      }
+
+      const res = await androidDriver.connectWifi(cleanIp, targetPort);
+      if (!res.success) {
         return NextResponse.json(
           {
             success: false,
-            error: `Failed to connect to ${ip}:${targetPort}. Ensure phone is on the same Wi-Fi network and wireless debugging is enabled.`,
+            error: res.message || `Failed to connect to ${cleanIp}:${targetPort}. Ensure phone is on the same Wi-Fi network and wireless debugging is active.`,
           },
           { status: 400 }
         );
@@ -87,9 +96,9 @@ export async function POST(req: Request) {
       const devices = await androidDriver.listDevices();
       return NextResponse.json({
         success: true,
-        endpoint: `${ip}:${targetPort}`,
+        endpoint: `${cleanIp}:${targetPort}`,
         devices,
-        message: `Successfully connected to ${ip}:${targetPort}`,
+        message: res.message || `Successfully connected to ${cleanIp}:${targetPort}`,
       });
     }
 
@@ -97,16 +106,26 @@ export async function POST(req: Request) {
       if (!ip || !port || !code) {
         return NextResponse.json({ success: false, error: 'IP, pairing port, and 6-digit code are required' }, { status: 400 });
       }
-      const paired = await androidDriver.pairWifi(ip, Number(port), String(code));
-      if (!paired) {
+      let cleanIp = String(ip).trim();
+      let targetPort = Number(port);
+      if (cleanIp.includes(':')) {
+        const parts = cleanIp.split(':');
+        cleanIp = parts[0];
+        if (parts[1] && !isNaN(Number(parts[1]))) {
+          targetPort = Number(parts[1]);
+        }
+      }
+
+      const pairRes = await androidDriver.pairWifi(cleanIp, targetPort, String(code).trim());
+      if (!pairRes.success) {
         return NextResponse.json(
-          { success: false, error: `Pairing failed with ${ip}:${port}. Please verify the 6-digit pairing code.` },
+          { success: false, error: pairRes.message || `Pairing failed with ${cleanIp}:${targetPort}. Please verify the 6-digit pairing code.` },
           { status: 400 }
         );
       }
       return NextResponse.json({
         success: true,
-        message: `Successfully paired with ${ip}:${port}`,
+        message: pairRes.message || `Successfully paired with ${cleanIp}:${targetPort}`,
       });
     }
 

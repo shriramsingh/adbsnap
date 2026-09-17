@@ -17,8 +17,8 @@ export interface DeviceDriver {
   captureScreenshot(deviceId?: string): Promise<Buffer>;
   enableWireless?(deviceId: string): Promise<string>;
   disableWireless?(deviceId?: string): Promise<string>;
-  connectWifi?(ip: string, port?: number): Promise<boolean>;
-  pairWifi?(ip: string, port: number, code: string): Promise<boolean>;
+  connectWifi?(ip: string, port?: number): Promise<{ success: boolean; message: string }>;
+  pairWifi?(ip: string, port: number, code: string): Promise<{ success: boolean; message: string }>;
   resetAppData?(packageName: string, deviceId?: string): Promise<void>;
   launchApp?(packageName: string, deviceId?: string): Promise<void>;
   killApp?(packageName: string, deviceId?: string): Promise<void>;
