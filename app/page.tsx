@@ -91,6 +91,57 @@ const FONTS = [
   { id: 'mono', name: 'Technical Monospace' },
 ];
 
+/**
+ * Intelligently formats an Android package ID into a clean human-readable product name
+ * e.g. com.coachconnect.app -> Coachconnect, com.instagram.android -> Instagram
+ */
+export function formatAppName(pkg?: string | null): string {
+  if (!pkg) return 'Screen';
+  if (
+    pkg.includes('launcher') ||
+    pkg.includes('trebuchet') ||
+    pkg.includes('home') ||
+    pkg.endsWith('.globallauncher')
+  ) {
+    return 'Home Screen';
+  }
+  if (pkg === 'com.android.systemui') return 'System UI';
+  if (pkg === 'com.android.settings') return 'Settings';
+
+  const parts = pkg.split('.').filter(Boolean);
+  const prefixes = new Set(['com', 'org', 'net', 'io', 'co', 'me', 'in', 'us', 'uk', 'de', 'app']);
+  const suffixes = new Set([
+    'android',
+    'app',
+    'mobile',
+    'client',
+    'phone',
+    'ui',
+    'release',
+    'debug',
+    'staging',
+    'beta',
+    'lite',
+    'main',
+    'music',
+  ]);
+
+  let meaningful = parts.filter((p, i) => !(i === 0 && prefixes.has(p.toLowerCase())));
+  while (meaningful.length > 1 && suffixes.has(meaningful[meaningful.length - 1].toLowerCase())) {
+    meaningful.pop();
+  }
+
+  let candidate = meaningful[meaningful.length - 1] || parts[parts.length - 1];
+
+  let name = candidate;
+  if (/^[a-z0-9]+$/i.test(name)) {
+    if (name === name.toLowerCase()) {
+      name = name.charAt(0).toUpperCase() + name.slice(1);
+    }
+  }
+  return name;
+}
+
 export default function StudioPage() {
   // Device & Status State
   const [devices, setDevices] = useState<ConnectedDevice[]>([]);
@@ -262,7 +313,7 @@ export default function StudioPage() {
           // Add to Session Screens filmstrip
           const now = new Date();
           const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-          const appName = activeApp ? activeApp.split('.').pop() || 'Screen' : 'Screen';
+          const appName = activeApp ? formatAppName(activeApp) : 'Screen';
 
           setScreens((prev) => {
             const nextIdx = prev.length + 1;
@@ -883,9 +934,27 @@ export default function StudioPage() {
                     )}
                   </span>
                   {activeApp && (
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-950/60 text-blue-300 border border-blue-800/40 hidden md:inline">
-                      {activeApp.split('.').pop()}
-                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigator.clipboard.writeText(activeApp);
+                        if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+                        setToastMessage(`📋 Copied package: ${activeApp}`);
+                        toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2500);
+                      }}
+                      className="group/app flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-950/70 hover:bg-blue-900/90 text-blue-300 border border-blue-800/40 transition cursor-pointer text-[10px] hidden md:inline-flex"
+                      title={`Active Package: ${activeApp}\n(Click to copy package name)`}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                      <span className="font-semibold text-white tracking-wide">
+                        {formatAppName(activeApp)}
+                      </span>
+                      <span className="text-[9px] font-mono text-blue-400/70 hidden lg:inline max-w-[130px] truncate group-hover/app:text-blue-200">
+                        ({activeApp})
+                      </span>
+                      <Copy className="w-2.5 h-2.5 text-blue-400/80 group-hover/app:text-white shrink-0 ml-0.5" />
+                    </button>
                   )}
                 </>
               ) : (
