@@ -822,13 +822,13 @@ async function handleStudio(options: Record<string, unknown>) {
 
   if (fs.existsSync(localNextBin1)) {
     cmdExecutable = localNextBin1;
-    cmdArgs = ['dev', '-p', port];
+    cmdArgs = ['dev', '--webpack', '-p', port];
   } else if (fs.existsSync(localNextBin2)) {
     cmdExecutable = localNextBin2;
-    cmdArgs = ['dev', '-p', port];
+    cmdArgs = ['dev', '--webpack', '-p', port];
   } else {
     cmdExecutable = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-    cmdArgs = ['next', 'dev', '-p', port];
+    cmdArgs = ['next', 'dev', '--webpack', '-p', port];
   }
 
   const child = spawn(cmdExecutable, cmdArgs, {
