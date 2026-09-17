@@ -28,6 +28,9 @@ import {
   Upload,
   ImagePlus,
   Plus,
+  Cable,
+  Globe,
+  WifiOff,
 } from 'lucide-react';
 
 interface ConnectedDevice {
@@ -110,6 +113,15 @@ export default function StudioPage() {
   const [isRendering, setIsRendering] = useState(false);
   const [lastLatencyMs, setLastLatencyMs] = useState<number | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+  // Wireless ADB Mode State
+  const [isSwitchingWireless, setIsSwitchingWireless] = useState(false);
+  const [isWifiModalOpen, setIsWifiModalOpen] = useState(false);
+  const [wifiIpInput, setWifiIpInput] = useState('');
+  const [wifiPortInput, setWifiPortInput] = useState('5555');
+  const [wifiPairingCode, setWifiPairingCode] = useState('');
+  const [isPairingMode, setIsPairingMode] = useState(false);
+  const [isConnectingIp, setIsConnectingIp] = useState(false);
 
   // Customization Options
   const [themeId, setThemeId] = useState('studioLight');
@@ -282,6 +294,132 @@ export default function StudioPage() {
     },
     [selectedDevice, activeApp, refreshPreview]
   );
+
+  // 1-Click Switch: Puts USB device in TCP mode and connects over Wi-Fi
+  const handleSwitchToWifi = async () => {
+    if (!selectedDevice || isSwitchingWireless) return;
+    setIsSwitchingWireless(true);
+    setStatusMessage('Querying device IP and switching ADB to wireless mode...');
+    try {
+      const res = await fetch('/api/devices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'switch_to_wifi', deviceId: selectedDevice }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (data.devices) setDevices(data.devices);
+        if (data.endpoint) setSelectedDevice(data.endpoint);
+        if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+        setToastMessage(`📶 Switched to Wi-Fi (${data.endpoint})! You can now unplug the cable.`);
+        toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 4000);
+        setStatusMessage(`Wireless active: ${data.endpoint}`);
+      } else {
+        if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+        setToastMessage(`❌ Wi-Fi switch failed: ${data.error}`);
+        toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 3500);
+        setStatusMessage(`Wi-Fi error: ${data.error}`);
+      }
+    } catch (err) {
+      setStatusMessage(`Error: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsSwitchingWireless(false);
+    }
+  };
+
+  // Disconnects Wi-Fi session and reverts to standard USB mode
+  const handleDisconnectWifi = async () => {
+    if (!selectedDevice || isSwitchingWireless) return;
+    setIsSwitchingWireless(true);
+    setStatusMessage('Disconnecting Wi-Fi session and resetting to USB mode...');
+    try {
+      const res = await fetch('/api/devices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'disconnect_wifi', deviceId: selectedDevice }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (data.devices) {
+          setDevices(data.devices);
+          const usbDev = data.devices.find((d: ConnectedDevice) => d.type === 'usb');
+          if (usbDev) setSelectedDevice(usbDev.id);
+        }
+        if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+        setToastMessage('🔌 Wi-Fi disconnected. Switched back to USB mode.');
+        toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 3000);
+        setStatusMessage('Switched back to USB mode');
+      } else {
+        setStatusMessage(`Disconnect failed: ${data.error}`);
+      }
+    } catch (err) {
+      setStatusMessage(`Error: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsSwitchingWireless(false);
+    }
+  };
+
+  // Connects or pairs directly via manual IP input
+  const handleConnectIp = async () => {
+    if (!wifiIpInput.trim() || isConnectingIp) return;
+    setIsConnectingIp(true);
+    try {
+      if (isPairingMode) {
+        if (!wifiPairingCode.trim()) {
+          if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+          setToastMessage('⚠️ Please enter 6-digit pairing code');
+          toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2500);
+          setIsConnectingIp(false);
+          return;
+        }
+        const pairRes = await fetch('/api/devices', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'pair_wifi',
+            ip: wifiIpInput.trim(),
+            port: wifiPortInput.trim() || '5555',
+            code: wifiPairingCode.trim(),
+          }),
+        });
+        const pairData = await pairRes.json();
+        if (!pairData.success) {
+          throw new Error(pairData.error || 'Pairing failed');
+        }
+      }
+
+      const res = await fetch('/api/devices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'connect_ip',
+          ip: wifiIpInput.trim(),
+          port: wifiPortInput.trim() || '5555',
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (data.devices) setDevices(data.devices);
+        if (data.endpoint) setSelectedDevice(data.endpoint);
+        setIsWifiModalOpen(false);
+        setWifiIpInput('');
+        setWifiPairingCode('');
+        if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+        setToastMessage(`📶 Connected to wireless device ${data.endpoint}!`);
+        toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 3000);
+      } else {
+        if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+        setToastMessage(`❌ Connection failed: ${data.error}`);
+        toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 3500);
+      }
+    } catch (err) {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+      setToastMessage(`❌ Error: ${err instanceof Error ? err.message : String(err)}`);
+      toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 3500);
+    } finally {
+      setIsConnectingIp(false);
+    }
+  };
 
   const selectScreen = async (index: number) => {
     if (index < 0 || index >= screens.length) return;
@@ -681,28 +819,89 @@ export default function StudioPage() {
           </div>
         </div>
 
-        {/* Live Device Status */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#161922] border border-[#232733]">
-            {activeDevice ? (
-              <>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs font-medium text-slate-200">{activeDevice.model}</span>
-                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-slate-400">
-                  {activeDevice.type === 'wifi' ? 'Wi-Fi 📶' : 'USB 🔌'}
-                </span>
-                {activeApp && (
-                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-blue-950/60 text-blue-300 border border-blue-800/40">
-                    {activeApp.split('.').pop()}
+        {/* Live Device Status & USB/Wi-Fi Switcher */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 p-1 rounded-full bg-[#161922] border border-[#232733]">
+            <div className="flex items-center gap-2 px-2.5 py-0.5">
+              {activeDevice ? (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                  <span className="text-xs font-medium text-slate-200 truncate max-w-[130px]" title={activeDevice.id}>
+                    {activeDevice.model}
                   </span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 flex items-center gap-1">
+                    {activeDevice.type === 'wifi' ? (
+                      <>
+                        <Wifi className="w-2.5 h-2.5 text-cyan-400" />
+                        <span>Wi-Fi</span>
+                      </>
+                    ) : (
+                      <>
+                        <Cable className="w-2.5 h-2.5 text-amber-400" />
+                        <span>USB</span>
+                      </>
+                    )}
+                  </span>
+                  {activeApp && (
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-950/60 text-blue-300 border border-blue-800/40 hidden md:inline">
+                      {activeApp.split('.').pop()}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                  <span className="text-xs text-amber-300">No device</span>
+                </>
+              )}
+            </div>
+
+            {/* Switch to Wi-Fi Quick Button (When on USB) */}
+            {activeDevice && activeDevice.type === 'usb' && (
+              <button
+                type="button"
+                onClick={handleSwitchToWifi}
+                disabled={isSwitchingWireless}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[11px] font-medium transition cursor-pointer disabled:opacity-50"
+                title="Switch from USB to Wi-Fi mode automatically so you can unplug the USB cable"
+              >
+                {isSwitchingWireless ? (
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Wifi className="w-3 h-3 text-cyan-400" />
                 )}
-              </>
-            ) : (
-              <>
-                <span className="w-2 h-2 rounded-full bg-amber-400" />
-                <span className="text-xs text-amber-300">No device detected</span>
-              </>
+                <span className="hidden sm:inline">Switch to Wi-Fi</span>
+              </button>
             )}
+
+            {/* Disconnect Wi-Fi Quick Button (When on Wi-Fi) */}
+            {activeDevice && activeDevice.type === 'wifi' && (
+              <button
+                type="button"
+                onClick={handleDisconnectWifi}
+                disabled={isSwitchingWireless}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-medium transition cursor-pointer disabled:opacity-50"
+                title="Disconnect wireless ADB session and revert to USB mode"
+              >
+                {isSwitchingWireless ? (
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Cable className="w-3 h-3 text-amber-400" />
+                )}
+                <span className="hidden sm:inline">Disconnect Wi-Fi</span>
+              </button>
+            )}
+
+            {/* Manual Connect / Pair Popover Trigger */}
+            <button
+              type="button"
+              onClick={() => setIsWifiModalOpen(true)}
+              className="p-1 px-1.5 text-slate-400 hover:text-white rounded-full hover:bg-slate-800 transition cursor-pointer flex items-center gap-1 text-[11px]"
+              title="Connect to a phone via IP address or Android 11+ wireless debugging"
+            >
+              <Globe className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="text-[10px] hidden xl:inline text-slate-400">IP Connect</span>
+            </button>
           </div>
 
           {/* Screens Collected Counter Badge */}
@@ -1564,6 +1763,159 @@ export default function StudioPage() {
                       ? 'Compiling Animated Story...'
                       : `Download Animated Story (${screens.length} Screens)`}
                   </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Wireless ADB Connection Modal */}
+      {isWifiModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md bg-[#12151e] border border-[#232733] rounded-2xl shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#232733] bg-[#0c0e14]">
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                  <Wifi className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Wireless ADB Connection</h3>
+                  <p className="text-[11px] text-slate-400">Connect to Android over your local Wi-Fi network</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsWifiModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-5 space-y-4">
+              {/* Mode Selector Tabs */}
+              <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-[#0a0b0e] border border-[#232733] text-xs">
+                <button
+                  type="button"
+                  onClick={() => setIsPairingMode(false)}
+                  className={`py-1.5 px-3 rounded-md font-medium transition cursor-pointer text-center ${
+                    !isPairingMode
+                      ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Direct IP Connect
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsPairingMode(true)}
+                  className={`py-1.5 px-3 rounded-md font-medium transition cursor-pointer text-center ${
+                    isPairingMode
+                      ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Pair Device (Android 11+)
+                </button>
+              </div>
+
+              {!isPairingMode ? (
+                <div className="space-y-3">
+                  <p className="text-xs text-slate-400">
+                    Connect directly to an Android device already listening on TCP/IP or with wireless debugging enabled.
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-2">
+                      <label className="text-[11px] text-slate-300 font-medium block mb-1">Device IP Address</label>
+                      <input
+                        type="text"
+                        value={wifiIpInput}
+                        onChange={(e) => setWifiIpInput(e.target.value)}
+                        placeholder="e.g. 192.168.1.45"
+                        className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-slate-300 font-medium block mb-1">Port</label>
+                      <input
+                        type="text"
+                        value={wifiPortInput}
+                        onChange={(e) => setWifiPortInput(e.target.value)}
+                        placeholder="5555"
+                        className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="p-2.5 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-[11px] text-indigo-300">
+                    On your phone, navigate to <strong>Settings → Developer options → Wireless debugging → Pair device with pairing code</strong>.
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-2">
+                      <label className="text-[11px] text-slate-300 font-medium block mb-1">Device IP Address</label>
+                      <input
+                        type="text"
+                        value={wifiIpInput}
+                        onChange={(e) => setWifiIpInput(e.target.value)}
+                        placeholder="e.g. 192.168.1.45"
+                        className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-slate-300 font-medium block mb-1">Pairing Port</label>
+                      <input
+                        type="text"
+                        value={wifiPortInput}
+                        onChange={(e) => setWifiPortInput(e.target.value)}
+                        placeholder="e.g. 38491"
+                        className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-slate-300 font-medium block mb-1">6-Digit Pairing Code</label>
+                    <input
+                      type="text"
+                      value={wifiPairingCode}
+                      onChange={(e) => setWifiPairingCode(e.target.value)}
+                      placeholder="e.g. 123456"
+                      maxLength={6}
+                      className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono tracking-widest text-center text-sm font-bold"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsWifiModalOpen(false)}
+                  className="flex-1 py-2 px-3 rounded-lg bg-[#161922] hover:bg-[#1f2433] text-slate-300 text-xs font-medium border border-[#232733] transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConnectIp}
+                  disabled={isConnectingIp || !wifiIpInput.trim()}
+                  className="flex-1 py-2 px-3 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold shadow-md shadow-cyan-500/20 transition cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
+                >
+                  {isConnectingIp ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>{isPairingMode ? 'Pairing...' : 'Connecting...'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Wifi className="w-3.5 h-3.5" />
+                      <span>{isPairingMode ? 'Pair & Connect' : 'Connect Device'}</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>

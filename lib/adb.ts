@@ -169,16 +169,57 @@ export class AndroidDriver implements DeviceDriver {
   }
 
   /**
-   * Extracts the internal local Wi-Fi IP address of an attached device.
+   * Extracts the internal local Wi-Fi IP address of an attached device with multi-layer fallbacks.
    */
   async getDeviceIp(deviceId: string): Promise<string> {
-    const args = ['-s', deviceId, ...(ADB_COMMANDS.WLAN_IP as unknown as string[])];
-    const output = await this.exec(args);
-    const match = output.match(/inet\s+(\d+\.\d+\.\d+\.\d+)/);
-    if (!match || !match[1]) {
-      throw new Error(`Unable to determine Wi-Fi IP address for device ${deviceId}. Ensure phone is connected to Wi-Fi.`);
+    // Strategy 1: Standard wlan0 interface
+    try {
+      const output = await this.exec(['-s', deviceId, ...(ADB_COMMANDS.WLAN_IP as unknown as string[])]);
+      const match = output.match(/inet\s+(\d+\.\d+\.\d+\.\d+)/);
+      if (match && match[1] && !match[1].startsWith('127.')) {
+        return match[1];
+      }
+    } catch {
+      // Continue to next strategy
     }
-    return match[1];
+
+    // Strategy 2: ip route (preferred source IP)
+    try {
+      const routeOutput = await this.exec(['-s', deviceId, 'shell', 'ip', 'route']);
+      const routeMatch = routeOutput.match(/src\s+(\d+\.\d+\.\d+\.\d+)/);
+      if (routeMatch && routeMatch[1] && !routeMatch[1].startsWith('127.')) {
+        return routeMatch[1];
+      }
+    } catch {
+      // Continue to next strategy
+    }
+
+    // Strategy 3: ip -f inet addr (inspect all non-loopback network interfaces)
+    try {
+      const addrOutput = await this.exec(['-s', deviceId, 'shell', 'ip', '-f', 'inet', 'addr']);
+      const lines = addrOutput.split('\n');
+      for (const line of lines) {
+        const m = line.match(/inet\s+(\d+\.\d+\.\d+\.\d+)/);
+        if (m && m[1] && !m[1].startsWith('127.')) {
+          return m[1];
+        }
+      }
+    } catch {
+      // Continue to next strategy
+    }
+
+    // Strategy 4: Android system getprop fallback
+    try {
+      const propOutput = await this.exec(['-s', deviceId, 'shell', 'getprop', 'dhcp.wlan0.ipaddress']);
+      const trimmed = propOutput.trim();
+      if (/^\d+\.\d+\.\d+\.\d+$/.test(trimmed)) {
+        return trimmed;
+      }
+    } catch {
+      // Exhausted all strategies
+    }
+
+    throw new Error(`Unable to determine Wi-Fi IP address for device ${deviceId}. Please verify that your phone is connected to your Wi-Fi network.`);
   }
 
   /**
@@ -188,11 +229,11 @@ export class AndroidDriver implements DeviceDriver {
     const ip = await this.getDeviceIp(deviceId);
     
     await this.exec(['-s', deviceId, ...ADB_COMMANDS.TCP_IP(port)]);
-    await new Promise((r) => setTimeout(r, 600));
+    await new Promise((r) => setTimeout(r, 800));
 
     const connectOutput = await this.exec(ADB_COMMANDS.CONNECT(ip, port));
-    if (!connectOutput.includes('connected to')) {
-      throw new Error(`Failed to connect over Wi-Fi: ${connectOutput}`);
+    if (!connectOutput.includes('connected to') && !connectOutput.includes('already connected')) {
+      throw new Error(`Failed to connect over Wi-Fi to ${ip}:${port}: ${connectOutput}`);
     }
 
     return `${ip}:${port}`;
