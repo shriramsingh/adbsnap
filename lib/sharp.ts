@@ -1,6 +1,4 @@
 import sharp, { type OverlayOptions } from 'sharp';
-// @ts-ignore
-import { GIFEncoder, quantize, applyPalette } from 'gifenc';
 import { BEZEL_PRESETS, GRADIENT_PRESETS, LAYOUT_PRESETS, FONT_PRESETS, STORE_TARGETS, type BezelSpec, type LayoutMode, type StoreTarget } from '../constants/themes';
 import { generateBezelSvg, generateScreenCornerMask } from './bezel-generator';
 import { generateGradientSvg, generateTypographySvg } from './backdrop-generator';
@@ -249,6 +247,9 @@ export async function createAnimatedGif(
   const w = targetWidth;
   const h = Math.round(w * aspect);
 
+  // Dynamically import gifenc to support both Node ESM and CJS bundling without top-level crash
+  const gifencModule = await import('gifenc');
+  const { GIFEncoder, quantize, applyPalette } = (gifencModule as any).default || gifencModule;
   const gif = GIFEncoder();
 
   for (const buf of frameBuffers) {
