@@ -1,4 +1,4 @@
-﻿export type Platform = 'android' | 'ios';
+export type Platform = 'android' | 'ios';
 export type DeviceConnectionType = 'usb' | 'wifi' | 'emulator';
 
 export interface ConnectedDevice {
@@ -16,6 +16,7 @@ export interface DeviceDriver {
   listDevices(): Promise<ConnectedDevice[]>;
   captureScreenshot(deviceId?: string): Promise<Buffer>;
   enableWireless?(deviceId: string): Promise<string>;
+  disableWireless?(deviceId?: string): Promise<string>;
   connectWifi?(ip: string, port?: number): Promise<boolean>;
   pairWifi?(ip: string, port: number, code: string): Promise<boolean>;
   resetAppData?(packageName: string, deviceId?: string): Promise<void>;

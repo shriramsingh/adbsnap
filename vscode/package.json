@@ -1,0 +1,244 @@
+{
+  "name": "adbsnap",
+  "displayName": "ADBSnap — Mobile Screenshot & Asset Studio",
+  "description": "Instant 4K mobile screenshot capture, vector device bezels (iPhone 16 Pro, Pixel 9 Pro) & store asset studio via ADB.",
+  "version": "0.2.1",
+  "publisher": "shriramsingh",
+  "icon": "icon.png",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shriramsingh/adbsnap"
+  },
+  "homepage": "https://github.com/shriramsingh/adbsnap#readme",
+  "categories": [
+    "Other",
+    "Testing",
+    "Visualization"
+  ],
+  "keywords": [
+    "adb",
+    "android",
+    "screenshot",
+    "mockup",
+    "device frame",
+    "app store",
+    "flutter",
+    "react native"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "adbsnap.snap",
+        "title": "ADBSnap: Quick Capture (Framed)",
+        "icon": "$(camera)"
+      },
+      {
+        "command": "adbsnap.snapClipboard",
+        "title": "ADBSnap: Capture & Copy to Clipboard",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "adbsnap.snapRaw",
+        "title": "ADBSnap: Capture Raw Screenshot",
+        "icon": "$(device-mobile)"
+      },
+      {
+        "command": "adbsnap.devices",
+        "title": "ADBSnap: Select Active Device",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "adbsnap.wifi",
+        "title": "ADBSnap: Switch to Wireless ADB (WiFi)",
+        "icon": "$(radio-tower)"
+      },
+      {
+        "command": "adbsnap.disconnectWifi",
+        "title": "Turn Off Wi-Fi Mode (Revert to USB)",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "adbsnap.doctor",
+        "title": "ADBSnap: Run ADB Doctor Diagnostics",
+        "icon": "$(pulse)"
+      },
+      {
+        "command": "adbsnap.export",
+        "title": "ADBSnap: Export Store Asset Pack (ZIP)",
+        "icon": "$(archive)"
+      },
+      {
+        "command": "adbsnap.openStudio",
+        "title": "ADBSnap: Open Asset Studio",
+        "icon": "$(paintcan)"
+      },
+      {
+        "command": "adbsnap.refreshDevices",
+        "title": "Refresh Connected Devices",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "adbsnap.refreshCaptures",
+        "title": "Refresh Captures",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "adbsnap.snapDeviceFromTree",
+        "title": "Capture Framed Screenshot",
+        "icon": "$(camera)"
+      },
+      {
+        "command": "adbsnap.revealCapture",
+        "title": "Reveal in File Explorer",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "adbsnap.copyCapture",
+        "title": "Copy Image to Clipboard",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "adbsnap.deleteCapture",
+        "title": "Delete Screenshot",
+        "icon": "$(trash)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "adbsnap.snap",
+        "key": "ctrl+alt+s",
+        "mac": "cmd+alt+s"
+      },
+      {
+        "command": "adbsnap.snapClipboard",
+        "key": "ctrl+alt+c",
+        "mac": "cmd+alt+c"
+      }
+    ],
+    "configuration": {
+      "title": "ADBSnap",
+      "properties": {
+        "adbsnap.defaultTheme": {
+          "type": "string",
+          "default": "aurora",
+          "enum": [
+            "aurora",
+            "studioLight",
+            "freshMint",
+            "sunset",
+            "midnight",
+            "royal",
+            "cleanDark"
+          ],
+          "description": "Default canvas gradient backdrop preset"
+        },
+        "adbsnap.defaultFrame": {
+          "type": "string",
+          "default": "iphone-16-pro",
+          "enum": [
+            "iphone-16-pro",
+            "pixel-9-pro",
+            "minimal"
+          ],
+          "description": "Default device bezel chassis"
+        },
+        "adbsnap.outputDirectory": {
+          "type": "string",
+          "default": "${workspaceFolder}/output",
+          "description": "Directory where captured screenshots and assets will be saved"
+        },
+        "adbsnap.customAdbPath": {
+          "type": "string",
+          "default": "",
+          "description": "Custom path to adb binary (leave blank for automatic detection)"
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "adbsnap-sidebar",
+          "title": "ADBSnap",
+          "icon": "icon.png"
+        }
+      ]
+    },
+    "views": {
+      "adbsnap-sidebar": [
+        {
+          "id": "adbsnap.devicesView",
+          "name": "Connected Devices"
+        },
+        {
+          "id": "adbsnap.recentCapturesView",
+          "name": "Recent Captures"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "adbsnap.openStudio",
+          "when": "view == adbsnap.devicesView",
+          "group": "navigation"
+        },
+        {
+          "command": "adbsnap.refreshDevices",
+          "when": "view == adbsnap.devicesView",
+          "group": "navigation"
+        },
+        {
+          "command": "adbsnap.refreshCaptures",
+          "when": "view == adbsnap.recentCapturesView",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "adbsnap.snapDeviceFromTree",
+          "when": "view == adbsnap.devicesView && viewItem =~ /^device-(ready|active|wifi)/",
+          "group": "inline"
+        },
+        {
+          "command": "adbsnap.disconnectWifi",
+          "when": "view == adbsnap.devicesView && viewItem =~ /^device-wifi/",
+          "group": "inline"
+        },
+        {
+          "command": "adbsnap.copyCapture",
+          "when": "view == adbsnap.recentCapturesView && viewItem == capture-image",
+          "group": "inline"
+        },
+        {
+          "command": "adbsnap.revealCapture",
+          "when": "view == adbsnap.recentCapturesView",
+          "group": "inline"
+        },
+        {
+          "command": "adbsnap.deleteCapture",
+          "when": "view == adbsnap.recentCapturesView",
+          "group": "inline"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "package": "npx @vscode/vsce package --no-dependencies",
+    "release:patch": "npm version patch && node esbuild.mjs && npx @vscode/vsce package --no-dependencies",
+    "release:minor": "npm version minor && node esbuild.mjs && npx @vscode/vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0"
+  }
+}

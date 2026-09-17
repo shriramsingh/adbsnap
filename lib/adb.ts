@@ -199,6 +199,21 @@ export class AndroidDriver implements DeviceDriver {
   }
 
   /**
+   * Disconnects a wireless ADB session and resets device connection back to USB mode.
+   */
+  async disableWireless(deviceId?: string): Promise<string> {
+    if (deviceId && deviceId.includes(':')) {
+      try {
+        await this.exec(['disconnect', deviceId]);
+      } catch {
+        // Ignored if connection was already closed
+      }
+    }
+    const prefix = deviceId && !deviceId.includes(':') ? ['-s', deviceId] : [];
+    return await this.exec([...prefix, 'usb']);
+  }
+
+  /**
    * Connects directly to an existing wireless device endpoint (IP:Port).
    */
   async connectWifi(ip: string, port: number = CONFIG.DEFAULT_PORT): Promise<boolean> {
