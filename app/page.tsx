@@ -21,6 +21,10 @@ import {
   Video,
   ChevronLeft,
   ChevronRight,
+  Play,
+  Pause,
+  Film,
+  X,
 } from 'lucide-react';
 
 interface ConnectedDevice {
@@ -73,10 +77,14 @@ export default function StudioPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [exportScope, setExportScope] = useState<'all' | 'active'>('all');
   const [isDemoMode, setIsDemoMode] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordDuration, setRecordDuration] = useState<number>(10);
-  const [recordSecondsLeft, setRecordSecondsLeft] = useState(0);
-  const [isGeneratingGif, setIsGeneratingGif] = useState(false);
+  // Animated Story Maker State
+  const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
+  const [storyPaceMs, setStoryPaceMs] = useState<number>(1800);
+  const [storyPreviewIndex, setStoryPreviewIndex] = useState<number>(0);
+  const [isStoryPlaying, setIsStoryPlaying] = useState<boolean>(true);
+  const [isGeneratingStory, setIsGeneratingStory] = useState<boolean>(false);
+  const [storyFrames, setStoryFrames] = useState<string[]>([]);
+  const [isLoadingFrames, setIsLoadingFrames] = useState<boolean>(false);
   const [isCopying, setIsCopying] = useState(false);
   const [isRendering, setIsRendering] = useState(false);
   const [lastLatencyMs, setLastLatencyMs] = useState<number | null>(null);
@@ -363,71 +371,74 @@ export default function StudioPage() {
     }
   };
 
-  // Record 5s HD video clip from phone screen
-  const handleRecordClip = async (seconds = 5) => {
-    if (isRecording) return;
-    setIsRecording(true);
-    setRecordSecondsLeft(seconds);
-    setStatusMessage(`Recording ${seconds}s video clip from mobile device...`);
+  // Open Story Maker modal and fetch framed preview frames
+  const openStoryModal = async () => {
+    if (screens.length === 0) {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+      setToastMessage('⚠️ Capture at least 1 screen in filmstrip first');
+      toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2500);
+      return;
+    }
 
-    const interval = setInterval(() => {
-      setRecordSecondsLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    setIsStoryModalOpen(true);
+    setIsLoadingFrames(true);
+    setStoryPreviewIndex(0);
+    setIsStoryPlaying(true);
 
     try {
-      const res = await fetch('/api/record', {
+      const res = await fetch('/api/animate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ seconds, deviceId: selectedDevice || undefined }),
+        body: JSON.stringify({
+          action: 'preview',
+          screens,
+          bezelId,
+          gradientPreset: themeId,
+          layout,
+          font,
+          title,
+          subtitle,
+          showStarBadge: showStars,
+        }),
       });
-
-      if (!res.ok) throw new Error(`Server returned ${res.status}`);
-
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `adbsnap-screenrecord-${seconds}s.mp4`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      a.remove();
-
-      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-      setToastMessage(`🎬 Downloaded ${seconds}s video clip (.mp4)`);
-      toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 3000);
-      setStatusMessage('Screen recording downloaded successfully!');
+      const data = await res.json();
+      if (data.success && data.frames) {
+        setStoryFrames(data.frames);
+      }
     } catch (err) {
-      setStatusMessage(`Recording failed: ${err instanceof Error ? err.message : String(err)}`);
+      console.error('Failed to load story preview frames:', err);
     } finally {
-      clearInterval(interval);
-      setIsRecording(false);
-      setRecordSecondsLeft(0);
+      setIsLoadingFrames(false);
     }
   };
 
-  // Generate lightweight animated GIF slideshow from current filmstrip screens
-  const handleGenerateAnimatedGif = async () => {
+  // Cycling playback for Story Maker modal preview
+  useEffect(() => {
+    if (!isStoryModalOpen || !isStoryPlaying || storyFrames.length <= 1) return;
+    const timer = setInterval(() => {
+      setStoryPreviewIndex((prev) => (prev + 1) % storyFrames.length);
+    }, storyPaceMs);
+    return () => clearInterval(timer);
+  }, [isStoryModalOpen, isStoryPlaying, storyFrames.length, storyPaceMs]);
+
+  // Download animated GIF story
+  const handleDownloadStory = async () => {
     if (screens.length === 0) return;
-    setIsGeneratingGif(true);
-    setStatusMessage(`Compiling ${screens.length} screens into animated GIF slideshow...`);
+    setIsGeneratingStory(true);
+    setStatusMessage(`Compiling ${screens.length} screens into animated GIF story...`);
     try {
       const res = await fetch('/api/animate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           screens,
-          delayMs: 1800,
+          delayMs: storyPaceMs,
           bezelId,
           gradientPreset: themeId,
           layout,
           font,
+          title,
+          subtitle,
           showStarBadge: showStars,
         }),
       });
@@ -438,20 +449,20 @@ export default function StudioPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `adbsnap-${screens.length}-screens-animated.gif`;
+      a.download = `adbsnap-${screens.length}-screens-story.gif`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       a.remove();
 
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-      setToastMessage(`✨ Downloaded animated GIF (${screens.length} screens loop)`);
+      setToastMessage(`✨ Animated story downloaded (${screens.length} screens loop)!`);
       toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 3000);
-      setStatusMessage('Animated GIF downloaded successfully!');
+      setStatusMessage('Animated story downloaded successfully!');
     } catch (err) {
-      setStatusMessage(`GIF generation failed: ${err instanceof Error ? err.message : String(err)}`);
+      setStatusMessage(`Story export failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
-      setIsGeneratingGif(false);
+      setIsGeneratingStory(false);
     }
   };
 
@@ -704,31 +715,20 @@ export default function StudioPage() {
             <span>Auto-Crawl Tabs</span>
           </button>
 
-          {/* Configurable Screen Recorder */}
-          <div className="flex items-center rounded-lg bg-[#161922] border border-[#232733] p-0.5">
-            <select
-              value={recordDuration}
-              onChange={(e) => setRecordDuration(Number(e.target.value))}
-              disabled={isRecording}
-              className="bg-transparent text-xs text-slate-300 px-2 py-1 focus:outline-none cursor-pointer border-r border-[#232733]"
-              title="Select video recording duration"
-            >
-              <option value={5} className="bg-[#161922] text-slate-200">5s</option>
-              <option value={10} className="bg-[#161922] text-slate-200">10s</option>
-              <option value={15} className="bg-[#161922] text-slate-200">15s</option>
-              <option value={30} className="bg-[#161922] text-slate-200">30s</option>
-            </select>
-
-            <button
-              onClick={() => handleRecordClip(recordDuration)}
-              disabled={isRecording}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs shadow-md shadow-rose-600/20 transition disabled:opacity-50 cursor-pointer ml-1"
-              title={`Record ${recordDuration}s high-definition video clip (.mp4) from phone screen`}
-            >
-              <Video className={`w-3.5 h-3.5 ${isRecording ? 'animate-pulse text-white' : ''}`} />
-              <span>{isRecording ? `Recording (${recordSecondsLeft}s)...` : 'Record Clip'}</span>
-            </button>
-          </div>
+          {/* Animated Story Maker Action */}
+          <button
+            onClick={openStoryModal}
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-xs shadow-md shadow-indigo-600/25 transition cursor-pointer"
+            title="Create an animated GIF or video story from your framed screens (perfect for README & Twitter)"
+          >
+            <Film className="w-3.5 h-3.5" />
+            <span>Create Story</span>
+            {screens.length > 0 && (
+              <span className="text-[10px] px-1 py-0.2 rounded bg-white/20 font-mono">
+                {screens.length}
+              </span>
+            )}
+          </button>
         </div>
       </header>
 
@@ -924,13 +924,12 @@ export default function StudioPage() {
             {screens.length > 1 && (
               <button
                 type="button"
-                onClick={handleGenerateAnimatedGif}
-                disabled={isGeneratingGif}
-                className="w-full flex items-center justify-center gap-2 p-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-medium text-xs transition cursor-pointer disabled:opacity-50"
-                title="Generate lightweight looping animated GIF slideshow from your filmstrip screens"
+                onClick={openStoryModal}
+                className="w-full flex items-center justify-center gap-2 p-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-medium text-xs transition cursor-pointer"
+                title="Open the Animated Product Story Maker to preview and export GIF animations"
               >
-                <Sparkles className={`w-3.5 h-3.5 text-indigo-400 ${isGeneratingGif ? 'animate-spin' : ''}`} />
-                <span>{isGeneratingGif ? 'Rendering GIF...' : `Export Animated GIF (${screens.length} Screens)`}</span>
+                <Film className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Create Animated Story ({screens.length})</span>
               </button>
             )}
           </div>
@@ -1037,13 +1036,12 @@ export default function StudioPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={handleGenerateAnimatedGif}
-                    disabled={isGeneratingGif}
-                    className="text-[10px] px-2.5 py-1 rounded bg-indigo-950/60 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-900/60 transition flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
-                    title="Generate lightweight looping animated GIF slideshow from filmstrip screens"
+                    onClick={openStoryModal}
+                    className="text-[10px] px-2.5 py-1 rounded bg-indigo-950/60 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-900/60 transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+                    title="Open the Animated Product Story Maker to preview and export GIF animations"
                   >
-                    <Sparkles className={`w-3 h-3 text-indigo-400 ${isGeneratingGif ? 'animate-spin' : ''}`} />
-                    <span>{isGeneratingGif ? 'Rendering GIF...' : 'Generate GIF Story'}</span>
+                    <Film className="w-3 h-3 text-indigo-400" />
+                    <span>Create Story</span>
                   </button>
 
                   <button
@@ -1143,6 +1141,213 @@ export default function StudioPage() {
           </div>
         </main>
       </div>
+
+      {/* Animated Product Story Maker Modal */}
+      {isStoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-4xl bg-[#0f1117] border border-[#232733] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-[#232733] flex items-center justify-between shrink-0 bg-[#12141a]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center shadow">
+                  <Film className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white tracking-tight">Animated Product Story Maker</h3>
+                  <p className="text-[11px] text-slate-400">
+                    Stitch your framed screens into a lightweight looping teaser for GitHub README &amp; socials
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsStoryModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                title="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body: Split View (Live Player on Left, Settings on Right) */}
+            <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+              {/* Left Column: Live Cycling Playback Player */}
+              <div className="md:col-span-7 flex flex-col items-center justify-center bg-[#0a0b0e] rounded-xl border border-[#232733] p-4 min-h-[440px] relative">
+                {isLoadingFrames ? (
+                  <div className="flex flex-col items-center justify-center gap-3 text-cyan-400 text-xs">
+                    <RefreshCw className="w-6 h-6 animate-spin" />
+                    <span>Framing {screens.length} screens for story player...</span>
+                  </div>
+                ) : storyFrames.length > 0 ? (
+                  <div className="flex flex-col items-center w-full">
+                    {/* Active Cycling Frame */}
+                    <div className="relative max-h-[48vh] rounded-xl overflow-hidden shadow-2xl border border-white/10 flex items-center justify-center">
+                      <img
+                        src={`data:image/png;base64,${storyFrames[storyPreviewIndex]}`}
+                        alt={`Story Frame ${storyPreviewIndex + 1}`}
+                        className="max-h-[45vh] w-auto object-contain select-none"
+                      />
+
+                      {/* Frame Tag Overlay */}
+                      <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-slate-950/80 backdrop-blur border border-white/15 text-[10px] text-slate-300 font-medium">
+                        Slide {storyPreviewIndex + 1} of {storyFrames.length}
+                        {screens[storyPreviewIndex]?.customTitle && (
+                          <span className="text-cyan-300 ml-1 font-semibold">
+                            • {screens[storyPreviewIndex].customTitle}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* In-Browser Player Bar */}
+                    <div className="mt-3 flex items-center gap-3 bg-[#12141a] px-3.5 py-1.5 rounded-full border border-[#232733] shadow">
+                      {/* Step Prev */}
+                      <button
+                        onClick={() =>
+                          setStoryPreviewIndex((prev) => (prev - 1 + storyFrames.length) % storyFrames.length)
+                        }
+                        className="p-1 rounded text-slate-400 hover:text-white transition cursor-pointer"
+                        title="Previous Frame"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+
+                      {/* Play / Pause */}
+                      <button
+                        onClick={() => setIsStoryPlaying(!isStoryPlaying)}
+                        className="p-1.5 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white transition cursor-pointer shadow"
+                        title={isStoryPlaying ? 'Pause Loop' : 'Play Loop'}
+                      >
+                        {isStoryPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
+                      </button>
+
+                      {/* Step Next */}
+                      <button
+                        onClick={() =>
+                          setStoryPreviewIndex((prev) => (prev + 1) % storyFrames.length)
+                        }
+                        className="p-1 rounded text-slate-400 hover:text-white transition cursor-pointer"
+                        title="Next Frame"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+
+                      <div className="w-px h-3 bg-slate-800" />
+
+                      {/* Timeline dots */}
+                      <div className="flex items-center gap-1.5">
+                        {storyFrames.map((_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => {
+                              setStoryPreviewIndex(i);
+                              setIsStoryPlaying(false);
+                            }}
+                            className={`w-2 h-2 rounded-full transition cursor-pointer ${
+                              i === storyPreviewIndex ? 'bg-cyan-400 scale-125' : 'bg-slate-700 hover:bg-slate-500'
+                            }`}
+                            title={`Jump to slide ${i + 1}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center text-slate-500 text-xs">
+                    No frames loaded. Make sure your filmstrip has screens.
+                  </div>
+                )}
+              </div>
+
+              {/* Right Column: Story Settings & Export */}
+              <div className="md:col-span-5 flex flex-col justify-between space-y-6">
+                <div>
+                  <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-4">
+                    Story Settings
+                  </h4>
+
+                  {/* Slide Pace / Speed */}
+                  <div className="space-y-2 mb-5">
+                    <label className="text-xs text-slate-400 font-medium block">Slide Transition Pace</label>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {[
+                        { label: '1.0s', ms: 1000 },
+                        { label: '1.5s', ms: 1500 },
+                        { label: '1.8s', ms: 1800 },
+                        { label: '2.5s', ms: 2500 },
+                      ].map((item) => (
+                        <button
+                          key={item.ms}
+                          onClick={() => setStoryPaceMs(item.ms)}
+                          className={`py-1.5 px-2 rounded-lg text-xs font-medium border transition cursor-pointer text-center ${
+                            storyPaceMs === item.ms
+                              ? 'border-indigo-500 bg-indigo-500/20 text-white'
+                              : 'border-[#232733] bg-[#161922] text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Format Card */}
+                  <div className="space-y-2 mb-5">
+                    <label className="text-xs text-slate-400 font-medium block">Export Format</label>
+                    <div className="p-3 rounded-xl border border-indigo-500/40 bg-indigo-500/10 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-white">Looping Animated GIF</span>
+                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-indigo-600/40 text-indigo-300">
+                          Recommended
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400">
+                        Ultra-lightweight (<span className="text-emerald-400 font-medium">&lt;1 MB</span>), infinite loop. Zero-lag previews on GitHub READMEs, Product Hunt, &amp; Twitter.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Estimated Stats */}
+                  <div className="p-3 rounded-xl bg-[#161922] border border-[#232733] space-y-2 text-xs text-slate-400">
+                    <div className="flex items-center justify-between">
+                      <span>Total Slides:</span>
+                      <span className="text-slate-200 font-bold font-mono">{screens.length} screens</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Loop Duration:</span>
+                      <span className="text-slate-200 font-bold font-mono">
+                        {((screens.length * storyPaceMs) / 1000).toFixed(1)}s
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Target File Size:</span>
+                      <span className="text-emerald-400 font-bold font-mono">~400 KB - 900 KB</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Primary Download Action */}
+                <button
+                  onClick={handleDownloadStory}
+                  disabled={isGeneratingStory || screens.length === 0}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition cursor-pointer disabled:opacity-50"
+                >
+                  {isGeneratingStory ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                  <span>
+                    {isGeneratingStory
+                      ? 'Compiling Animated Story...'
+                      : `Download Animated Story (${screens.length} Screens)`}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

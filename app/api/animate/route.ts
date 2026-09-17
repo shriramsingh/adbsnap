@@ -21,15 +21,16 @@ export async function POST(req: Request) {
     const layout = (body.layout as LayoutMode) || 'appstore';
     const font = body.font || 'modern';
     const showStarBadge = body.showStarBadge ?? false;
+    const action = body.action || 'export';
 
     if (screens.length === 0) {
       return NextResponse.json(
-        { success: false, error: 'At least one screen is required to generate animated GIF' },
+        { success: false, error: 'At least one screen is required to generate animated story' },
         { status: 400 }
       );
     }
 
-    // Composite each screen with current styling
+    // Composite each screen into its framed marketing mockup
     const framedBuffers: Buffer[] = [];
 
     for (let i = 0; i < screens.length; i++) {
@@ -50,13 +51,22 @@ export async function POST(req: Request) {
       framedBuffers.push(framed.buffer);
     }
 
-    // Generate animated GIF (scaled to 540px width for fast loading & sub-1MB size)
+    // Return framed base64 frames for live browser preview
+    if (action === 'preview') {
+      return NextResponse.json({
+        success: true,
+        frames: framedBuffers.map((b) => b.toString('base64')),
+        count: framedBuffers.length,
+      });
+    }
+
+    // Generate lightweight animated GIF (scaled to 540px width for fast loading & sub-1MB size)
     const gifBuffer = await createAnimatedGif(framedBuffers, delayMs, 540);
 
     return new Response(new Uint8Array(gifBuffer), {
       headers: {
         'Content-Type': 'image/gif',
-        'Content-Disposition': 'attachment; filename="adbsnap-animated-story.gif"',
+        'Content-Disposition': `attachment; filename="adbsnap-${screens.length}-screens-story.gif"`,
       },
     });
   } catch (err) {
