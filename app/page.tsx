@@ -74,7 +74,9 @@ export default function StudioPage() {
   const [exportScope, setExportScope] = useState<'all' | 'active'>('all');
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [recordDuration, setRecordDuration] = useState<number>(10);
   const [recordSecondsLeft, setRecordSecondsLeft] = useState(0);
+  const [isGeneratingGif, setIsGeneratingGif] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
   const [isRendering, setIsRendering] = useState(false);
   const [lastLatencyMs, setLastLatencyMs] = useState<number | null>(null);
@@ -410,6 +412,49 @@ export default function StudioPage() {
     }
   };
 
+  // Generate lightweight animated GIF slideshow from current filmstrip screens
+  const handleGenerateAnimatedGif = async () => {
+    if (screens.length === 0) return;
+    setIsGeneratingGif(true);
+    setStatusMessage(`Compiling ${screens.length} screens into animated GIF slideshow...`);
+    try {
+      const res = await fetch('/api/animate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          screens,
+          delayMs: 1800,
+          bezelId,
+          gradientPreset: themeId,
+          layout,
+          font,
+          showStarBadge: showStars,
+        }),
+      });
+
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `adbsnap-${screens.length}-screens-animated.gif`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+      setToastMessage(`✨ Downloaded animated GIF (${screens.length} screens loop)`);
+      toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 3000);
+      setStatusMessage('Animated GIF downloaded successfully!');
+    } catch (err) {
+      setStatusMessage(`GIF generation failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsGeneratingGif(false);
+    }
+  };
+
   // Auto-snap initial frame when device is selected
   useEffect(() => {
     if (selectedDevice && !initialSnapTakenRef.current) {
@@ -659,16 +704,31 @@ export default function StudioPage() {
             <span>Auto-Crawl Tabs</span>
           </button>
 
-          {/* 5s HD Screen Recorder Action */}
-          <button
-            onClick={() => handleRecordClip(5)}
-            disabled={isRecording}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-rose-600/90 hover:bg-rose-500 text-white font-semibold text-xs shadow-md shadow-rose-600/20 transition disabled:opacity-50 cursor-pointer"
-            title="Record 5s high-definition video clip (.mp4) from phone screen"
-          >
-            <Video className={`w-3.5 h-3.5 ${isRecording ? 'animate-pulse text-white' : ''}`} />
-            <span>{isRecording ? `Recording (${recordSecondsLeft}s)...` : 'Record 5s'}</span>
-          </button>
+          {/* Configurable Screen Recorder */}
+          <div className="flex items-center rounded-lg bg-[#161922] border border-[#232733] p-0.5">
+            <select
+              value={recordDuration}
+              onChange={(e) => setRecordDuration(Number(e.target.value))}
+              disabled={isRecording}
+              className="bg-transparent text-xs text-slate-300 px-2 py-1 focus:outline-none cursor-pointer border-r border-[#232733]"
+              title="Select video recording duration"
+            >
+              <option value={5} className="bg-[#161922] text-slate-200">5s</option>
+              <option value={10} className="bg-[#161922] text-slate-200">10s</option>
+              <option value={15} className="bg-[#161922] text-slate-200">15s</option>
+              <option value={30} className="bg-[#161922] text-slate-200">30s</option>
+            </select>
+
+            <button
+              onClick={() => handleRecordClip(recordDuration)}
+              disabled={isRecording}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs shadow-md shadow-rose-600/20 transition disabled:opacity-50 cursor-pointer ml-1"
+              title={`Record ${recordDuration}s high-definition video clip (.mp4) from phone screen`}
+            >
+              <Video className={`w-3.5 h-3.5 ${isRecording ? 'animate-pulse text-white' : ''}`} />
+              <span>{isRecording ? `Recording (${recordSecondsLeft}s)...` : 'Record Clip'}</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -860,6 +920,19 @@ export default function StudioPage() {
                   : 'Export Stores (.zip)'}
               </span>
             </button>
+
+            {screens.length > 1 && (
+              <button
+                type="button"
+                onClick={handleGenerateAnimatedGif}
+                disabled={isGeneratingGif}
+                className="w-full flex items-center justify-center gap-2 p-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-medium text-xs transition cursor-pointer disabled:opacity-50"
+                title="Generate lightweight looping animated GIF slideshow from your filmstrip screens"
+              >
+                <Sparkles className={`w-3.5 h-3.5 text-indigo-400 ${isGeneratingGif ? 'animate-spin' : ''}`} />
+                <span>{isGeneratingGif ? 'Rendering GIF...' : `Export Animated GIF (${screens.length} Screens)`}</span>
+              </button>
+            )}
           </div>
         </aside>
 
@@ -962,14 +1035,26 @@ export default function StudioPage() {
                     Press <kbd className="px-1 py-0.2 bg-slate-800 text-cyan-300 rounded font-mono text-[9px]">Space</kbd> to add • Hover card to reorder ⇄
                   </span>
                 </div>
-                <button
-                  onClick={clearAllScreens}
-                  className="text-[10px] text-slate-400 hover:text-rose-400 transition flex items-center gap-1 cursor-pointer"
-                  title="Clear all captured screens"
-                >
-                  <Trash2 className="w-2.5 h-2.5" />
-                  <span>Clear All</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleGenerateAnimatedGif}
+                    disabled={isGeneratingGif}
+                    className="text-[10px] px-2.5 py-1 rounded bg-indigo-950/60 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-900/60 transition flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
+                    title="Generate lightweight looping animated GIF slideshow from filmstrip screens"
+                  >
+                    <Sparkles className={`w-3 h-3 text-indigo-400 ${isGeneratingGif ? 'animate-spin' : ''}`} />
+                    <span>{isGeneratingGif ? 'Rendering GIF...' : 'Generate GIF Story'}</span>
+                  </button>
+
+                  <button
+                    onClick={clearAllScreens}
+                    className="text-[10px] text-slate-400 hover:text-rose-400 transition flex items-center gap-1 cursor-pointer"
+                    title="Clear all captured screens"
+                  >
+                    <Trash2 className="w-2.5 h-2.5" />
+                    <span>Clear All</span>
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-center gap-2 overflow-x-auto w-full py-1.5 px-2 bg-[#12141a]/95 backdrop-blur-md rounded-xl border border-[#232733] shadow-lg">

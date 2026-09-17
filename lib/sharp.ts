@@ -229,3 +229,60 @@ export async function exportMultiStore(options: MultiStoreExportOptions): Promis
   return results;
 }
 
+/**
+ * Assembles multiple frame buffers into an ultra-lightweight animated GIF slideshow.
+ * Standardizes resolution and loops infinitely.
+ */
+export async function createAnimatedGif(
+  frameBuffers: Buffer[],
+  delayMs: number = 1800,
+  targetWidth: number = 640
+): Promise<Buffer> {
+  if (frameBuffers.length === 0) {
+    throw new Error('At least one frame buffer is required to generate a GIF');
+  }
+
+  const firstMeta = await sharp(frameBuffers[0]).metadata();
+  const aspect = (firstMeta.height || 1) / (firstMeta.width || 1);
+  const w = targetWidth;
+  const h = Math.round(w * aspect);
+
+  const resizedFrames: Buffer[] = [];
+  for (const buf of frameBuffers) {
+    const resized = await sharp(buf)
+      .resize(w, h, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+      .png()
+      .toBuffer();
+    resizedFrames.push(resized);
+  }
+
+  const totalHeight = h * resizedFrames.length;
+  const compositeList = resizedFrames.map((buf, i) => ({
+    input: buf,
+    top: i * h,
+    left: 0,
+  }));
+
+  const stacked = await sharp({
+    create: {
+      width: w,
+      height: totalHeight,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  })
+    .composite(compositeList)
+    .raw()
+    .toBuffer();
+
+  return await sharp(stacked, {
+    raw: { width: w, height: totalHeight, channels: 4 },
+  })
+    .gif({
+      pageHeight: h,
+      loop: 0,
+      delay: Array(resizedFrames.length).fill(delayMs),
+    } as any)
+    .toBuffer();
+}
+
