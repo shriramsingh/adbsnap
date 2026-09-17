@@ -813,11 +813,28 @@ async function handleStudio(options: Record<string, unknown>) {
     // Fallback to process.cwd()
   }
 
-  const npxCmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-  const child = spawn(npxCmd, ['next', 'dev', '-p', port], {
+  const nextBinName = process.platform === 'win32' ? 'next.cmd' : 'next';
+  const localNextBin1 = path.join(packageRoot, 'node_modules', '.bin', nextBinName);
+  const localNextBin2 = path.resolve(packageRoot, '..', '.bin', nextBinName);
+
+  let cmdExecutable: string;
+  let cmdArgs: string[];
+
+  if (fs.existsSync(localNextBin1)) {
+    cmdExecutable = localNextBin1;
+    cmdArgs = ['dev', '-p', port];
+  } else if (fs.existsSync(localNextBin2)) {
+    cmdExecutable = localNextBin2;
+    cmdArgs = ['dev', '-p', port];
+  } else {
+    cmdExecutable = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+    cmdArgs = ['next', 'dev', '-p', port];
+  }
+
+  const child = spawn(cmdExecutable, cmdArgs, {
     stdio: 'inherit',
     cwd: packageRoot,
-    shell: true,
+    shell: process.platform === 'win32',
   });
 
   child.on('error', (err) => {
