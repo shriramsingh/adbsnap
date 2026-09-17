@@ -399,8 +399,32 @@ export default function StudioPage() {
         });
         const pairData = await pairRes.json();
         if (!pairData.success) {
-          throw new Error(pairData.error || 'Pairing failed');
+          throw new Error(pairData.error || 'Pairing failed. Verify pairing port and code from phone popup.');
         }
+
+        // Android 11+ pairing succeeded! Give mDNS daemon 1.2s to register the paired connection
+        setWifiModalSuccess(`🎉 Paired successfully with ${cleanIp}! Initializing wireless link...`);
+        await new Promise((r) => setTimeout(r, 1200));
+
+        const refreshRes = await fetch('/api/devices');
+        const refreshData = await refreshRes.json();
+        if (refreshData.devices && refreshData.devices.length > 0) {
+          setDevices(refreshData.devices);
+          const found = refreshData.devices.find((d: ConnectedDevice) => d.type === 'wifi') || refreshData.devices[0];
+          if (found) setSelectedDevice(found.id);
+        }
+
+        if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+        setToastMessage(`📶 Successfully paired with phone!`);
+        toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 3500);
+
+        setTimeout(() => {
+          setIsWifiModalOpen(false);
+          setWifiIpInput('');
+          setWifiPairingCode('');
+          setWifiModalSuccess(null);
+        }, 1000);
+        return;
       }
 
       const res = await fetch('/api/devices', {
@@ -1822,6 +1846,7 @@ export default function StudioPage() {
                   onClick={() => {
                     setIsPairingMode(false);
                     setWifiModalError(null);
+                    if (!wifiPortInput || wifiPortInput !== '5555') setWifiPortInput('5555');
                   }}
                   className={`py-1.5 px-3 rounded-md font-medium transition cursor-pointer text-center ${
                     !isPairingMode
@@ -1836,6 +1861,7 @@ export default function StudioPage() {
                   onClick={() => {
                     setIsPairingMode(true);
                     setWifiModalError(null);
+                    if (wifiPortInput === '5555') setWifiPortInput('');
                   }}
                   className={`py-1.5 px-3 rounded-md font-medium transition cursor-pointer text-center ${
                     isPairingMode
