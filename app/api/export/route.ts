@@ -24,6 +24,51 @@ export async function POST(req: Request) {
     // 1. Multi-Screen Batch Export to ZIP
     if (body.format === 'zip' && screens.length > 0 && exportMode !== 'active') {
       const zipFiles: Array<{ path: string; buffer: Buffer }> = [];
+      const isRawMode = body.gradientPreset === 'none';
+
+      if (isRawMode) {
+        const isFrameless = body.bezelId === 'none';
+        const folder = isFrameless ? 'raw-screenshots' : 'transparent-mockups';
+
+        for (let i = 0; i < screens.length; i++) {
+          const scr = screens[i];
+          const screenBuffer = Buffer.from(scr.base64, 'base64');
+          const screenIndexStr = String(i + 1).padStart(2, '0');
+          const rawName = scr.customTitle || scr.label || `screen-${i + 1}`;
+          const slug =
+            rawName
+              .toLowerCase()
+              .replace(/[^a-z0-9_-]/g, '-')
+              .replace(/-+/g, '-')
+              .replace(/^-|-$/g, '') || `screen-${i + 1}`;
+          const filename = `${screenIndexStr}-${slug}.png`;
+
+          if (isFrameless) {
+            zipFiles.push({
+              path: `${folder}/${filename}`,
+              buffer: screenBuffer,
+            });
+          } else {
+            const framed = await compositeFrame({
+              screenshotBuffer: screenBuffer,
+              bezelId: body.bezelId,
+              gradientPreset: 'none',
+            });
+            zipFiles.push({
+              path: `${folder}/${filename}`,
+              buffer: framed.buffer,
+            });
+          }
+        }
+
+        const zipBuffer = await createStoreZip(zipFiles);
+        return new Response(new Uint8Array(zipBuffer), {
+          headers: {
+            'Content-Type': 'application/zip',
+            'Content-Disposition': `attachment; filename="adbsnap-${screens.length}-${folder}.zip"`,
+          },
+        });
+      }
 
       for (let i = 0; i < screens.length; i++) {
         const scr = screens[i];
@@ -87,6 +132,25 @@ export async function POST(req: Request) {
     };
 
     if (body.format === 'zip') {
+      if (body.gradientPreset === 'none') {
+        const isFrameless = body.bezelId === 'none';
+        const folder = isFrameless ? 'raw-screenshots' : 'transparent-mockups';
+        const framed = await compositeFrame(options);
+        const zipFiles = [
+          {
+            path: `${folder}/screenshot.png`,
+            buffer: framed.buffer,
+          },
+        ];
+        const zipBuffer = await createStoreZip(zipFiles);
+        return new Response(new Uint8Array(zipBuffer), {
+          headers: {
+            'Content-Type': 'application/zip',
+            'Content-Disposition': `attachment; filename="adbsnap-${folder}.zip"`,
+          },
+        });
+      }
+
       const batchResult = await exportMultiStore(options);
       const zipFiles = batchResult.map((t) => ({
         path: `${t.target.folder}/showcase.png`,

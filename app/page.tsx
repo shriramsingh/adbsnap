@@ -48,6 +48,7 @@ interface SessionScreen {
 }
 
 const THEMES = [
+  { id: 'none', name: 'None (Raw Screenshot)', colors: ['transparent'], darkText: false, isNone: true },
   { id: 'studioLight', name: 'Studio Light', colors: ['#f8f9fa', '#e9ecef'], darkText: true },
   { id: 'freshMint', name: 'Fresh Mint', colors: ['#0f172a', '#064e3b', '#022c22'], darkText: false },
   { id: 'aurora', name: 'Aurora Borealis', colors: ['#0f172a', '#4c1d95', '#1e1b4b'], darkText: false },
@@ -778,14 +779,20 @@ export default function StudioPage() {
                         : 'border-[#232733] hover:border-slate-700 bg-[#161922] text-slate-300'
                     }`}
                   >
-                    <span>{theme.name}</span>
-                    <div className="flex items-center gap-1">
-                      <div
-                        className="w-4 h-4 rounded-full border border-white/20 shadow-inner"
-                        style={{
-                          background: `linear-gradient(135deg, ${theme.colors.join(', ')})`,
-                        }}
-                      />
+                    <span className={theme.isNone ? 'text-amber-300 font-semibold' : ''}>{theme.name}</span>
+                    <div className="flex items-center gap-1.5">
+                      {theme.isNone ? (
+                        <span className="text-[9px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-400/15 border border-amber-400/30 text-amber-300">
+                          RAW
+                        </span>
+                      ) : (
+                        <div
+                          className="w-4 h-4 rounded-full border border-white/20 shadow-inner"
+                          style={{
+                            background: `linear-gradient(135deg, ${theme.colors.join(', ')})`,
+                          }}
+                        />
+                      )}
                     </div>
                   </button>
                 ))}
@@ -870,8 +877,7 @@ export default function StudioPage() {
                 })}
               </div>
 
-              <div className="space-y-2">
-
+              <div className={`space-y-2 transition ${themeId === 'none' ? 'opacity-40 pointer-events-none' : ''}`}>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => setLayout('appstore')}
@@ -898,11 +904,18 @@ export default function StudioPage() {
             </div>
 
             {/* Typography & Marketing Copy */}
-            <div>
-              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 mb-2.5">
-                <Type className="w-3.5 h-3.5 text-cyan-400" />
-                Marketing Typography
-              </label>
+            <div className={`transition ${themeId === 'none' ? 'opacity-40 pointer-events-none' : ''}`}>
+              <div className="flex items-center justify-between mb-2.5">
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Type className="w-3.5 h-3.5 text-cyan-400" />
+                  Marketing Typography
+                </label>
+                {themeId === 'none' && (
+                  <span className="text-[10px] text-amber-400 bg-amber-400/10 border border-amber-400/30 px-1.5 py-0.5 rounded font-mono">
+                    Disabled in Raw Mode
+                  </span>
+                )}
+              </div>
               <div className="space-y-3">
                 <div>
                   <span className="text-[11px] text-slate-400 block mb-1">Headline</span>
@@ -999,7 +1012,11 @@ export default function StudioPage() {
               )}
               <span>
                 {isExporting
-                  ? 'Packaging All Stores...'
+                  ? 'Packaging Assets...'
+                  : themeId === 'none'
+                  ? screens.length > 1 && exportScope === 'all'
+                    ? `Export All (${screens.length} Raw Screens) (.zip)`
+                    : 'Export Raw Screens (.zip)'
                   : screens.length > 1 && exportScope === 'all'
                   ? `Export All (${screens.length} Screens) (.zip)`
                   : 'Export Stores (.zip)'}

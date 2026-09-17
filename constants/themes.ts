@@ -144,9 +144,17 @@ export interface GradientPreset {
   colors: [string, string, ...string[]];
   angle: number;
   isDark?: boolean;
+  isNone?: boolean;
 }
 
 export const GRADIENT_PRESETS: Record<string, GradientPreset> = {
+  none: {
+    name: 'None (Raw Screenshot)',
+    colors: ['transparent', 'transparent'],
+    angle: 0,
+    isDark: true,
+    isNone: true,
+  },
   aurora: {
     name: 'Electric Aurora',
     colors: ['#4f46e5', '#06b6d4', '#10b981'],

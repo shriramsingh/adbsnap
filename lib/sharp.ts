@@ -126,6 +126,29 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
       .toBuffer();
   }
 
+  // If "None (Raw Screenshot)" theme preset is active:
+  // Bypass gradient canvas, marketing headers, subheaders, and layout padding.
+  if (options.gradientPreset === 'none') {
+    if (spec.isFrameless || spec.id === 'none') {
+      const rawPng = await sharp(options.screenshotBuffer).png().toBuffer();
+      const meta = await sharp(rawPng).metadata();
+      return {
+        buffer: rawPng,
+        width: meta.width || spec.screen.width,
+        height: meta.height || spec.screen.height,
+        elapsedMs: Math.round(performance.now() - startTime),
+      };
+    }
+
+    const meta = await sharp(phoneDeviceBuffer).metadata();
+    return {
+      buffer: phoneDeviceBuffer,
+      width: meta.width || spec.width,
+      height: meta.height || spec.height,
+      elapsedMs: Math.round(performance.now() - startTime),
+    };
+  }
+
   // 6. Responsive Phone Sizing to guarantee title headroom on all screen ratios (16:9, 19.5:9, 4:3, etc.)
   const layout = options.layout || 'appstore';
   const targetRatio = layout === 'appstore' ? 0.74 : 0.66;
