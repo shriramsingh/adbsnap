@@ -268,6 +268,63 @@ export class AndroidDriver implements DeviceDriver {
     const prefix = deviceId ? ['-s', deviceId] : [];
     await this.exec([...prefix, ...ADB_COMMANDS.FORCE_STOP(packageName)]);
   }
+
+  /**
+   * Toggles Android SystemUI Demo Mode (pristine 9:41 AM, 100% battery, full wifi, no notifications).
+   */
+  async setDemoMode(enable: boolean, deviceId?: string): Promise<void> {
+    const prefix = deviceId ? ['-s', deviceId] : [];
+    if (enable) {
+      await this.exec([...prefix, 'shell', 'settings', 'put', 'global', 'sysui_demo_allowed', '1']);
+      await this.exec([...prefix, 'shell', 'am', 'broadcast', '-a', 'com.android.systemui.demo', '-e', 'command', 'enter']);
+      await this.exec([...prefix, 'shell', 'am', 'broadcast', '-a', 'com.android.systemui.demo', '-e', 'command', 'clock', '-e', 'hhmm', '0941']);
+      await this.exec([...prefix, 'shell', 'am', 'broadcast', '-a', 'com.android.systemui.demo', '-e', 'command', 'battery', '-e', 'level', '100', '-e', 'plugged', 'false']);
+      await this.exec([...prefix, 'shell', 'am', 'broadcast', '-a', 'com.android.systemui.demo', '-e', 'command', 'network', '-e', 'wifi', 'show', '-e', 'level', '4', '-e', 'fully', 'true']);
+      await this.exec([...prefix, 'shell', 'am', 'broadcast', '-a', 'com.android.systemui.demo', '-e', 'command', 'network', '-e', 'mobile', 'show', '-e', 'datatype', 'false', '-e', 'level', '4']);
+      await this.exec([...prefix, 'shell', 'am', 'broadcast', '-a', 'com.android.systemui.demo', '-e', 'command', 'notifications', '-e', 'visible', 'false']);
+    } else {
+      await this.exec([...prefix, 'shell', 'am', 'broadcast', '-a', 'com.android.systemui.demo', '-e', 'command', 'exit']);
+    }
+  }
+
+  /**
+   * Records a high-definition MP4 clip directly from the mobile screen using adb screenrecord.
+   */
+  async recordVideo(seconds: number = 5, deviceId?: string): Promise<Buffer> {
+    const prefix = deviceId ? ['-s', deviceId] : [];
+    const remotePath = '/sdcard/adbsnap_temp_rec.mp4';
+    const localTmp = path.join(os.tmpdir(), `adbsnap-rec-${Date.now()}.mp4`);
+
+    try {
+      await this.exec([...prefix, 'shell', 'rm', '-f', remotePath]);
+    } catch {
+      // ignore
+    }
+
+    const duration = Math.min(Math.max(seconds, 1), 30);
+    await this.exec(
+      [...prefix, 'shell', 'screenrecord', '--time-limit', String(duration), remotePath],
+      (duration + 10) * 1000
+    );
+
+    await this.exec([...prefix, 'pull', remotePath, localTmp], 30000);
+
+    const buffer = fs.readFileSync(localTmp);
+
+    try {
+      fs.unlinkSync(localTmp);
+    } catch {
+      // ignore
+    }
+
+    try {
+      await this.exec([...prefix, 'shell', 'rm', '-f', remotePath]);
+    } catch {
+      // ignore
+    }
+
+    return buffer;
+  }
 }
 
 export const androidDriver = new AndroidDriver();

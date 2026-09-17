@@ -17,6 +17,10 @@ import {
   FolderArchive,
   ExternalLink,
   Trash2,
+  Copy,
+  Video,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 interface ConnectedDevice {
@@ -68,6 +72,10 @@ export default function StudioPage() {
   const [isCrawling, setIsCrawling] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportScope, setExportScope] = useState<'all' | 'active'>('all');
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordSecondsLeft, setRecordSecondsLeft] = useState(0);
+  const [isCopying, setIsCopying] = useState(false);
   const [isRendering, setIsRendering] = useState(false);
   const [lastLatencyMs, setLastLatencyMs] = useState<number | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -281,6 +289,127 @@ export default function StudioPage() {
     toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2000);
   };
 
+  // Move screen card left or right in export order
+  const moveScreen = (e: React.MouseEvent, index: number, direction: 'left' | 'right') => {
+    e.stopPropagation();
+    const targetIdx = direction === 'left' ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= screens.length) return;
+
+    setScreens((prev) => {
+      const copy = [...prev];
+      const temp = copy[index];
+      copy[index] = copy[targetIdx];
+      copy[targetIdx] = temp;
+      return copy;
+    });
+
+    if (activeScreenIndex === index) {
+      setActiveScreenIndex(targetIdx);
+    } else if (activeScreenIndex === targetIdx) {
+      setActiveScreenIndex(index);
+    }
+  };
+
+  // Toggle Clean Status Bar (Android Demo Mode)
+  const handleToggleDemoMode = async () => {
+    const nextVal = !isDemoMode;
+    setIsDemoMode(nextVal);
+    setStatusMessage(nextVal ? 'Activating Clean Status Bar (09:41, 100%)...' : 'Restoring standard status bar...');
+    try {
+      const res = await fetch('/api/demomode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: nextVal, deviceId: selectedDevice || undefined }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+        setToastMessage(nextVal ? '🧼 Demo Mode enabled: Clean 09:41, 100% battery' : 'Standard status bar restored');
+        toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2500);
+        // Refresh frame with clean status bar
+        setTimeout(() => handleSnap(true), 350);
+      }
+    } catch (err) {
+      setStatusMessage(`Demo mode error: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
+
+  // Copy framed mockup to clipboard
+  const handleCopyImage = async () => {
+    if (!previewBase64) return;
+    setIsCopying(true);
+    try {
+      const byteCharacters = atob(previewBase64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'image/png' });
+
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': blob }),
+      ]);
+
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+      setToastMessage('📋 Mockup copied to clipboard! Paste in Figma or Slack');
+      toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2500);
+    } catch (err) {
+      setStatusMessage(`Copy failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsCopying(false);
+    }
+  };
+
+  // Record 5s HD video clip from phone screen
+  const handleRecordClip = async (seconds = 5) => {
+    if (isRecording) return;
+    setIsRecording(true);
+    setRecordSecondsLeft(seconds);
+    setStatusMessage(`Recording ${seconds}s video clip from mobile device...`);
+
+    const interval = setInterval(() => {
+      setRecordSecondsLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    try {
+      const res = await fetch('/api/record', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ seconds, deviceId: selectedDevice || undefined }),
+      });
+
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `adbsnap-screenrecord-${seconds}s.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+      setToastMessage(`🎬 Downloaded ${seconds}s video clip (.mp4)`);
+      toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 3000);
+      setStatusMessage('Screen recording downloaded successfully!');
+    } catch (err) {
+      setStatusMessage(`Recording failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      clearInterval(interval);
+      setIsRecording(false);
+      setRecordSecondsLeft(0);
+    }
+  };
+
   // Auto-snap initial frame when device is selected
   useEffect(() => {
     if (selectedDevice && !initialSnapTakenRef.current) {
@@ -468,6 +597,21 @@ export default function StudioPage() {
             )}
           </div>
 
+          {/* Clean Status Bar Toggle (Android Demo Mode) */}
+          <button
+            onClick={handleToggleDemoMode}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition cursor-pointer ${
+              isDemoMode
+                ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300 shadow-sm shadow-cyan-500/20'
+                : 'bg-[#161922] border-[#232733] text-slate-400 hover:text-slate-200'
+            }`}
+            title="Clean status bar to 09:41, 100% battery, and hide notification icons"
+          >
+            <span>🧼</span>
+            <span className="hidden md:inline">Clean Status</span>
+            {isDemoMode && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />}
+          </button>
+
           {/* Screens Collected Counter Badge */}
           {screens.length > 0 && (
             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/40 border border-cyan-500/30 text-xs text-cyan-300 animate-in fade-in">
@@ -513,6 +657,17 @@ export default function StudioPage() {
               <Sparkles className="w-3.5 h-3.5" />
             )}
             <span>Auto-Crawl Tabs</span>
+          </button>
+
+          {/* 5s HD Screen Recorder Action */}
+          <button
+            onClick={() => handleRecordClip(5)}
+            disabled={isRecording}
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-rose-600/90 hover:bg-rose-500 text-white font-semibold text-xs shadow-md shadow-rose-600/20 transition disabled:opacity-50 cursor-pointer"
+            title="Record 5s high-definition video clip (.mp4) from phone screen"
+          >
+            <Video className={`w-3.5 h-3.5 ${isRecording ? 'animate-pulse text-white' : ''}`} />
+            <span>{isRecording ? `Recording (${recordSecondsLeft}s)...` : 'Record 5s'}</span>
           </button>
         </div>
       </header>
@@ -751,17 +906,29 @@ export default function StudioPage() {
                     </div>
                   </div>
                 )}
-                {/* Floating Quick Sync Button on Canvas Hover */}
-                <button
-                  onClick={() => handleSnap(false)}
-                  disabled={isCapturing}
-                  className="absolute bottom-3 right-3 px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-medium border border-white/15 shadow-xl backdrop-blur opacity-0 group-hover:opacity-100 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-                  title="Sync current phone screen (Space)"
-                >
-                  <RefreshCw className={`w-3 h-3 ${isCapturing ? 'animate-spin' : ''}`} />
-                  <span>Sync Screen</span>
-                  <kbd className="text-[10px] font-mono text-cyan-400">Space</kbd>
-                </button>
+                {/* Floating Quick Action Buttons on Canvas Hover */}
+                <div className="absolute bottom-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                  <button
+                    onClick={handleCopyImage}
+                    disabled={isCopying}
+                    className="px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-medium border border-white/15 shadow-xl backdrop-blur flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    title="Copy framed mockup directly to clipboard"
+                  >
+                    <Copy className="w-3 h-3 text-cyan-400" />
+                    <span>{isCopying ? 'Copied!' : 'Copy Image'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleSnap(false)}
+                    disabled={isCapturing}
+                    className="px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-medium border border-white/15 shadow-xl backdrop-blur flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                    title="Sync current phone screen (Space)"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${isCapturing ? 'animate-spin' : ''}`} />
+                    <span>Sync Screen</span>
+                    <kbd className="text-[10px] font-mono text-cyan-400">Space</kbd>
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center p-12 text-center text-slate-500 border-2 border-dashed border-[#232733] rounded-2xl max-w-md">
@@ -792,7 +959,7 @@ export default function StudioPage() {
                     Session Filmstrip ({screens.length})
                   </span>
                   <span className="text-[10px] text-slate-500">
-                    Press <kbd className="px-1 py-0.2 bg-slate-800 text-cyan-300 rounded font-mono text-[9px]">Space</kbd> to capture new frames
+                    Press <kbd className="px-1 py-0.2 bg-slate-800 text-cyan-300 rounded font-mono text-[9px]">Space</kbd> to add • Hover card to reorder ⇄
                   </span>
                 </div>
                 <button
@@ -827,13 +994,37 @@ export default function StudioPage() {
                         {isActive && (
                           <div className="absolute inset-0 border-2 border-cyan-400 rounded pointer-events-none" />
                         )}
+
+                        {/* Top Right: Delete Screen */}
                         <button
                           onClick={(e) => deleteScreen(e, idx)}
-                          className="absolute top-0.5 right-0.5 p-1 rounded bg-black/80 hover:bg-rose-600 text-white opacity-0 group-hover:opacity-100 transition shadow cursor-pointer"
+                          className="absolute top-0.5 right-0.5 p-1 rounded bg-black/80 hover:bg-rose-600 text-white opacity-0 group-hover:opacity-100 transition shadow cursor-pointer z-10"
                           title="Remove screen"
                         >
                           <Trash2 className="w-2.5 h-2.5" />
                         </button>
+
+                        {/* Bottom Left: Move Left in Order */}
+                        {idx > 0 && (
+                          <button
+                            onClick={(e) => moveScreen(e, idx, 'left')}
+                            className="absolute bottom-0.5 left-0.5 p-0.5 rounded bg-black/80 hover:bg-cyan-600 text-white opacity-0 group-hover:opacity-100 transition shadow cursor-pointer z-10"
+                            title="Move left in export order"
+                          >
+                            <ChevronLeft className="w-2.5 h-2.5" />
+                          </button>
+                        )}
+
+                        {/* Bottom Right: Move Right in Order */}
+                        {idx < screens.length - 1 && (
+                          <button
+                            onClick={(e) => moveScreen(e, idx, 'right')}
+                            className="absolute bottom-0.5 right-0.5 p-0.5 rounded bg-black/80 hover:bg-cyan-600 text-white opacity-0 group-hover:opacity-100 transition shadow cursor-pointer z-10"
+                            title="Move right in export order"
+                          >
+                            <ChevronRight className="w-2.5 h-2.5" />
+                          </button>
+                        )}
                       </div>
                       <span
                         className={`text-[9px] mt-0.5 font-medium max-w-[56px] truncate text-center ${
