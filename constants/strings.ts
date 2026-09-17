@@ -1,6 +1,6 @@
 export const APP_INFO = {
   NAME: 'ADBSnap',
-  VERSION: '1.0.0',
+  VERSION: '1.0.1',
   TAGLINE: 'Automated Mobile Showcase & App Store Asset Studio',
   DESCRIPTION: 'CLI tool to capture, frame, and export mobile screenshots directly via ADB.',
 } as const;
@@ -20,7 +20,8 @@ COMMANDS:
   export               Auto-export across App Store & Google Play resolutions
   journey              Interactive multi-screen capture wizard (guided carousel)
   devices              List all connected USB, Wi-Fi, and emulator devices
-  wifi [ip]            Switch device to wireless ADB mode (default port: 5555)
+  wifi [ip|off]        Switch device to wireless ADB mode or turn off (adbsnap wifi off)
+  usb                  Reset ADB connection back to USB mode (turn off wireless)
   doctor               Verify ADB installation, device health, and permissions
   studio               Launch the local Next.js interactive web dashboard (http://localhost:3000)
   help                 Display this guide

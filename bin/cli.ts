@@ -36,6 +36,7 @@ async function main() {
       out: { type: 'string' },
       port: { type: 'string', default: '3000' },
       raw: { type: 'boolean', default: false },
+      off: { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h', default: false },
       version: { type: 'boolean', short: 'v', default: false },
     },
@@ -61,7 +62,10 @@ async function main() {
       await handleDoctor();
       break;
     case 'wifi':
-      await handleWifi(positionals[1]);
+      await handleWifi(positionals[1], values);
+      break;
+    case 'usb':
+      await handleWifi('off', values);
       break;
     case 'snap':
       await handleSnap(values);
@@ -153,7 +157,23 @@ async function handleDoctor() {
   console.log('');
 }
 
-async function handleWifi(customIp?: string) {
+async function handleWifi(actionOrIp?: string, values?: { off?: boolean }) {
+  const isOff = actionOrIp === 'off' || actionOrIp === 'stop' || actionOrIp === 'disable' || values?.off;
+
+  if (isOff) {
+    logger.banner(APP_INFO.NAME, 'Wireless ADB — Revert to USB');
+    logger.info('Disconnecting wireless sessions and resetting to USB mode...');
+    try {
+      if (androidDriver.disableWireless) {
+        await androidDriver.disableWireless();
+      }
+      logger.success('Wireless mode disabled. Device connection reset to USB mode.');
+    } catch (err) {
+      logger.error('WIFI_DISCONNECT_FAILED', err instanceof Error ? err.message : String(err));
+    }
+    return;
+  }
+
   logger.banner(APP_INFO.NAME, 'Wireless ADB Setup');
 
   const devices = await androidDriver.listDevices();
@@ -169,7 +189,7 @@ async function handleWifi(customIp?: string) {
 
   try {
     const ip = await androidDriver.enableWireless(target.id, CONFIG.DEFAULT_PORT);
-    logger.success(MESSAGES.WIFI_SUCCESS(customIp || ip));
+    logger.success(MESSAGES.WIFI_SUCCESS(actionOrIp || ip));
   } catch (err) {
     logger.error('WIFI_CONNECT_FAILED', err instanceof Error ? err.message : String(err));
   }

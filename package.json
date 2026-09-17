@@ -1,6 +1,6 @@
 {
   "name": "adbsnap",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Automated mobile screenshot capture, 4K vector device framing & App Store / Google Play asset studio",
   "main": "dist/bin/cli.js",
   "bin": {
