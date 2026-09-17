@@ -211,10 +211,26 @@ export default function StudioPage() {
       try {
         const data = JSON.parse(event.data);
         if (data.devices) {
-          setDevices(data.devices);
-          if (!selectedDevice && data.devices.length > 0) {
-            setSelectedDevice(data.devices[0].id);
-          }
+          const newDevices: ConnectedDevice[] = data.devices;
+          setDevices(newDevices);
+          setSelectedDevice((prevSelected) => {
+            if (!newDevices || newDevices.length === 0) return '';
+
+            const usbDev = newDevices.find((d) => d.type === 'usb' && d.isAuthorized);
+            const currentDev = newDevices.find((d) => d.id === prevSelected);
+
+            // If no previous selection, or current selected device disconnected:
+            if (!currentDev) {
+              return usbDev ? usbDev.id : newDevices[0].id;
+            }
+
+            // Auto-prioritize USB: if currently on Wi-Fi and a USB connection appears (cable plugged in):
+            if (currentDev.type === 'wifi' && usbDev && usbDev.id !== prevSelected) {
+              return usbDev.id;
+            }
+
+            return prevSelected;
+          });
         }
         if (data.activeApp !== undefined) {
           setActiveApp((prev) => {
@@ -384,7 +400,7 @@ export default function StudioPage() {
   const handleDisconnectWifi = async () => {
     if (!selectedDevice || isSwitchingWireless) return;
     setIsSwitchingWireless(true);
-    setStatusMessage('Disconnecting Wi-Fi session and resetting to USB mode...');
+    setStatusMessage('Disconnecting Wi-Fi session...');
     try {
       const res = await fetch('/api/devices', {
         method: 'POST',
@@ -395,13 +411,15 @@ export default function StudioPage() {
       if (data.success) {
         if (data.devices) {
           setDevices(data.devices);
-          const usbDev = data.devices.find((d: ConnectedDevice) => d.type === 'usb');
+          const usbDev = data.devices.find((d: ConnectedDevice) => d.type === 'usb' && d.isAuthorized);
           if (usbDev) setSelectedDevice(usbDev.id);
+          else if (data.devices.length > 0) setSelectedDevice(data.devices[0].id);
+          else setSelectedDevice('');
         }
         if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-        setToastMessage('🔌 Wi-Fi disconnected. Switched back to USB mode.');
+        setToastMessage('🔌 Wi-Fi disconnected.');
         toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 3000);
-        setStatusMessage('Switched back to USB mode');
+        setStatusMessage('Wi-Fi disconnected');
       } else {
         setStatusMessage(`Disconnect failed: ${data.error}`);
       }
@@ -920,19 +938,49 @@ export default function StudioPage() {
                   <span className="text-xs font-medium text-slate-200 truncate max-w-[90px] sm:max-w-[125px]" title={activeDevice.id}>
                     {activeDevice.model}
                   </span>
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 flex items-center gap-1 shrink-0">
-                    {activeDevice.type === 'wifi' ? (
-                      <>
-                        <Wifi className="w-2.5 h-2.5 text-cyan-400" />
-                        <span>Wi-Fi</span>
-                      </>
-                    ) : (
-                      <>
-                        <Cable className="w-2.5 h-2.5 text-amber-400" />
-                        <span>USB</span>
-                      </>
-                    )}
-                  </span>
+                  {devices.length > 1 ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const otherDev = devices.find((d) => d.id !== activeDevice.id && d.isAuthorized) || devices.find((d) => d.id !== activeDevice.id);
+                        if (otherDev) {
+                          setSelectedDevice(otherDev.id);
+                          if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+                          setToastMessage(`Switched transport to ${otherDev.type === 'usb' ? '🔌 USB' : '📶 Wi-Fi'}`);
+                          toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2500);
+                        }
+                      }}
+                      className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center gap-1 shrink-0 transition cursor-pointer border border-slate-700/60"
+                      title={`Multiple connections active. Click to switch to ${activeDevice.type === 'wifi' ? 'USB' : 'Wi-Fi'}`}
+                    >
+                      {activeDevice.type === 'wifi' ? (
+                        <>
+                          <Wifi className="w-2.5 h-2.5 text-cyan-400" />
+                          <span>Wi-Fi ▾</span>
+                        </>
+                      ) : (
+                        <>
+                          <Cable className="w-2.5 h-2.5 text-amber-400" />
+                          <span>USB ▾</span>
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 flex items-center gap-1 shrink-0">
+                      {activeDevice.type === 'wifi' ? (
+                        <>
+                          <Wifi className="w-2.5 h-2.5 text-cyan-400" />
+                          <span>Wi-Fi</span>
+                        </>
+                      ) : (
+                        <>
+                          <Cable className="w-2.5 h-2.5 text-amber-400" />
+                          <span>USB</span>
+                        </>
+                      )}
+                    </span>
+                  )}
                   {activeApp && (
                     <button
                       type="button"

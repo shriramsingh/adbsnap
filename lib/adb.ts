@@ -126,6 +126,18 @@ export class AndroidDriver implements DeviceDriver {
       });
     }
 
+    // Sort devices: Authorized USB connections first, then authorized Wi-Fi, then emulators, then unauthorized
+    devices.sort((a, b) => {
+      if (a.isAuthorized !== b.isAuthorized) return a.isAuthorized ? -1 : 1;
+      const rank = (type: DeviceConnectionType) => {
+        if (type === 'usb') return 0;
+        if (type === 'wifi') return 1;
+        if (type === 'emulator') return 2;
+        return 3;
+      };
+      return rank(a.type) - rank(b.type);
+    });
+
     return devices;
   }
 
@@ -249,14 +261,23 @@ export class AndroidDriver implements DeviceDriver {
    * Disconnects a wireless ADB session and resets device connection back to USB mode.
    */
   async disableWireless(deviceId?: string): Promise<string> {
-    if (deviceId && (deviceId.includes(':') || deviceId.includes('._tcp') || deviceId.includes('_adb-tls-'))) {
+    const isWireless = deviceId && (
+      deviceId.includes(':') ||
+      deviceId.includes('._tcp') ||
+      deviceId.includes('_adb-tls-') ||
+      deviceId.includes('tls-connect')
+    );
+
+    if (isWireless) {
       try {
-        await this.exec(['disconnect', deviceId]);
+        return await this.exec(['disconnect', deviceId]);
       } catch {
         // Ignored if connection was already closed
+        return 'disconnected';
       }
     }
-    const prefix = deviceId && !deviceId.includes(':') && !deviceId.includes('._tcp') ? ['-s', deviceId] : [];
+
+    const prefix = deviceId ? ['-s', deviceId] : [];
     return await this.exec([...prefix, 'usb']);
   }
 
