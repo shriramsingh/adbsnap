@@ -1,6 +1,6 @@
 {
   "name": "adbsnap",
-  "version": "1.1.6",
+  "version": "1.2.0",
   "description": "Automated mobile screenshot capture, 4K vector device framing & App Store / Google Play asset studio",
   "main": "dist/bin/cli.js",
   "bin": {
@@ -23,14 +23,7 @@
   ],
   "files": [
     "dist/bin",
-    "app",
-    "lib",
-    "constants",
-    "utils",
-    "next.config.ts",
-    "tailwind.config.ts",
-    "tsconfig.json",
-    "postcss.config.mjs",
+    "dist/studio",
     "README.md",
     "LICENSE"
   ],
@@ -48,7 +41,6 @@
     "test:lifecycle": "tsx scripts/test-lifecycle.ts",
     "test:wifi": "tsx scripts/test-wifi.ts",
     "studio": "tsx bin/cli.ts studio",
-    "studio:start": "next start -p 3000",
     "build:vscode": "node vscode/esbuild.mjs",
     "watch:vscode": "node vscode/esbuild.mjs --watch",
     "package:vscode": "cd vscode && npx @vscode/vsce package --no-dependencies",
@@ -69,25 +61,24 @@
   },
   "devDependencies": {
     "@types/archiver": "^8.0.0",
-    "@types/vscode": "^1.138.0",
-    "chalk": "^6.0.0",
-    "esbuild": "^0.28.2",
-    "tsx": "^4.23.13"
-  },
-  "dependencies": {
     "@types/node": "^26.4.1",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
-    "archiver": "^8.0.0",
+    "@types/vscode": "^1.138.0",
     "autoprefixer": "^10.5.5",
-    "gifenc": "^1.0.3",
+    "chalk": "^6.0.0",
+    "esbuild": "^0.28.2",
     "lucide-react": "^1.42.0",
-    "next": "^16.3.4",
     "postcss": "^8.5.28",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "sharp": "^0.35.4",
     "tailwindcss": "^3.4.19",
+    "tsx": "^4.23.13",
     "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "archiver": "^8.0.0",
+    "gifenc": "^1.0.3",
+    "sharp": "^0.35.4"
   }
 }
