@@ -792,6 +792,30 @@ async function handleStudio(options: Record<string, unknown>) {
   const preferBrowser = Boolean(options.browser);
   const noOpen = Boolean(options['no-open']);
 
+  // ── npx detection ────────────────────────────────────────────────────
+  // When run via `npx adbsnap` (no local/global install), the binary lives
+  // inside the npm _npx cache. Next.js dev compilation fails there because
+  // the loader chain has path assumptions that break in the cache layout.
+  // Require a real install instead and show a helpful message.
+  const cliPath = process.argv[1] ?? '';
+  const isRunningViaNpx =
+    cliPath.includes(`${path.sep}_npx${path.sep}`) ||  // Windows / Linux
+    cliPath.includes('/.npm/_npx/');                    // macOS
+
+  if (isRunningViaNpx) {
+    logger.warn(
+      'ADBSnap Studio requires a persistent install.\n\n' +
+      '  Install globally:\n' +
+      '    npm install -g adbsnap\n' +
+      '    adbsnap studio\n\n' +
+      '  Or as a project dev-dependency:\n' +
+      '    npm install -D adbsnap\n' +
+      '    npx adbsnap studio'
+    );
+    process.exit(0);
+  }
+  // ─────────────────────────────────────────────────────────────────────
+
   logger.banner(APP_INFO.NAME, 'Visual Web Studio');
   logger.info(`Starting ADBSnap Studio on port ${port}...`);
 
@@ -831,18 +855,11 @@ async function handleStudio(options: Record<string, unknown>) {
     cmdArgs = ['next', 'dev', '--webpack', '-p', port];
   }
 
-  const parentNodeModules = path.resolve(packageRoot, '..');
-  const localNodeModules = path.join(packageRoot, 'node_modules');
-  const nodePath = [localNodeModules, parentNodeModules, process.env.NODE_PATH].filter(Boolean).join(path.delimiter);
-
   const child = spawn(cmdExecutable, cmdArgs, {
     stdio: 'inherit',
     cwd: packageRoot,
     shell: process.platform === 'win32',
-    env: {
-      ...process.env,
-      NODE_PATH: nodePath,
-    },
+    env: process.env,
   });
 
   child.on('error', (err) => {

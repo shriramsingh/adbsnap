@@ -1,6 +1,6 @@
 {
   "name": "adbsnap",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "Automated mobile screenshot capture, 4K vector device framing & App Store / Google Play asset studio",
   "main": "dist/bin/cli.js",
   "bin": {
@@ -24,9 +24,6 @@
   "files": [
     "dist/bin",
     "app",
-    "lib",
-    "constants",
-    "utils",
     "next.config.ts",
     "tailwind.config.ts",
     "tsconfig.json",
@@ -69,15 +66,16 @@
   },
   "devDependencies": {
     "@types/archiver": "^8.0.0",
-    "@types/vscode": "^1.138.0",
-    "chalk": "^6.0.0",
-    "esbuild": "^0.28.2",
-    "tsx": "^4.23.13"
-  },
-  "dependencies": {
     "@types/node": "^26.4.1",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
+    "@types/vscode": "^1.138.0",
+    "chalk": "^6.0.0",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
     "archiver": "^8.0.0",
     "autoprefixer": "^10.5.5",
     "gifenc": "^1.0.3",
@@ -87,7 +85,6 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "sharp": "^0.35.4",
-    "tailwindcss": "^3.4.19",
-    "typescript": "^7.0.2"
+    "tailwindcss": "^3.4.19"
   }
 }
