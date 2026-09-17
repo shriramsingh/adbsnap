@@ -1,6 +1,6 @@
 export const APP_INFO = {
   NAME: 'ADBSnap',
-  VERSION: '1.1.4',
+  VERSION: '1.1.6',
   TAGLINE: 'Automated Mobile Showcase & App Store Asset Studio',
   DESCRIPTION: 'CLI tool to capture, frame, and export mobile screenshots directly via ADB.',
 } as const;
