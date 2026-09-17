@@ -81,6 +81,7 @@ export default function StudioPage() {
   const autoSyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isCapturingRef = useRef(false);
   const initialSnapTakenRef = useRef(false);
+  const lastScreenBase64Ref = useRef<string | null>(null);
 
   // 1. Setup Server-Sent Events (SSE) for live device updates
   useEffect(() => {
@@ -170,8 +171,10 @@ export default function StudioPage() {
     async (silent = false) => {
       if (isCapturingRef.current) return;
       isCapturingRef.current = true;
-      setIsCapturing(true);
-      if (!silent) setStatusMessage('Streaming screen buffer from phone...');
+      if (!silent) {
+        setIsCapturing(true);
+        setStatusMessage('Streaming screen buffer from phone...');
+      }
       try {
         const res = await fetch('/api/capture', {
           method: 'POST',
@@ -180,7 +183,13 @@ export default function StudioPage() {
         });
 
         const data = await res.json();
-        if (data.success) {
+        if (data.success && data.base64) {
+          // If silent sync and screen hasn't changed on phone, skip heavy compositing!
+          if (silent && lastScreenBase64Ref.current === data.base64) {
+            return;
+          }
+
+          lastScreenBase64Ref.current = data.base64;
           setScreenshotBase64(data.base64);
           setLastLatencyMs(data.latencyMs);
           if (!silent) setStatusMessage(`Captured in ${data.latencyMs}ms (${(data.sizeBytes / 1024).toFixed(0)} KB)`);
@@ -192,7 +201,9 @@ export default function StudioPage() {
         if (!silent) setStatusMessage(`Error: ${err instanceof Error ? err.message : String(err)}`);
       } finally {
         isCapturingRef.current = false;
-        setIsCapturing(false);
+        if (!silent) {
+          setIsCapturing(false);
+        }
       }
     },
     [selectedDevice, refreshPreview]
