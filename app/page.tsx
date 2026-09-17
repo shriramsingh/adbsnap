@@ -921,7 +921,7 @@ export default function StudioPage() {
             <div className="flex items-center gap-2">
               <span className="font-bold text-sm tracking-tight text-white whitespace-nowrap">ADBSnap Studio</span>
               <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                v1.0.0
+                v1.1.0
               </span>
             </div>
             <p className="text-[11px] text-slate-400 hidden xl:block">Marketing Asset & Screenshot Studio</p>

@@ -11,15 +11,36 @@ Stop wrestling with manual Figma templates or low-res screenshot scripts. **ADBS
 
 ---
 
+## 🚀 What's New in v1.1.0
+
+- 📶 **Comprehensive Wireless ADB Suite**:
+  - **1-Click USB ↔ Wi-Fi Switch**: Automatically discover device IP, launch TCP/IP mode, and disconnect cables effortlessly.
+  - **Android 11+ Pairing Modal**: Built-in 6-digit wireless debugging pairing with port discovery and mDNS ZeroConf.
+  - **Dynamic USB Auto-Prioritization**: Automatically switches to lightning-fast USB mode the moment you plug a cable in, and falls back to Wi-Fi when unplugged.
+  - **Interactive Transport Switcher**: Instant 1-click toggle between `[ 🔌 USB ▾ ]` and `[ 📶 Wi-Fi ▾ ]` without disconnecting.
+- 🖼️ **"None (Raw Screenshot)" Canvas Theme**:
+  - Export pristine, unedited 1:1 mobile screenshots with zero framing or backdrops.
+  - Automatically dims and disables headline and typography controls for a focused workflow.
+- 🎬 **Animated Story Maker**:
+  - Turn multi-step screen flows into looping animated GIFs with customizable playback pace (500ms – 4000ms).
+- 📱 **Smart App Detection & Package Copier**:
+  - Humanized active application badge (e.g. `CoachConnect`, `Instagram`, `Chrome`) with 1-click package name copying to clipboard.
+- 📐 **Expanded Device & Bezel Suite**:
+  - Added **Frameless Floating Mockup** (`frameless`), **iPad Pro 13"**, **Android Tablet 11"**, **iPhone 16 Pro**, and **Google Pixel 9 Pro**.
+  - Verified 2026 App Store (6.9", 6.7", 6.5") and Google Play specifications.
+- 🎨 **Redesigned Studio Workspace**:
+  - Space-optimized header, drag-and-drop external image upload, filmstrip reordering, and direct copy-to-clipboard (`Ctrl+C`).
+
+---
+
 ## ⚡ Highlights
 
 - 🚀 **Zero-Config Instant Capture:** Direct RAM streaming via ADB — no temporary device files left behind.
-- 📱 **4K Vector Bezels:** Pixel-crisp iPhone 16 Pro (with Dynamic Island) and Google Pixel 9 Pro bezels.
-- 🎨 **Studio Backdrops:** Gradient presets (`aurora`, `studioLight`, `sunset`, `midnight`, `freshMint`, `royal`, `cleanDark`) or custom colors.
-- ✍️ **Smart Typography:** Dynamic SVG headline and subtitle rendering with automatic text-wrapping.
-- 📦 **Multi-Store Asset Export:** Generate all required App Store (6.9", 6.7", 6.5") and Google Play sizes bundled into a single ZIP in one keystroke.
+- 📱 **4K Vector Bezels:** Pixel-crisp iPhone 16 Pro (with Dynamic Island), Pixel 9 Pro, Tablets, and Frameless modes.
+- 🎨 **Curated Studio Backdrops:** 8 presets (`aurora`, `studioLight`, `sunset`, `midnight`, `freshMint`, `royal`, `cleanDark`, `none`) or custom styles.
+- ✍️ **Smart Typography:** Dynamic SVG headline and subtitle rendering with automatic text-wrapping and star rating badges.
+- 📦 **Multi-Store Asset Export:** Generate all required App Store and Google Play sizes bundled into a single ZIP in one keystroke.
 - 🤖 **Hands-Free Tab Crawler:** Automatically detect and crawl through bottom navigation tabs, capturing and framing each view hands-free.
-- 📶 **Wireless ADB Setup:** Switch connected USB devices to wireless mode with one command (`adbsnap wifi`).
 - 🩺 **Built-in Doctor:** Diagnose ADB paths, device health, and USB authorization in seconds.
 - 🖥️ **Dual CLI Binary:** Run as `adbsnap` or `snapshot`.
 
@@ -27,7 +48,13 @@ Stop wrestling with manual Figma templates or low-res screenshot scripts. **ADBS
 
 ## 📦 Quick Start
 
-### Run Instantly via `npx` (No installation needed)
+### Launch Interactive Web Studio (Recommended)
+```bash
+npx adbsnap studio
+```
+Opens the visual studio dashboard in your default browser at `http://localhost:3000`.
+
+### Run Instantly via `npx` (Headless Snap)
 ```bash
 npx adbsnap snap
 ```
@@ -119,7 +146,13 @@ adbsnap usb
 ```
 
 ### 8. `adbsnap studio`
-Launches the visual web-based drag-and-drop studio on `http://localhost:3000`.
+Launches the full interactive visual web dashboard on `http://localhost:3000`:
+- **`Spacebar` Hotkey:** Pull fresh screens directly from phone to canvas instantly.
+- **Wireless IP & Android 11+ Pairing:** Connect and pair wirelessly from the header.
+- **Filmstrip Reordering:** Collect multiple screens across user flows, reorder tabs, or import computer images.
+- **1-Click Clipboard Export:** Copy mockups directly to clipboard for pasting into Figma, Slack, or Docs.
+- **Animated Story Maker:** Compile captured screens into looping animated GIFs.
+- **4K Multi-Store ZIP Export:** Download complete App Store & Google Play bundles in one click.
 
 ### 9. 💻 VS Code Extension
 Use ADBSnap directly inside Visual Studio Code without leaving your editor:
@@ -134,8 +167,8 @@ Use ADBSnap directly inside Visual Studio Code without leaving your editor:
 
 | Option | Description | Available Values | Default |
 | :--- | :--- | :--- | :--- |
-| `--frame` | Device bezel chassis | `iphone-16-pro`, `pixel-9-pro`, `minimal` | `iphone-16-pro` |
-| `--theme` | Canvas gradient preset | `aurora`, `studioLight`, `freshMint`, `sunset`, `midnight`, `royal`, `cleanDark` | `aurora` |
+| `--frame` | Device bezel chassis | `iphone-16-pro`, `pixel-9-pro`, `ipad-pro-13`, `android-tablet-11`, `frameless`, `minimal` | `iphone-16-pro` |
+| `--theme` | Canvas gradient preset | `aurora`, `studioLight`, `freshMint`, `sunset`, `midnight`, `royal`, `cleanDark`, `none` | `aurora` |
 | `--layout` | Positioning layout | `appstore` (bottom bleed), `social` (floating centered) | `appstore` |
 | `--fit` | Screenshot scaling | `cover` (safe aspect), `contain`, `fill` | `cover` |
 | `--font` | Typography preset | `modern`, `rounded`, `editorial`, `mono` | `modern` |
@@ -143,7 +176,7 @@ Use ADBSnap directly inside Visual Studio Code without leaving your editor:
 | `--subtitle`| Supporting subtitle | Any text | None |
 | `--no-stars`| Hide 5-star rating badge | Flag | Stars enabled |
 | `--raw` | Save raw unadorned screenshot | Flag | False |
-| `--device` | Target specific ADB device ID | Device serial / IP | Auto-detect |
+| `--device` | Target specific ADB device ID | Device serial / IP / mDNS | Auto-detect |
 | `--out` | Custom output file or directory | File/directory path | `./output` |
 | `--zip` | Create ZIP bundle | Flag | True |
 
