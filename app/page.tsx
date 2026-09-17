@@ -77,6 +77,10 @@ export default function StudioPage() {
 
   // Reference to debounce render requests
   const renderTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [autoSync, setAutoSync] = useState(false);
+  const autoSyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isCapturingRef = useRef(false);
+  const initialSnapTakenRef = useRef(false);
 
   // 1. Setup Server-Sent Events (SSE) for live device updates
   useEffect(() => {
@@ -92,7 +96,13 @@ export default function StudioPage() {
           }
         }
         if (data.activeApp !== undefined) {
-          setActiveApp(data.activeApp);
+          setActiveApp((prev) => {
+            if (prev && prev !== data.activeApp) {
+              // App switched on phone -> pull fresh screen automatically
+              setTimeout(() => handleSnap(true), 300);
+            }
+            return data.activeApp;
+          });
         }
       } catch (err) {
         console.error('Failed to parse SSE payload:', err);
@@ -156,31 +166,62 @@ export default function StudioPage() {
   }, [themeId, bezelId, layout, font, title, subtitle, showStars, refreshPreview]);
 
   // 3. 1-Click Capture from Mobile Phone
-  const handleSnap = async () => {
-    setIsCapturing(true);
-    setStatusMessage('Streaming screen buffer from phone...');
-    try {
-      const res = await fetch('/api/capture', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deviceId: selectedDevice || undefined }),
-      });
+  const handleSnap = useCallback(
+    async (silent = false) => {
+      if (isCapturingRef.current) return;
+      isCapturingRef.current = true;
+      setIsCapturing(true);
+      if (!silent) setStatusMessage('Streaming screen buffer from phone...');
+      try {
+        const res = await fetch('/api/capture', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ deviceId: selectedDevice || undefined }),
+        });
 
-      const data = await res.json();
-      if (data.success) {
-        setScreenshotBase64(data.base64);
-        setLastLatencyMs(data.latencyMs);
-        setStatusMessage(`Captured in ${data.latencyMs}ms (${(data.sizeBytes / 1024).toFixed(0)} KB)`);
-        await refreshPreview(data.base64);
-      } else {
-        setStatusMessage(`Capture failed: ${data.error}`);
+        const data = await res.json();
+        if (data.success) {
+          setScreenshotBase64(data.base64);
+          setLastLatencyMs(data.latencyMs);
+          if (!silent) setStatusMessage(`Captured in ${data.latencyMs}ms (${(data.sizeBytes / 1024).toFixed(0)} KB)`);
+          await refreshPreview(data.base64);
+        } else {
+          if (!silent) setStatusMessage(`Capture failed: ${data.error}`);
+        }
+      } catch (err) {
+        if (!silent) setStatusMessage(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      } finally {
+        isCapturingRef.current = false;
+        setIsCapturing(false);
       }
-    } catch (err) {
-      setStatusMessage(`Error: ${err instanceof Error ? err.message : String(err)}`);
-    } finally {
-      setIsCapturing(false);
+    },
+    [selectedDevice, refreshPreview]
+  );
+
+  // Auto-snap initial frame when device is selected
+  useEffect(() => {
+    if (selectedDevice && !initialSnapTakenRef.current) {
+      initialSnapTakenRef.current = true;
+      handleSnap(true);
     }
-  };
+  }, [selectedDevice, handleSnap]);
+
+  // Live Auto-Sync loop (polls every 1.8s when enabled)
+  useEffect(() => {
+    if (autoSync) {
+      autoSyncIntervalRef.current = setInterval(() => {
+        if (!isCapturingRef.current) {
+          handleSnap(true);
+        }
+      }, 1800);
+    } else {
+      if (autoSyncIntervalRef.current) clearInterval(autoSyncIntervalRef.current);
+    }
+
+    return () => {
+      if (autoSyncIntervalRef.current) clearInterval(autoSyncIntervalRef.current);
+    };
+  }, [autoSync, handleSnap]);
 
   // 4. Export Multi-Store ZIP Package
   const handleExportZip = async () => {
@@ -313,9 +354,23 @@ export default function StudioPage() {
             )}
           </div>
 
+          {/* Live Auto-Sync Toggle */}
+          <button
+            onClick={() => setAutoSync(!autoSync)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-semibold text-xs border transition cursor-pointer ${
+              autoSync
+                ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 shadow-sm shadow-emerald-500/20'
+                : 'bg-[#161922] border-[#232733] text-slate-400 hover:text-slate-200 hover:border-slate-700'
+            }`}
+            title="Automatically updates the preview every 1.8s as you navigate on your phone"
+          >
+            <span className={`w-2 h-2 rounded-full ${autoSync ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+            <span>{autoSync ? 'Live Sync ON' : 'Live Sync'}</span>
+          </button>
+
           {/* Quick Snap Primary Action */}
           <button
-            onClick={handleSnap}
+            onClick={() => handleSnap(false)}
             disabled={isCapturing}
             className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold text-xs shadow-md shadow-cyan-500/20 transition disabled:opacity-50 cursor-pointer"
           >
@@ -543,7 +598,7 @@ export default function StudioPage() {
                   Plug in your phone and press &quot;Snap Screen&quot; or spacebar to generate an asset.
                 </p>
                 <button
-                  onClick={handleSnap}
+                  onClick={() => handleSnap(false)}
                   className="px-4 py-2 rounded-lg bg-cyan-500 text-slate-950 text-xs font-semibold cursor-pointer"
                 >
                   Capture Active Screen

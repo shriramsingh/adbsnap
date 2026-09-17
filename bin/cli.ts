@@ -169,7 +169,7 @@ async function handleWifi(actionOrIp?: string, values?: { off?: boolean }) {
       }
       logger.success('Wireless mode disabled. Device connection reset to USB mode.');
     } catch (err) {
-      logger.error('WIFI_DISCONNECT_FAILED', err instanceof Error ? err.message : String(err));
+      logger.error('WIFI_CONNECT_FAILED', err instanceof Error ? err.message : String(err));
     }
     return;
   }
