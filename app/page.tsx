@@ -33,6 +33,7 @@ interface SessionScreen {
   label: string;
   base64: string;
   timestamp: string;
+  customTitle?: string;
 }
 
 const THEMES = [
@@ -69,7 +70,6 @@ export default function StudioPage() {
   const [isRendering, setIsRendering] = useState(false);
   const [lastLatencyMs, setLastLatencyMs] = useState<number | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [crawledScreens, setCrawledScreens] = useState<Array<{ index: number; title: string; base64: string }>>([]);
 
   // Customization Options
   const [themeId, setThemeId] = useState('studioLight');
@@ -244,6 +244,9 @@ export default function StudioPage() {
     if (index < 0 || index >= screens.length) return;
     setActiveScreenIndex(index);
     const target = screens[index];
+    if (target.customTitle) {
+      setTitle(target.customTitle);
+    }
     setScreenshotBase64(target.base64);
     await refreshPreview(target.base64);
   };
@@ -346,8 +349,38 @@ export default function StudioPage() {
 
       const data = await res.json();
       if (data.success && data.screens && data.screens.length > 0) {
-        setCrawledScreens(data.screens);
-        setPreviewBase64(data.screens[0].base64);
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        setScreens((prev) => {
+          const startingIdx = prev.length;
+          const crawledItems: SessionScreen[] = data.screens.map(
+            (s: { title: string; base64: string; rawBase64?: string }, i: number) => ({
+              id: `crawl-${Date.now()}-${i}`,
+              index: startingIdx + i + 1,
+              label: s.title || `Tab #${i + 1}`,
+              base64: s.rawBase64 || s.base64,
+              timestamp: timeStr,
+              customTitle: s.title,
+            })
+          );
+          setActiveScreenIndex(startingIdx);
+          return [...prev, ...crawledItems];
+        });
+
+        const first = data.screens[0];
+        setScreenshotBase64(first.rawBase64 || first.base64);
+        if (first.title) setTitle(first.title);
+        setPreviewBase64(first.base64);
+
+        // Trigger camera shutter flash feedback
+        setIsFlashing(true);
+        setTimeout(() => setIsFlashing(false), 200);
+
+        if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+        setToastMessage(`✨ Crawled & added ${data.screens.length} tabs to filmstrip!`);
+        toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 3000);
+
         setStatusMessage(`Auto-crawled & captured ${data.screens.length} tabs hands-free!`);
       } else {
         setStatusMessage(`Crawl failed: ${data.error || 'No bottom tabs detected'}`);
@@ -750,32 +783,18 @@ export default function StudioPage() {
                           <Trash2 className="w-2.5 h-2.5" />
                         </button>
                       </div>
-                      <span className={`text-[9px] mt-0.5 font-mono font-medium max-w-[50px] truncate ${isActive ? 'text-cyan-300 font-bold' : 'text-slate-400'}`}>
-                        #{idx + 1}
+                      <span
+                        className={`text-[9px] mt-0.5 font-medium max-w-[56px] truncate text-center ${
+                          isActive ? 'text-cyan-300 font-bold' : 'text-slate-400'
+                        }`}
+                        title={s.customTitle || s.label}
+                      >
+                        {s.customTitle || `#${idx + 1}`}
                       </span>
                     </div>
                   );
                 })}
               </div>
-            </div>
-          )}
-
-          {/* Crawled Tabs Carousel Strip */}
-          {crawledScreens.length > 0 && (
-            <div className="mt-4 flex items-center gap-3 overflow-x-auto max-w-2xl py-2 px-3 bg-[#12141a]/90 backdrop-blur rounded-xl border border-[#232733] z-10">
-              <span className="text-[11px] text-cyan-400 font-semibold uppercase tracking-wider shrink-0">
-                Crawled Tabs ({crawledScreens.length}):
-              </span>
-              {crawledScreens.map((s, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setPreviewBase64(s.base64)}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[#232733] hover:border-cyan-500 bg-[#161922] text-xs text-slate-200 transition shrink-0 cursor-pointer"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  <span>{s.title}</span>
-                </button>
-              ))}
             </div>
           )}
 
