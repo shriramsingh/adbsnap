@@ -35,6 +35,8 @@ async function main() {
       device: { type: 'string' },
       out: { type: 'string' },
       port: { type: 'string', default: '3000' },
+      browser: { type: 'boolean', default: false },
+      'no-open': { type: 'boolean', default: false },
       raw: { type: 'boolean', default: false },
       off: { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h', default: false },
@@ -722,22 +724,113 @@ async function handleRun(customConfig?: string, options: Record<string, unknown>
   }
 }
 
+function getAppBrowserPath(): string | null {
+  if (process.platform === 'win32') {
+    const candidates = [
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+      path.join(process.env.LOCALAPPDATA || '', 'Google\\Chrome\\Application\\chrome.exe'),
+      'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+      'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+      path.join(process.env.LOCALAPPDATA || '', 'Microsoft\\Edge\\Application\\msedge.exe'),
+    ];
+    for (const c of candidates) {
+      if (fs.existsSync(c)) return c;
+    }
+  } else if (process.platform === 'darwin') {
+    const candidates = [
+      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+      '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
+      '/Applications/Arc.app/Contents/MacOS/Arc',
+    ];
+    for (const c of candidates) {
+      if (fs.existsSync(c)) return c;
+    }
+  }
+  return null;
+}
+
+async function launchStudioWindow(url: string, preferBrowser: boolean = false) {
+  const { spawn, exec } = await import('node:child_process');
+
+  if (preferBrowser) {
+    if (process.platform === 'win32') {
+      exec(`start "" "${url}"`);
+    } else if (process.platform === 'darwin') {
+      exec(`open "${url}"`);
+    } else {
+      exec(`xdg-open "${url}"`);
+    }
+    return;
+  }
+
+  const browserPath = getAppBrowserPath();
+  if (browserPath) {
+    // Launch directly in dedicated app window mode (frameless, no URL/address bar)
+    spawn(browserPath, [
+      `--app=${url}`,
+      '--window-size=1440,920',
+    ], {
+      detached: true,
+      stdio: 'ignore',
+    }).unref();
+  } else {
+    // Fallback on platform shells
+    if (process.platform === 'win32') {
+      exec(`start msedge --app="${url}" || start chrome --app="${url}" || start "" "${url}"`);
+    } else if (process.platform === 'darwin') {
+      exec(`open -na "Google Chrome" --args --app="${url}" || open "${url}"`);
+    } else {
+      exec(`google-chrome --app="${url}" || chromium-browser --app="${url}" || xdg-open "${url}"`);
+    }
+  }
+}
+
 async function handleStudio(options: Record<string, unknown>) {
   const port = typeof options.port === 'string' ? options.port : '3000';
+  const preferBrowser = Boolean(options.browser);
+  const noOpen = Boolean(options['no-open']);
+
   logger.banner(APP_INFO.NAME, 'Visual Web Studio');
-  logger.info(`Starting ADBSnap Studio on http://localhost:${port} ...`);
+  logger.info(`Starting ADBSnap Studio on port ${port}...`);
 
   const { spawn } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+
+  // Resolve root package directory whether executed from dist/ or bin/
+  let packageRoot = process.cwd();
+  try {
+    const cliDir = path.dirname(fileURLToPath(import.meta.url));
+    const candidate1 = path.resolve(cliDir, '..');
+    const candidate2 = path.resolve(cliDir, '../..');
+    if (fs.existsSync(path.join(candidate1, 'next.config.ts'))) {
+      packageRoot = candidate1;
+    } else if (fs.existsSync(path.join(candidate2, 'next.config.ts'))) {
+      packageRoot = candidate2;
+    }
+  } catch {
+    // Fallback to process.cwd()
+  }
+
   const npxCmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
   const child = spawn(npxCmd, ['next', 'dev', '-p', port], {
     stdio: 'inherit',
-    cwd: process.cwd(),
+    cwd: packageRoot,
     shell: true,
   });
 
   child.on('error', (err) => {
     logger.error('CRITICAL_ERROR', `Failed to start Next.js studio: ${err.message}`);
   });
+
+  if (!noOpen) {
+    const url = `http://localhost:${port}`;
+    logger.info(`✨ Launching ${preferBrowser ? 'standard browser' : 'App Window Mode (frameless)'} at ${STYLES.info(url)} ...`);
+    setTimeout(() => {
+      launchStudioWindow(url, preferBrowser);
+    }, 1800);
+  }
 }
 
 main().catch((err) => {

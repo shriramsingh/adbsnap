@@ -23,6 +23,13 @@
   ],
   "files": [
     "dist/bin",
+    "app",
+    "lib",
+    "constants",
+    "utils",
+    "next.config.ts",
+    "tsconfig.json",
+    "postcss.config.mjs",
     "README.md",
     "LICENSE"
   ],
