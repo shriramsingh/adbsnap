@@ -248,6 +248,7 @@ export async function createAnimatedGif(
   const h = Math.round(w * aspect);
 
   // Dynamically import gifenc to support both Node ESM and CJS bundling without top-level crash
+  // @ts-ignore
   const gifencModule = await import('gifenc');
   const { GIFEncoder, quantize, applyPalette } = (gifencModule as any).default || gifencModule;
   const gif = GIFEncoder();

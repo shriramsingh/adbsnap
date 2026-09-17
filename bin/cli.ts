@@ -824,12 +824,33 @@ async function handleStudio(options: Record<string, unknown>) {
     logger.error('CRITICAL_ERROR', `Failed to start Next.js studio: ${err.message}`);
   });
 
+async function waitForServerReady(url: string, maxWaitMs = 45000): Promise<boolean> {
+  const start = Date.now();
+  while (Date.now() - start < maxWaitMs) {
+    try {
+      const res = await fetch(url);
+      if (res.ok || res.status < 500) {
+        return true;
+      }
+    } catch {
+      // Server still booting up, retry in 250ms
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  return false;
+}
+
   if (!noOpen) {
     const url = `http://localhost:${port}`;
-    logger.info(`✨ Launching ${preferBrowser ? 'standard browser' : 'App Window Mode (frameless)'} at ${STYLES.info(url)} ...`);
-    setTimeout(() => {
-      launchStudioWindow(url, preferBrowser);
-    }, 1800);
+    logger.info(`✨ Waiting for server to become ready before launching ${preferBrowser ? 'browser' : 'App Window Mode'}...`);
+    waitForServerReady(url).then((isReady) => {
+      if (isReady) {
+        logger.success(`🚀 Server active! Opening ${STYLES.info(url)}`);
+        launchStudioWindow(url, preferBrowser);
+      } else {
+        logger.warn(`Server startup timed out. Open manually at ${url}`);
+      }
+    });
   }
 }
 
