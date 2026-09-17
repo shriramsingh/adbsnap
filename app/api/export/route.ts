@@ -7,10 +7,67 @@ import type { LayoutMode } from '@/constants/themes';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+interface ScreenInput {
+  id?: string;
+  index?: number;
+  label?: string;
+  base64: string;
+  customTitle?: string;
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    const screens: ScreenInput[] = body.screens || [];
+    const exportMode = body.exportMode || 'all';
 
+    // 1. Multi-Screen Batch Export to ZIP
+    if (body.format === 'zip' && screens.length > 0 && exportMode !== 'active') {
+      const zipFiles: Array<{ path: string; buffer: Buffer }> = [];
+
+      for (let i = 0; i < screens.length; i++) {
+        const scr = screens[i];
+        const screenBuffer = Buffer.from(scr.base64, 'base64');
+        const screenIndexStr = String(i + 1).padStart(2, '0');
+        const rawName = scr.customTitle || scr.label || `screen-${i + 1}`;
+        const slug =
+          rawName
+            .toLowerCase()
+            .replace(/[^a-z0-9_-]/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '') || `screen-${i + 1}`;
+        const filename = `${screenIndexStr}-${slug}.png`;
+
+        const screenOptions = {
+          screenshotBuffer: screenBuffer,
+          bezelId: body.bezelId || 'iphone-16-pro',
+          gradientPreset: body.gradientPreset || 'studioLight',
+          layout: (body.layout as LayoutMode) || 'appstore',
+          font: body.font || 'modern',
+          title: scr.customTitle || body.title || 'Transform Your Workflow',
+          subtitle: body.subtitle || 'Effortless automated mobile screenshot studio.',
+          showStarBadge: body.showStarBadge ?? false,
+        };
+
+        const batchResult = await exportMultiStore(screenOptions);
+        for (const t of batchResult) {
+          zipFiles.push({
+            path: `${t.target.folder}/${filename}`,
+            buffer: t.buffer,
+          });
+        }
+      }
+
+      const zipBuffer = await createStoreZip(zipFiles);
+      return new Response(new Uint8Array(zipBuffer), {
+        headers: {
+          'Content-Type': 'application/zip',
+          'Content-Disposition': `attachment; filename="adbsnap-${screens.length}-screens-all-stores.zip"`,
+        },
+      });
+    }
+
+    // 2. Single Screen Export (Active screen or single device capture)
     let screenshotBuffer: Buffer;
     if (body.screenshotBase64) {
       screenshotBuffer = Buffer.from(body.screenshotBase64, 'base64');

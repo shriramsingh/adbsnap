@@ -67,6 +67,7 @@ export default function StudioPage() {
   const [isCapturing, setIsCapturing] = useState(false);
   const [isCrawling, setIsCrawling] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportScope, setExportScope] = useState<'all' | 'active'>('all');
   const [isRendering, setIsRendering] = useState(false);
   const [lastLatencyMs, setLastLatencyMs] = useState<number | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -289,15 +290,23 @@ export default function StudioPage() {
   }, [selectedDevice, handleSnap]);
 
   // 4. Export Multi-Store ZIP Package
-  const handleExportZip = async () => {
+  const handleExportZip = async (overrideScope?: 'all' | 'active') => {
+    const scope = overrideScope || exportScope;
+    const isMulti = scope === 'all' && screens.length > 1;
     setIsExporting(true);
-    setStatusMessage('Generating 4K multi-store package & ZIP archive...');
+    setStatusMessage(
+      isMulti
+        ? `Generating multi-store packages for all ${screens.length} screens...`
+        : 'Generating 4K multi-store package & ZIP archive...'
+    );
     try {
       const res = await fetch('/api/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           screenshotBase64,
+          screens: scope === 'all' && screens.length > 0 ? screens : undefined,
+          exportMode: scope,
           deviceId: selectedDevice || undefined,
           bezelId,
           gradientPreset: themeId,
@@ -316,12 +325,22 @@ export default function StudioPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `adbsnap-store-assets-${themeId}.zip`;
+      a.download = isMulti
+        ? `adbsnap-${screens.length}-screens-${themeId}.zip`
+        : `adbsnap-store-assets-${themeId}.zip`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       a.remove();
-      setStatusMessage('ZIP archive downloaded successfully!');
+
+      const successMsg = isMulti
+        ? `Successfully exported all ${screens.length} screens into ZIP archive!`
+        : 'ZIP archive downloaded successfully!';
+      setStatusMessage(successMsg);
+
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+      setToastMessage(`📦 Exported ${isMulti ? `${screens.length} screens` : 'active screen'} (.zip)`);
+      toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 3000);
     } catch (err) {
       setStatusMessage(`Export failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -641,8 +660,35 @@ export default function StudioPage() {
 
           {/* Bottom Export Action Buttons */}
           <div className="mt-auto p-4 border-t border-[#232733] bg-[#0f1117] space-y-2">
+            {screens.length > 1 && (
+              <div className="grid grid-cols-2 gap-1.5 p-1 bg-[#161922] rounded-lg border border-[#232733] text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setExportScope('all')}
+                  className={`py-1 px-2 rounded font-medium transition cursor-pointer text-center ${
+                    exportScope === 'all'
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  All ({screens.length}) Screens
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExportScope('active')}
+                  className={`py-1 px-2 rounded font-medium transition cursor-pointer text-center ${
+                    exportScope === 'active'
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Active Only
+                </button>
+              </div>
+            )}
+
             <button
-              onClick={handleExportZip}
+              onClick={() => handleExportZip()}
               disabled={isExporting}
               className="w-full flex items-center justify-center gap-2 p-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 transition cursor-pointer disabled:opacity-50"
             >
@@ -651,7 +697,13 @@ export default function StudioPage() {
               ) : (
                 <FolderArchive className="w-4 h-4" />
               )}
-              <span>Export All Stores (.zip)</span>
+              <span>
+                {isExporting
+                  ? 'Packaging All Stores...'
+                  : screens.length > 1 && exportScope === 'all'
+                  ? `Export All (${screens.length} Screens) (.zip)`
+                  : 'Export Stores (.zip)'}
+              </span>
             </button>
           </div>
         </aside>
