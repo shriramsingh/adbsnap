@@ -57,10 +57,27 @@ const THEMES = [
   { id: 'cleanDark', name: 'Clean Dark', colors: ['#18181b', '#09090b'], darkText: false },
 ];
 
-const BEZELS = [
-  { id: 'iphone-16-pro', name: 'iPhone 16 Pro Max', platform: 'Apple iOS' },
-  { id: 'pixel-9-pro', name: 'Google Pixel 9 Pro', platform: 'Google Pixel' },
-  { id: 'minimal', name: 'Modern Minimalist', platform: 'Universal' },
+interface BezelOption {
+  id: string;
+  name: string;
+  platform: string;
+  category: 'all' | 'apple' | 'android' | 'tablet' | 'frameless';
+  badge: string;
+}
+
+const BEZELS: BezelOption[] = [
+  { id: 'none', name: 'No Bezel (Floating)', platform: 'Universal', category: 'frameless', badge: 'Pure Screen' },
+  { id: 'iphone-16-pro', name: 'iPhone 16 Pro Max', platform: 'Apple iOS', category: 'apple', badge: 'Titanium' },
+  { id: 'iphone-16', name: 'iPhone 16', platform: 'Apple iOS', category: 'apple', badge: 'Dynamic Island' },
+  { id: 'iphone-15-pro', name: 'iPhone 15 Pro', platform: 'Apple iOS', category: 'apple', badge: 'Dynamic Island' },
+  { id: 'iphone-14', name: 'iPhone 14', platform: 'Apple iOS', category: 'apple', badge: 'Classic Notch' },
+  { id: 'pixel-9-pro', name: 'Google Pixel 9 Pro', platform: 'Google Pixel', category: 'android', badge: 'Punch Hole' },
+  { id: 'pixel-8', name: 'Google Pixel 8', platform: 'Google Pixel', category: 'android', badge: 'Punch Hole' },
+  { id: 'galaxy-s24-ultra', name: 'Galaxy S24 Ultra', platform: 'Samsung', category: 'android', badge: 'Boxy Titanium' },
+  { id: 'galaxy-s24', name: 'Galaxy S24', platform: 'Samsung', category: 'android', badge: 'Punch Hole' },
+  { id: 'ipad-pro-13', name: 'iPad Pro 13" M4', platform: 'Apple iPad', category: 'tablet', badge: '4:3 Tablet' },
+  { id: 'android-tablet-10', name: 'Android Tablet 10"', platform: 'Android', category: 'tablet', badge: '16:10 Tablet' },
+  { id: 'minimal', name: 'Modern Minimalist', platform: 'Universal', category: 'frameless', badge: 'Clean Frame' },
 ];
 
 const FONTS = [
@@ -96,6 +113,8 @@ export default function StudioPage() {
   // Customization Options
   const [themeId, setThemeId] = useState('studioLight');
   const [bezelId, setBezelId] = useState('iphone-16-pro');
+  const [bezelCategory, setBezelCategory] = useState<'all' | 'apple' | 'android' | 'tablet' | 'frameless'>('all');
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [layout, setLayout] = useState<'appstore' | 'social'>('appstore');
   const [font, setFont] = useState('modern');
   const [title, setTitle] = useState('Transform Your Workflow');
@@ -389,6 +408,18 @@ export default function StudioPage() {
     } finally {
       setIsCopying(false);
     }
+  };
+
+  // Download raw, untouched mobile screenshot directly
+  const handleDownloadRaw = () => {
+    if (!screenshotBase64) return;
+    const link = document.createElement('a');
+    link.href = `data:image/png;base64,${screenshotBase64}`;
+    link.download = `adbsnap-raw-${Date.now()}.png`;
+    link.click();
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setToastMessage('📥 Downloaded raw 1:1 mobile screenshot');
+    toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2000);
   };
 
   // Open Story Maker modal and fetch framed preview frames
@@ -763,22 +794,83 @@ export default function StudioPage() {
 
             {/* Device Chassis & Framing */}
             <div>
-              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 mb-2.5">
-                <Smartphone className="w-3.5 h-3.5 text-cyan-400" />
-                Device & Layout Mode
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Smartphone className="w-3.5 h-3.5 text-cyan-400" />
+                  Device Chassis
+                </label>
+                <span className="text-[10px] text-cyan-400/90 font-mono truncate max-w-[130px]">
+                  {BEZELS.find((b) => b.id === bezelId)?.name || 'Custom'}
+                </span>
+              </div>
+
+              {/* Category Filter Chips */}
+              <div className="flex items-center gap-1 p-1 bg-[#12141a] rounded-lg border border-[#232733] mb-2 overflow-x-auto">
+                {[
+                  { id: 'all', label: 'All' },
+                  { id: 'frameless', label: 'Frameless' },
+                  { id: 'apple', label: 'Apple' },
+                  { id: 'android', label: 'Android' },
+                  { id: 'tablet', label: 'Tablets' },
+                ].map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setBezelCategory(cat.id as any)}
+                    className={`px-2 py-0.5 rounded text-[10px] font-medium transition cursor-pointer shrink-0 ${
+                      bezelCategory === cat.id
+                        ? 'bg-cyan-500 text-slate-950 font-semibold shadow-sm'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Visual Device Cards List */}
+              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 mb-2.5 scrollbar-thin">
+                {BEZELS.filter(
+                  (b) => bezelCategory === 'all' || b.category === bezelCategory || (bezelCategory === 'frameless' && b.id === 'none')
+                ).map((b) => {
+                  const isSelected = b.id === bezelId;
+                  return (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => setBezelId(b.id)}
+                      className={`w-full flex items-center justify-between p-2 rounded-lg border text-left transition cursor-pointer ${
+                        isSelected
+                          ? 'border-cyan-500 bg-cyan-500/15 shadow-sm shadow-cyan-500/20 text-white'
+                          : 'border-[#232733] bg-[#161922] hover:border-slate-600 hover:bg-[#1c202c] text-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div
+                          className={`w-2 h-2 rounded-full shrink-0 ${
+                            isSelected ? 'bg-cyan-400 animate-pulse' : 'bg-slate-600'
+                          }`}
+                        />
+                        <div className="truncate">
+                          <div className="text-xs font-medium truncate">{b.name}</div>
+                          <div className="text-[10px] text-slate-400 truncate">{b.platform}</div>
+                        </div>
+                      </div>
+                      <span
+                        className={`text-[9px] px-1.5 py-0.5 rounded font-mono shrink-0 ${
+                          isSelected
+                            ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-500/40'
+                            : 'bg-white/5 text-slate-400 border border-white/5'
+                        }`}
+                      >
+                        {b.badge}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
               <div className="space-y-2">
-                <select
-                  value={bezelId}
-                  onChange={(e) => setBezelId(e.target.value)}
-                  className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
-                >
-                  {BEZELS.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name} ({b.platform})
-                    </option>
-                  ))}
-                </select>
 
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -925,6 +1017,17 @@ export default function StudioPage() {
                 <span>Create Animated Story ({screens.length})</span>
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={handleDownloadRaw}
+              disabled={!screenshotBase64}
+              className="w-full flex items-center justify-center gap-2 p-2 rounded-lg bg-[#161922] hover:bg-[#1f2433] text-slate-300 border border-[#232733] font-medium text-xs transition cursor-pointer disabled:opacity-40"
+              title="Download pristine 1:1 mobile screenshot without canvas framing"
+            >
+              <Download className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Download Raw Screen (1:1)</span>
+            </button>
           </div>
         </aside>
 
@@ -948,7 +1051,9 @@ export default function StudioPage() {
           onDragOver={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            setIsDragging(true);
+            if (e.dataTransfer.types.includes('Files')) {
+              setIsDragging(true);
+            }
           }}
           onDragLeave={(e) => {
             e.preventDefault();
@@ -959,7 +1064,7 @@ export default function StudioPage() {
             e.preventDefault();
             e.stopPropagation();
             setIsDragging(false);
-            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            if (e.dataTransfer.types.includes('Files') && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
               handleImportFiles(e.dataTransfer.files);
             }
           }}
@@ -1128,18 +1233,51 @@ export default function StudioPage() {
                   return (
                     <div
                       key={s.id}
+                      draggable
+                      onDragStart={(e) => {
+                        e.stopPropagation();
+                        setDraggedIndex(idx);
+                        e.dataTransfer.setData('text/plain', String(idx));
+                        e.dataTransfer.effectAllowed = 'move';
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.dataTransfer.dropEffect = 'move';
+                      }}
+                      onDragEnd={(e) => {
+                        e.stopPropagation();
+                        setDraggedIndex(null);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const raw = e.dataTransfer.getData('text/plain');
+                        const srcIdx = draggedIndex !== null ? draggedIndex : (raw !== '' ? Number(raw) : null);
+                        if (srcIdx !== null && !isNaN(srcIdx) && srcIdx !== idx) {
+                          setScreens((prev) => {
+                            const copy = [...prev];
+                            const [moved] = copy.splice(srcIdx, 1);
+                            copy.splice(idx, 0, moved);
+                            return copy;
+                          });
+                          setActiveScreenIndex(idx);
+                        }
+                        setDraggedIndex(null);
+                      }}
                       onClick={() => selectScreen(idx)}
-                      className={`group relative flex flex-col items-center p-1 rounded-lg border transition cursor-pointer shrink-0 ${
+                      className={`group relative flex flex-col items-center p-1 rounded-lg border transition cursor-grab active:cursor-grabbing shrink-0 select-none ${
                         isActive
                           ? 'border-cyan-500 bg-cyan-500/15 shadow-md shadow-cyan-500/20'
                           : 'border-[#232733] hover:border-slate-600 bg-[#161922]'
-                      }`}
+                      } ${draggedIndex === idx ? 'opacity-40 scale-95 border-cyan-400' : ''}`}
                     >
-                      <div className="relative w-12 h-20 rounded overflow-hidden bg-black/50 flex items-center justify-center border border-white/5">
+                      <div className="relative w-12 h-20 rounded overflow-hidden bg-black/50 flex items-center justify-center border border-white/5 pointer-events-none">
                         <img
                           src={`data:image/png;base64,${s.base64}`}
                           alt={s.label}
-                          className="w-full h-full object-cover select-none"
+                          draggable={false}
+                          className="w-full h-full object-cover select-none pointer-events-none"
                         />
                         {isActive && (
                           <div className="absolute inset-0 border-2 border-cyan-400 rounded pointer-events-none" />

@@ -1,6 +1,6 @@
 import sharp, { type OverlayOptions } from 'sharp';
 import { BEZEL_PRESETS, GRADIENT_PRESETS, LAYOUT_PRESETS, FONT_PRESETS, STORE_TARGETS, type BezelSpec, type LayoutMode, type StoreTarget } from '../constants/themes';
-import { generateBezelSvg, generateScreenCornerMask } from './bezel-generator';
+import { generateBezelSvg, generateScreenCornerMask, generateStudioShadowSvg } from './bezel-generator';
 import { generateGradientSvg, generateTypographySvg } from './backdrop-generator';
 
 export interface CompositeFrameOptions {
@@ -78,38 +78,66 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
     .png()
     .toBuffer();
 
-  // 4. Generate SVG Bezel Chassis
-  const bezelSvg = generateBezelSvg({ spec });
-  const bezelBuffer = Buffer.from(bezelSvg);
+  // 4 & 5. Assemble Phone Device (Masked Screen + Optional Bezel Hardware or Studio Shadow)
+  let phoneDeviceBuffer: Buffer;
+  let deviceCanvasWidth = spec.width;
+  let deviceCanvasHeight = spec.height;
 
-  // 5. Assemble Phone Device (Masked Screen + Bezel Hardware)
-  const phoneDeviceBuffer = await sharp({
-    create: {
-      width: spec.width,
-      height: spec.height,
-      channels: 4,
-      background: { r: 0, g: 0, b: 0, alpha: 0 },
-    },
-  })
-    .composite([
-      { input: roundedScreen, left: spec.screen.x, top: spec.screen.y },
-      { input: bezelBuffer, left: 0, top: 0 },
-    ])
-    .png()
-    .toBuffer();
+  if (spec.isFrameless || spec.id === 'none') {
+    // Pure Floating Screen: no hardware chassis, realistic studio drop shadow
+    const shadowPad = 60;
+    deviceCanvasWidth = spec.screen.width + shadowPad * 2;
+    deviceCanvasHeight = spec.screen.height + shadowPad * 2;
+    const shadowSvg = generateStudioShadowSvg(spec.screen.width, spec.screen.height, spec.screen.radius);
+    const shadowBuffer = Buffer.from(shadowSvg);
 
-  // 6. Responsive Phone Sizing to guarantee title headroom on all screen ratios (16:9, 19.5:9, etc.)
+    phoneDeviceBuffer = await sharp({
+      create: {
+        width: deviceCanvasWidth,
+        height: deviceCanvasHeight,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      },
+    })
+      .composite([
+        { input: shadowBuffer, left: 0, top: 0 },
+        { input: roundedScreen, left: shadowPad, top: shadowPad - 4 },
+      ])
+      .png()
+      .toBuffer();
+  } else {
+    // Hardware Chassis Frame
+    const bezelSvg = generateBezelSvg({ spec });
+    const bezelBuffer = Buffer.from(bezelSvg);
+
+    phoneDeviceBuffer = await sharp({
+      create: {
+        width: spec.width,
+        height: spec.height,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      },
+    })
+      .composite([
+        { input: roundedScreen, left: spec.screen.x, top: spec.screen.y },
+        { input: bezelBuffer, left: 0, top: 0 },
+      ])
+      .png()
+      .toBuffer();
+  }
+
+  // 6. Responsive Phone Sizing to guarantee title headroom on all screen ratios (16:9, 19.5:9, 4:3, etc.)
   const layout = options.layout || 'appstore';
   const targetRatio = layout === 'appstore' ? 0.74 : 0.66;
   let targetPhoneHeight = Math.round(canvasHeight * targetRatio);
   const maxAllowedWidth = Math.round(canvasWidth * 0.88);
 
-  if ((targetPhoneHeight / spec.height) * spec.width > maxAllowedWidth) {
-    targetPhoneHeight = Math.round((maxAllowedWidth / spec.width) * spec.height);
+  if ((targetPhoneHeight / deviceCanvasHeight) * deviceCanvasWidth > maxAllowedWidth) {
+    targetPhoneHeight = Math.round((maxAllowedWidth / deviceCanvasWidth) * deviceCanvasHeight);
   }
 
-  const phoneScale = targetPhoneHeight / spec.height;
-  const targetPhoneWidth = Math.round(spec.width * phoneScale);
+  const phoneScale = targetPhoneHeight / deviceCanvasHeight;
+  const targetPhoneWidth = Math.round(deviceCanvasWidth * phoneScale);
 
   const scaledPhoneBuffer = await sharp(phoneDeviceBuffer)
     .resize(targetPhoneWidth, targetPhoneHeight)
@@ -168,6 +196,8 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
   // 9. Composite everything onto canvas in a single Sharp pass
   const finalBuffer = await sharp(gradientBaseBuffer)
     .composite(compositeLayers)
+    .flatten({ background: { r: 10, g: 11, b: 14 } })
+    .toColorspace('srgb')
     .png({ quality: 95, compressionLevel: 8 })
     .toBuffer();
 
