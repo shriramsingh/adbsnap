@@ -16,6 +16,7 @@ import {
   Zap,
   FolderArchive,
   ExternalLink,
+  Trash2,
 } from 'lucide-react';
 
 interface ConnectedDevice {
@@ -24,6 +25,14 @@ interface ConnectedDevice {
   model: string;
   product: string;
   isAuthorized: boolean;
+}
+
+interface SessionScreen {
+  id: string;
+  index: number;
+  label: string;
+  base64: string;
+  timestamp: string;
 }
 
 const THEMES = [
@@ -71,12 +80,17 @@ export default function StudioPage() {
   const [subtitle, setSubtitle] = useState('Effortless automated mobile screenshot studio.');
   const [showStars, setShowStars] = useState(true);
 
-  // Images
+  // Images & Screen Session History
   const [screenshotBase64, setScreenshotBase64] = useState<string | null>(null);
   const [previewBase64, setPreviewBase64] = useState<string | null>(null);
+  const [screens, setScreens] = useState<SessionScreen[]>([]);
+  const [activeScreenIndex, setActiveScreenIndex] = useState<number>(0);
+  const [isFlashing, setIsFlashing] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Reference to debounce render requests
+  // Reference to debounce render requests and timers
   const renderTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isCapturingRef = useRef(false);
   const initialSnapTakenRef = useRef(false);
   const lastScreenBase64Ref = useRef<string | null>(null);
@@ -183,7 +197,35 @@ export default function StudioPage() {
           lastScreenBase64Ref.current = data.base64;
           setScreenshotBase64(data.base64);
           setLastLatencyMs(data.latencyMs);
-          if (!silent) setStatusMessage(`Synced in ${data.latencyMs}ms (${(data.sizeBytes / 1024).toFixed(0)} KB)`);
+
+          // Visual Feedback: Trigger 180ms camera shutter flash
+          setIsFlashing(true);
+          setTimeout(() => setIsFlashing(false), 180);
+
+          // Add to Session Screens filmstrip
+          const now = new Date();
+          const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          const appName = activeApp ? activeApp.split('.').pop() || 'Screen' : 'Screen';
+
+          setScreens((prev) => {
+            const nextIdx = prev.length + 1;
+            const newScreen: SessionScreen = {
+              id: `snap-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+              index: nextIdx,
+              label: `${appName} #${nextIdx}`,
+              base64: data.base64,
+              timestamp: timeStr,
+            };
+            setActiveScreenIndex(prev.length);
+            return [...prev, newScreen];
+          });
+
+          // Floating Toast confirmation
+          if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+          setToastMessage(`📸 Screen captured in ${data.latencyMs}ms`);
+          toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2200);
+
+          if (!silent) setStatusMessage(`Synced screen in ${data.latencyMs}ms (${(data.sizeBytes / 1024).toFixed(0)} KB)`);
           await refreshPreview(data.base64);
         } else {
           if (!silent) setStatusMessage(`Sync failed: ${data.error}`);
@@ -195,8 +237,45 @@ export default function StudioPage() {
         setIsCapturing(false);
       }
     },
-    [selectedDevice, refreshPreview]
+    [selectedDevice, activeApp, refreshPreview]
   );
+
+  const selectScreen = async (index: number) => {
+    if (index < 0 || index >= screens.length) return;
+    setActiveScreenIndex(index);
+    const target = screens[index];
+    setScreenshotBase64(target.base64);
+    await refreshPreview(target.base64);
+  };
+
+  const deleteScreen = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
+    setScreens((prev) => {
+      const updated = prev.filter((_, i) => i !== index);
+      if (activeScreenIndex >= updated.length) {
+        const nextIdx = Math.max(0, updated.length - 1);
+        setActiveScreenIndex(nextIdx);
+        if (updated.length > 0) {
+          setScreenshotBase64(updated[nextIdx].base64);
+          refreshPreview(updated[nextIdx].base64);
+        } else {
+          setScreenshotBase64(null);
+          setPreviewBase64(null);
+        }
+      }
+      return updated;
+    });
+  };
+
+  const clearAllScreens = () => {
+    setScreens([]);
+    setActiveScreenIndex(0);
+    setScreenshotBase64(null);
+    setPreviewBase64(null);
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setToastMessage('Session filmstrip cleared');
+    toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2000);
+  };
 
   // Auto-snap initial frame when device is selected
   useEffect(() => {
@@ -336,6 +415,23 @@ export default function StudioPage() {
               </>
             )}
           </div>
+
+          {/* Screens Collected Counter Badge */}
+          {screens.length > 0 && (
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/40 border border-cyan-500/30 text-xs text-cyan-300 animate-in fade-in">
+              <span className="font-semibold">📸 {screens.length}</span>
+              <span className="text-cyan-400/80 hidden lg:inline">
+                {screens.length === 1 ? 'screen captured' : 'screens captured'}
+              </span>
+              <button
+                onClick={clearAllScreens}
+                className="ml-1 p-0.5 text-slate-400 hover:text-rose-400 transition cursor-pointer"
+                title="Clear all session screenshots"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            </div>
+          )}
 
           {/* Primary Sync Action */}
           <button
@@ -539,14 +635,27 @@ export default function StudioPage() {
             }}
           />
 
+          {/* Floating Toast Notification */}
+          {toastMessage && (
+            <div className="absolute top-5 z-40 flex items-center gap-2 px-4 py-2 rounded-full bg-[#12141a]/95 border border-cyan-500/50 shadow-2xl text-xs text-cyan-300 backdrop-blur pointer-events-none animate-in fade-in slide-in-from-top-2 duration-150">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="font-semibold">{toastMessage}</span>
+            </div>
+          )}
+
           {/* Canvas Wrapper */}
-          <div className="relative max-h-[82vh] max-w-[85vw] flex items-center justify-center">
+          <div className="relative max-h-[72vh] max-w-[85vw] flex items-center justify-center">
             {previewBase64 ? (
               <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-black/80 border border-white/10 group transition duration-300">
+                {/* Camera Shutter Flash Animation */}
+                {isFlashing && (
+                  <div className="absolute inset-0 bg-white/70 z-30 pointer-events-none transition-opacity duration-150 rounded-xl" />
+                )}
+
                 <img
                   src={`data:image/png;base64,${previewBase64}`}
                   alt="ADBSnap Canvas Preview"
-                  className="max-h-[78vh] w-auto object-contain rounded-xl select-none"
+                  className="max-h-[66vh] w-auto object-contain rounded-xl select-none"
                 />
 
                 {isRendering && (
@@ -576,7 +685,7 @@ export default function StudioPage() {
                 </div>
                 <h3 className="text-sm font-semibold text-slate-200 mb-1">Canvas Ready</h3>
                 <p className="text-xs text-slate-400 mb-4">
-                  Plug in your phone and press &quot;Snap Screen&quot; or spacebar to generate an asset.
+                  Plug in your phone and press &quot;Sync from Phone&quot; or spacebar to generate an asset.
                 </p>
                 <button
                   onClick={() => handleSnap(false)}
@@ -587,6 +696,69 @@ export default function StudioPage() {
               </div>
             )}
           </div>
+
+          {/* Session Screens Filmstrip Tray */}
+          {screens.length > 0 && (
+            <div className="mt-3 flex flex-col items-center z-20 w-full max-w-3xl px-4">
+              <div className="flex items-center justify-between w-full mb-1 px-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-semibold text-slate-300 tracking-wide flex items-center gap-1.5">
+                    <Camera className="w-3 h-3 text-cyan-400" />
+                    Session Filmstrip ({screens.length})
+                  </span>
+                  <span className="text-[10px] text-slate-500">
+                    Press <kbd className="px-1 py-0.2 bg-slate-800 text-cyan-300 rounded font-mono text-[9px]">Space</kbd> to capture new frames
+                  </span>
+                </div>
+                <button
+                  onClick={clearAllScreens}
+                  className="text-[10px] text-slate-400 hover:text-rose-400 transition flex items-center gap-1 cursor-pointer"
+                  title="Clear all captured screens"
+                >
+                  <Trash2 className="w-2.5 h-2.5" />
+                  <span>Clear All</span>
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 overflow-x-auto w-full py-1.5 px-2 bg-[#12141a]/95 backdrop-blur-md rounded-xl border border-[#232733] shadow-lg">
+                {screens.map((s, idx) => {
+                  const isActive = idx === activeScreenIndex;
+                  return (
+                    <div
+                      key={s.id}
+                      onClick={() => selectScreen(idx)}
+                      className={`group relative flex flex-col items-center p-1 rounded-lg border transition cursor-pointer shrink-0 ${
+                        isActive
+                          ? 'border-cyan-500 bg-cyan-500/15 shadow-md shadow-cyan-500/20'
+                          : 'border-[#232733] hover:border-slate-600 bg-[#161922]'
+                      }`}
+                    >
+                      <div className="relative w-12 h-20 rounded overflow-hidden bg-black/50 flex items-center justify-center border border-white/5">
+                        <img
+                          src={`data:image/png;base64,${s.base64}`}
+                          alt={s.label}
+                          className="w-full h-full object-cover select-none"
+                        />
+                        {isActive && (
+                          <div className="absolute inset-0 border-2 border-cyan-400 rounded pointer-events-none" />
+                        )}
+                        <button
+                          onClick={(e) => deleteScreen(e, idx)}
+                          className="absolute top-0.5 right-0.5 p-1 rounded bg-black/80 hover:bg-rose-600 text-white opacity-0 group-hover:opacity-100 transition shadow cursor-pointer"
+                          title="Remove screen"
+                        >
+                          <Trash2 className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
+                      <span className={`text-[9px] mt-0.5 font-mono font-medium max-w-[50px] truncate ${isActive ? 'text-cyan-300 font-bold' : 'text-slate-400'}`}>
+                        #{idx + 1}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Crawled Tabs Carousel Strip */}
           {crawledScreens.length > 0 && (
