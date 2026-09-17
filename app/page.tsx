@@ -77,8 +77,6 @@ export default function StudioPage() {
 
   // Reference to debounce render requests
   const renderTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [autoSync, setAutoSync] = useState(false);
-  const autoSyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isCapturingRef = useRef(false);
   const initialSnapTakenRef = useRef(false);
   const lastScreenBase64Ref = useRef<string | null>(null);
@@ -171,10 +169,8 @@ export default function StudioPage() {
     async (silent = false) => {
       if (isCapturingRef.current) return;
       isCapturingRef.current = true;
-      if (!silent) {
-        setIsCapturing(true);
-        setStatusMessage('Streaming screen buffer from phone...');
-      }
+      setIsCapturing(true);
+      if (!silent) setStatusMessage('Pulling live screen from phone...');
       try {
         const res = await fetch('/api/capture', {
           method: 'POST',
@@ -184,26 +180,19 @@ export default function StudioPage() {
 
         const data = await res.json();
         if (data.success && data.base64) {
-          // If silent sync and screen hasn't changed on phone, skip heavy compositing!
-          if (silent && lastScreenBase64Ref.current === data.base64) {
-            return;
-          }
-
           lastScreenBase64Ref.current = data.base64;
           setScreenshotBase64(data.base64);
           setLastLatencyMs(data.latencyMs);
-          if (!silent) setStatusMessage(`Captured in ${data.latencyMs}ms (${(data.sizeBytes / 1024).toFixed(0)} KB)`);
+          if (!silent) setStatusMessage(`Synced in ${data.latencyMs}ms (${(data.sizeBytes / 1024).toFixed(0)} KB)`);
           await refreshPreview(data.base64);
         } else {
-          if (!silent) setStatusMessage(`Capture failed: ${data.error}`);
+          if (!silent) setStatusMessage(`Sync failed: ${data.error}`);
         }
       } catch (err) {
         if (!silent) setStatusMessage(`Error: ${err instanceof Error ? err.message : String(err)}`);
       } finally {
         isCapturingRef.current = false;
-        if (!silent) {
-          setIsCapturing(false);
-        }
+        setIsCapturing(false);
       }
     },
     [selectedDevice, refreshPreview]
@@ -216,23 +205,6 @@ export default function StudioPage() {
       handleSnap(true);
     }
   }, [selectedDevice, handleSnap]);
-
-  // Live Auto-Sync loop (polls every 1.8s when enabled)
-  useEffect(() => {
-    if (autoSync) {
-      autoSyncIntervalRef.current = setInterval(() => {
-        if (!isCapturingRef.current) {
-          handleSnap(true);
-        }
-      }, 1800);
-    } else {
-      if (autoSyncIntervalRef.current) clearInterval(autoSyncIntervalRef.current);
-    }
-
-    return () => {
-      if (autoSyncIntervalRef.current) clearInterval(autoSyncIntervalRef.current);
-    };
-  }, [autoSync, handleSnap]);
 
   // 4. Export Multi-Store ZIP Package
   const handleExportZip = async () => {
@@ -365,33 +337,20 @@ export default function StudioPage() {
             )}
           </div>
 
-          {/* Live Auto-Sync Toggle */}
-          <button
-            onClick={() => setAutoSync(!autoSync)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-semibold text-xs border transition cursor-pointer ${
-              autoSync
-                ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 shadow-sm shadow-emerald-500/20'
-                : 'bg-[#161922] border-[#232733] text-slate-400 hover:text-slate-200 hover:border-slate-700'
-            }`}
-            title="Automatically updates the preview every 1.8s as you navigate on your phone"
-          >
-            <span className={`w-2 h-2 rounded-full ${autoSync ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
-            <span>{autoSync ? 'Live Sync ON' : 'Live Sync'}</span>
-          </button>
-
-          {/* Quick Snap Primary Action */}
+          {/* Primary Sync Action */}
           <button
             onClick={() => handleSnap(false)}
             disabled={isCapturing}
             className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold text-xs shadow-md shadow-cyan-500/20 transition disabled:opacity-50 cursor-pointer"
+            title="Pull current screen from your phone into the canvas (Spacebar)"
           >
             {isCapturing ? (
               <RefreshCw className="w-3.5 h-3.5 animate-spin" />
             ) : (
-              <Zap className="w-3.5 h-3.5 fill-current" />
+              <RefreshCw className="w-3.5 h-3.5" />
             )}
-            <span>Snap Screen</span>
-            <kbd className="hidden sm:inline-block text-[10px] px-1 py-0.2 bg-cyan-600/30 rounded font-mono">Space</kbd>
+            <span>Sync from Phone</span>
+            <kbd className="hidden sm:inline-block text-[10px] px-1.5 py-0.2 bg-cyan-600/30 text-slate-950 rounded font-mono font-bold">Space</kbd>
           </button>
 
           {/* Autonomous Crawl Action */}
@@ -598,6 +557,17 @@ export default function StudioPage() {
                     </div>
                   </div>
                 )}
+                {/* Floating Quick Sync Button on Canvas Hover */}
+                <button
+                  onClick={() => handleSnap(false)}
+                  disabled={isCapturing}
+                  className="absolute bottom-3 right-3 px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-medium border border-white/15 shadow-xl backdrop-blur opacity-0 group-hover:opacity-100 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  title="Sync current phone screen (Space)"
+                >
+                  <RefreshCw className={`w-3 h-3 ${isCapturing ? 'animate-spin' : ''}`} />
+                  <span>Sync Screen</span>
+                  <kbd className="text-[10px] font-mono text-cyan-400">Space</kbd>
+                </button>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center p-12 text-center text-slate-500 border-2 border-dashed border-[#232733] rounded-2xl max-w-md">
