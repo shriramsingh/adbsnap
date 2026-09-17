@@ -894,33 +894,33 @@ export default function StudioPage() {
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-[#0a0b0e] text-slate-100 font-sans">
       {/* Top Header Bar */}
-      <header className="h-14 border-b border-[#232733] bg-[#0f1117] px-5 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+      <header className="h-14 border-b border-[#232733] bg-[#0f1117] px-4 sm:px-5 flex items-center justify-between shrink-0 gap-3">
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 shrink-0">
             <Camera className="w-4 h-4 text-white" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-bold text-sm tracking-tight text-white">ADBSnap Studio</span>
+              <span className="font-bold text-sm tracking-tight text-white whitespace-nowrap">ADBSnap Studio</span>
               <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
                 v1.0.0
               </span>
             </div>
-            <p className="text-[11px] text-slate-400">Marketing Asset & Screenshot Studio</p>
+            <p className="text-[11px] text-slate-400 hidden xl:block">Marketing Asset & Screenshot Studio</p>
           </div>
         </div>
 
         {/* Live Device Status & USB/Wi-Fi Switcher */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 p-1 rounded-full bg-[#161922] border border-[#232733]">
-            <div className="flex items-center gap-2 px-2.5 py-0.5">
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+          <div className="flex items-center gap-1.5 p-1 rounded-full bg-[#161922] border border-[#232733] shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 px-2 py-0.5">
               {activeDevice ? (
                 <>
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                  <span className="text-xs font-medium text-slate-200 truncate max-w-[130px]" title={activeDevice.id}>
+                  <span className="text-xs font-medium text-slate-200 truncate max-w-[90px] sm:max-w-[125px]" title={activeDevice.id}>
                     {activeDevice.model}
                   </span>
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 flex items-center gap-1">
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 flex items-center gap-1 shrink-0">
                     {activeDevice.type === 'wifi' ? (
                       <>
                         <Wifi className="w-2.5 h-2.5 text-cyan-400" />
@@ -943,15 +943,12 @@ export default function StudioPage() {
                         setToastMessage(`📋 Copied package: ${activeApp}`);
                         toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2500);
                       }}
-                      className="group/app flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-950/70 hover:bg-blue-900/90 text-blue-300 border border-blue-800/40 transition cursor-pointer text-[10px] hidden md:inline-flex"
-                      title={`Active Package: ${activeApp}\n(Click to copy package name)`}
+                      className="group/app flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-950/70 hover:bg-blue-900/90 text-blue-300 border border-blue-800/40 transition cursor-pointer text-[10px] shrink-0"
+                      title={`Active App: ${formatAppName(activeApp)}\nPackage: ${activeApp}\n(Click to copy package name)`}
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
-                      <span className="font-semibold text-white tracking-wide">
+                      <span className="font-semibold text-white tracking-wide truncate max-w-[85px] sm:max-w-[125px]">
                         {formatAppName(activeApp)}
-                      </span>
-                      <span className="text-[9px] font-mono text-blue-400/70 hidden lg:inline max-w-[130px] truncate group-hover/app:text-blue-200">
-                        ({activeApp})
                       </span>
                       <Copy className="w-2.5 h-2.5 text-blue-400/80 group-hover/app:text-white shrink-0 ml-0.5" />
                     </button>
@@ -971,7 +968,7 @@ export default function StudioPage() {
                 type="button"
                 onClick={handleSwitchToWifi}
                 disabled={isSwitchingWireless}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[11px] font-medium transition cursor-pointer disabled:opacity-50"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[11px] font-medium transition cursor-pointer disabled:opacity-50 shrink-0"
                 title="Switch from USB to Wi-Fi mode automatically so you can unplug the USB cable"
               >
                 {isSwitchingWireless ? (
@@ -979,7 +976,7 @@ export default function StudioPage() {
                 ) : (
                   <Wifi className="w-3 h-3 text-cyan-400" />
                 )}
-                <span className="hidden sm:inline">Switch to Wi-Fi</span>
+                <span className="hidden lg:inline">Wi-Fi Switch</span>
               </button>
             )}
 
@@ -989,7 +986,7 @@ export default function StudioPage() {
                 type="button"
                 onClick={handleDisconnectWifi}
                 disabled={isSwitchingWireless}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-medium transition cursor-pointer disabled:opacity-50"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-medium transition cursor-pointer disabled:opacity-50 shrink-0"
                 title="Disconnect wireless ADB session and revert to USB mode"
               >
                 {isSwitchingWireless ? (
@@ -997,7 +994,7 @@ export default function StudioPage() {
                 ) : (
                   <Cable className="w-3 h-3 text-amber-400" />
                 )}
-                <span className="hidden sm:inline">Disconnect Wi-Fi</span>
+                <span className="hidden lg:inline">Disconnect</span>
               </button>
             )}
 
@@ -1009,19 +1006,22 @@ export default function StudioPage() {
                 setWifiModalSuccess(null);
                 setIsWifiModalOpen(true);
               }}
-              className="px-2.5 py-1 text-slate-300 hover:text-white rounded-full bg-slate-800/90 hover:bg-slate-700 border border-slate-700/60 transition cursor-pointer flex items-center gap-1.5 text-[11px] font-medium shadow-sm"
+              className="px-2.5 py-1 text-slate-300 hover:text-white rounded-full bg-slate-800/90 hover:bg-slate-700 border border-slate-700/60 transition cursor-pointer flex items-center gap-1 text-[11px] font-medium shadow-sm shrink-0"
               title="Connect to a phone via Wi-Fi IP address or Android 11+ wireless debugging"
             >
               <Globe className="w-3 h-3 text-cyan-400 shrink-0" />
-              <span>IP Connect</span>
+              <span className="hidden sm:inline">IP Connect</span>
             </button>
           </div>
 
           {/* Screens Collected Counter Badge */}
           {screens.length > 0 && (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-950/40 border border-cyan-500/30 text-xs text-cyan-300 animate-in fade-in select-none">
+            <div
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-cyan-950/40 border border-cyan-500/30 text-xs text-cyan-300 animate-in fade-in select-none shrink-0"
+              title={`${screens.length} screens in studio`}
+            >
               <span className="font-semibold">📸 {screens.length}</span>
-              <span className="text-cyan-400/80 hidden lg:inline">
+              <span className="text-cyan-400/80 hidden 2xl:inline">
                 {screens.length === 1 ? 'screen' : 'screens'}
               </span>
             </div>
@@ -1030,18 +1030,33 @@ export default function StudioPage() {
           {/* Local File Upload Action */}
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#161922] hover:bg-[#202533] border border-[#232733] text-slate-300 hover:text-white font-medium text-xs shadow-sm transition cursor-pointer"
-            title="Import screenshots from your computer (PNG, JPG, WebP) to frame or create an animated story"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#161922] hover:bg-[#202533] border border-[#232733] text-slate-300 hover:text-white font-medium text-xs shadow-sm transition cursor-pointer shrink-0"
+            title="Import screenshots from your computer (PNG, JPG, WebP)"
           >
             <Upload className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="hidden sm:inline">Upload Images</span>
+            <span className="hidden sm:inline">Upload</span>
+          </button>
+
+          {/* Autonomous Crawl Action */}
+          <button
+            onClick={handleAutonomousCrawl}
+            disabled={isCrawling}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-md shadow-indigo-600/20 transition disabled:opacity-50 cursor-pointer shrink-0"
+            title="Automatically explore app tabs and capture screens"
+          >
+            {isCrawling ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="w-3.5 h-3.5" />
+            )}
+            <span className="hidden md:inline">Auto-Crawl</span>
           </button>
 
           {/* Primary Sync Action */}
           <button
             onClick={() => handleSnap(false)}
             disabled={isCapturing}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold text-xs shadow-md shadow-cyan-500/20 transition disabled:opacity-50 cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold text-xs shadow-md shadow-cyan-500/20 transition disabled:opacity-50 cursor-pointer shrink-0"
             title="Pull current screen from your phone into the canvas (Spacebar)"
           >
             {isCapturing ? (
@@ -1049,22 +1064,8 @@ export default function StudioPage() {
             ) : (
               <RefreshCw className="w-3.5 h-3.5" />
             )}
-            <span>Sync from Phone</span>
+            <span>Sync</span>
             <kbd className="hidden sm:inline-block text-[10px] px-1.5 py-0.2 bg-cyan-600/30 text-slate-950 rounded font-mono font-bold">Space</kbd>
-          </button>
-
-          {/* Autonomous Crawl Action */}
-          <button
-            onClick={handleAutonomousCrawl}
-            disabled={isCrawling}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-md shadow-indigo-600/20 transition disabled:opacity-50 cursor-pointer"
-          >
-            {isCrawling ? (
-              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Sparkles className="w-3.5 h-3.5" />
-            )}
-            <span>Auto-Crawl Tabs</span>
           </button>
         </div>
       </header>
