@@ -25,6 +25,9 @@ import {
   Pause,
   Film,
   X,
+  Upload,
+  ImagePlus,
+  Plus,
 } from 'lucide-react';
 
 interface ConnectedDevice {
@@ -76,7 +79,7 @@ export default function StudioPage() {
   const [isCrawling, setIsCrawling] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportScope, setExportScope] = useState<'all' | 'active'>('all');
-  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   // Animated Story Maker State
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
   const [storyPaceMs, setStoryPaceMs] = useState<number>(1800);
@@ -113,6 +116,7 @@ export default function StudioPage() {
   const isCapturingRef = useRef(false);
   const initialSnapTakenRef = useRef(false);
   const lastScreenBase64Ref = useRef<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 1. Setup Server-Sent Events (SSE) for live device updates
   useEffect(() => {
@@ -320,28 +324,44 @@ export default function StudioPage() {
     }
   };
 
-  // Toggle Clean Status Bar (Android Demo Mode)
-  const handleToggleDemoMode = async () => {
-    const nextVal = !isDemoMode;
-    setIsDemoMode(nextVal);
-    setStatusMessage(nextVal ? 'Activating Clean Status Bar (09:41, 100%)...' : 'Restoring standard status bar...');
-    try {
-      const res = await fetch('/api/demomode', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled: nextVal, deviceId: selectedDevice || undefined }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-        setToastMessage(nextVal ? '🧼 Demo Mode enabled: Clean 09:41, 100% battery' : 'Standard status bar restored');
-        toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2500);
-        // Refresh frame with clean status bar
-        setTimeout(() => handleSnap(true), 350);
-      }
-    } catch (err) {
-      setStatusMessage(`Demo mode error: ${err instanceof Error ? err.message : String(err)}`);
-    }
+  // Import local images from disk or drag-and-drop
+  const handleImportFiles = (files: FileList | File[]) => {
+    const fileList = Array.from(files);
+    const validFiles = fileList.filter((f) => f.type.startsWith('image/'));
+    if (validFiles.length === 0) return;
+
+    validFiles.forEach((file, i) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        if (!result) return;
+        const base64Data = result.includes(',') ? result.split(',')[1] : result;
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const label = file.name.replace(/\.[^/.]+$/, '').slice(0, 20);
+
+        setScreens((prev) => {
+          const nextIdx = prev.length + 1;
+          const newScreen: SessionScreen = {
+            id: `upload-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            index: nextIdx,
+            label: label || `Image #${nextIdx}`,
+            base64: base64Data,
+            timestamp: timeStr,
+          };
+          if (prev.length === 0 && i === 0) {
+            setScreenshotBase64(base64Data);
+            setActiveScreenIndex(0);
+          }
+          return [...prev, newScreen];
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setToastMessage(`📂 Imported ${validFiles.length} image${validFiles.length > 1 ? 's' : ''}`);
+    toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2200);
   };
 
   // Copy framed mockup to clipboard
@@ -653,37 +673,25 @@ export default function StudioPage() {
             )}
           </div>
 
-          {/* Clean Status Bar Toggle (Android Demo Mode) */}
-          <button
-            onClick={handleToggleDemoMode}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition cursor-pointer ${
-              isDemoMode
-                ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300 shadow-sm shadow-cyan-500/20'
-                : 'bg-[#161922] border-[#232733] text-slate-400 hover:text-slate-200'
-            }`}
-            title="Clean status bar to 09:41, 100% battery, and hide notification icons"
-          >
-            <span>🧼</span>
-            <span className="hidden md:inline">Clean Status</span>
-            {isDemoMode && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />}
-          </button>
-
           {/* Screens Collected Counter Badge */}
           {screens.length > 0 && (
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/40 border border-cyan-500/30 text-xs text-cyan-300 animate-in fade-in">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-950/40 border border-cyan-500/30 text-xs text-cyan-300 animate-in fade-in select-none">
               <span className="font-semibold">📸 {screens.length}</span>
               <span className="text-cyan-400/80 hidden lg:inline">
-                {screens.length === 1 ? 'screen captured' : 'screens captured'}
+                {screens.length === 1 ? 'screen' : 'screens'}
               </span>
-              <button
-                onClick={clearAllScreens}
-                className="ml-1 p-0.5 text-slate-400 hover:text-rose-400 transition cursor-pointer"
-                title="Clear all session screenshots"
-              >
-                <Trash2 className="w-3 h-3" />
-              </button>
             </div>
           )}
+
+          {/* Local File Upload Action */}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#161922] hover:bg-[#202533] border border-[#232733] text-slate-300 hover:text-white font-medium text-xs shadow-sm transition cursor-pointer"
+            title="Import screenshots from your computer (PNG, JPG, WebP) to frame or create an animated story"
+          >
+            <Upload className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="hidden sm:inline">Upload Images</span>
+          </button>
 
           {/* Primary Sync Action */}
           <button
@@ -713,21 +721,6 @@ export default function StudioPage() {
               <Sparkles className="w-3.5 h-3.5" />
             )}
             <span>Auto-Crawl Tabs</span>
-          </button>
-
-          {/* Animated Story Maker Action */}
-          <button
-            onClick={openStoryModal}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-xs shadow-md shadow-indigo-600/25 transition cursor-pointer"
-            title="Create an animated GIF or video story from your framed screens (perfect for README & Twitter)"
-          >
-            <Film className="w-3.5 h-3.5" />
-            <span>Create Story</span>
-            {screens.length > 0 && (
-              <span className="text-[10px] px-1 py-0.2 rounded bg-white/20 font-mono">
-                {screens.length}
-              </span>
-            )}
           </button>
         </div>
       </header>
@@ -935,8 +928,43 @@ export default function StudioPage() {
           </div>
         </aside>
 
-        {/* Center Live Canvas Preview */}
-        <main className="flex-1 bg-[#0a0b0e] flex flex-col items-center justify-center p-6 relative overflow-hidden">
+        {/* Hidden File Input for Local Image Upload */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/jpg"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files && e.target.files.length > 0) {
+              handleImportFiles(e.target.files);
+              e.target.value = '';
+            }
+          }}
+        />
+
+        {/* Center Live Canvas Preview with Drag & Drop */}
+        <main
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDragging(true);
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDragging(false);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDragging(false);
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+              handleImportFiles(e.dataTransfer.files);
+            }
+          }}
+          className="flex-1 bg-[#0a0b0e] flex flex-col items-center justify-center p-6 relative overflow-hidden"
+        >
           {/* Subtle Studio Background Grid */}
           <div
             className="absolute inset-0 opacity-[0.03] pointer-events-none"
@@ -946,6 +974,15 @@ export default function StudioPage() {
               backgroundSize: '24px 24px',
             }}
           />
+
+          {/* Drag & Drop Visual Overlay */}
+          {isDragging && (
+            <div className="absolute inset-0 z-50 bg-cyan-950/85 border-2 border-dashed border-cyan-400 backdrop-blur-sm flex flex-col items-center justify-center pointer-events-none animate-in fade-in duration-150">
+              <Upload className="w-12 h-12 text-cyan-400 mb-2 animate-bounce" />
+              <h3 className="text-lg font-bold text-white">Drop screenshots here</h3>
+              <p className="text-xs text-cyan-200">Import PNG, JPG, or WebP files into your workspace</p>
+            </div>
+          )}
 
           {/* Floating Toast Notification */}
           {toastMessage && (
@@ -1003,20 +1040,41 @@ export default function StudioPage() {
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center p-12 text-center text-slate-500 border-2 border-dashed border-[#232733] rounded-2xl max-w-md">
-                <div className="w-12 h-12 rounded-full bg-[#161922] flex items-center justify-center mb-3">
-                  <Camera className="w-6 h-6 text-slate-400" />
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="flex flex-col items-center justify-center p-10 text-center text-slate-500 border-2 border-dashed border-[#232733] hover:border-cyan-500/50 hover:bg-[#12151e]/60 transition rounded-2xl max-w-md cursor-pointer group"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-[#161922] group-hover:bg-cyan-950/50 border border-[#232733] group-hover:border-cyan-500/40 flex items-center justify-center mb-3 transition">
+                  <ImagePlus className="w-6 h-6 text-slate-400 group-hover:text-cyan-400 transition" />
                 </div>
-                <h3 className="text-sm font-semibold text-slate-200 mb-1">Canvas Ready</h3>
-                <p className="text-xs text-slate-400 mb-4">
-                  Plug in your phone and press &quot;Sync from Phone&quot; or spacebar to generate an asset.
+                <h3 className="text-sm font-semibold text-slate-200 mb-1">Canvas Ready for Framing</h3>
+                <p className="text-xs text-slate-400 mb-4 max-w-xs">
+                  Drag &amp; drop screenshots here, browse local files, or press <kbd className="px-1.5 py-0.5 bg-slate-800 text-cyan-300 rounded font-mono text-[10px]">Space</kbd> to sync from phone.
                 </p>
-                <button
-                  onClick={() => handleSnap(false)}
-                  className="px-4 py-2 rounded-lg bg-cyan-500 text-slate-950 text-xs font-semibold cursor-pointer"
-                >
-                  Capture Active Screen
-                </button>
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSnap(false);
+                    }}
+                    className="px-3.5 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-md shadow-cyan-500/20"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Sync Phone (Space)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      fileInputRef.current?.click();
+                    }}
+                    className="px-3.5 py-1.5 rounded-lg bg-[#1c202c] hover:bg-[#252b3b] border border-white/10 text-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Upload className="w-3 h-3 text-cyan-400" />
+                    <span>Browse Files</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -1024,38 +1082,47 @@ export default function StudioPage() {
           {/* Session Screens Filmstrip Tray */}
           {screens.length > 0 && (
             <div className="mt-3 flex flex-col items-center z-20 w-full max-w-3xl px-4">
-              <div className="flex items-center justify-between w-full mb-1 px-1">
+              <div className="flex items-center justify-between w-full mb-1.5 px-1">
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] font-semibold text-slate-300 tracking-wide flex items-center gap-1.5">
                     <Camera className="w-3 h-3 text-cyan-400" />
                     Session Filmstrip ({screens.length})
                   </span>
-                  <span className="text-[10px] text-slate-500">
-                    Press <kbd className="px-1 py-0.2 bg-slate-800 text-cyan-300 rounded font-mono text-[9px]">Space</kbd> to add • Hover card to reorder ⇄
+                  <span className="text-[10px] text-slate-500 hidden sm:inline">
+                    Hover card to reorder ⇄ • Space to capture
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={openStoryModal}
-                    className="text-[10px] px-2.5 py-1 rounded bg-indigo-950/60 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-900/60 transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+                    className="text-[11px] px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/25 transition"
                     title="Open the Animated Product Story Maker to preview and export GIF animations"
                   >
-                    <Film className="w-3 h-3 text-indigo-400" />
+                    <Film className="w-3.5 h-3.5 text-white" />
                     <span>Create Story</span>
                   </button>
 
                   <button
                     onClick={clearAllScreens}
-                    className="text-[10px] text-slate-400 hover:text-rose-400 transition flex items-center gap-1 cursor-pointer"
+                    className="text-[11px] px-2 py-1 text-slate-400 hover:text-rose-400 transition flex items-center gap-1 cursor-pointer"
                     title="Clear all captured screens"
                   >
-                    <Trash2 className="w-2.5 h-2.5" />
+                    <Trash2 className="w-3 h-3" />
                     <span>Clear All</span>
                   </button>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 overflow-x-auto w-full py-1.5 px-2 bg-[#12141a]/95 backdrop-blur-md rounded-xl border border-[#232733] shadow-lg">
+                {/* Quick Add Local Image Card in Tray */}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-12 h-20 rounded-lg border border-dashed border-[#2c3242] hover:border-cyan-500/60 bg-[#151822] hover:bg-cyan-950/20 text-slate-400 hover:text-cyan-300 flex flex-col items-center justify-center gap-1 shrink-0 transition cursor-pointer"
+                  title="Upload another screenshot from your computer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="text-[9px] font-medium">Add</span>
+                </button>
                 {screens.map((s, idx) => {
                   const isActive = idx === activeScreenIndex;
                   return (
