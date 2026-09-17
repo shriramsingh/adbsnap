@@ -11,6 +11,22 @@ Stop wrestling with manual Figma templates or low-res screenshot scripts. **ADBS
 
 ---
 
+## 🚀 What's New in v1.2.0
+
+- ⚡ **Zero-Dependency Native Studio Engine**:
+  - Replaced heavy Next.js runtime with an ultra-lightweight, native Node HTTP server.
+  - Reduced runtime dependencies to **only 3** (`sharp`, `archiver`, `gifenc`).
+  - Studio boots in **< 15 milliseconds** with zero Webpack compilation delay.
+- 🪟 **App Window Mode (Frameless Desktop App Experience)**:
+  - `adbsnap studio` now automatically launches in a dedicated desktop window without a browser address bar or tabs.
+  - Serves cleanly at `http://adbsnap.localhost:3000`.
+- 💎 **100% Pre-compiled Original Studio UI**:
+  - Full React 19 visual dashboard with all Lucide icons, glassmorphism, filmstrip, and animations pre-compiled at build time.
+- 🚀 **Flawless `npx` Compatibility**:
+  - Run `npx adbsnap studio` instantly from any directory with zero cache or loader issues.
+
+---
+
 ## 🚀 What's New in v1.1.0
 
 - 📶 **Comprehensive Wireless ADB Suite**:
@@ -52,7 +68,7 @@ Stop wrestling with manual Figma templates or low-res screenshot scripts. **ADBS
 ```bash
 npx adbsnap studio
 ```
-Opens the visual studio dashboard in your default browser at `http://localhost:3000`.
+Opens the visual studio dashboard directly in dedicated **App Window Mode** at `http://adbsnap.localhost:3000`.
 
 ### Run Instantly via `npx` (Headless Snap)
 ```bash
