@@ -62,6 +62,19 @@ Stop wrestling with manual Figma templates or low-res screenshot scripts. **ADBS
 
 ---
 
+### 🧪 Automated Mobile QA with Plain English? Try PromptTest Studio
+
+Need to automate end-to-end user journeys, test bottom navigation hubs, and catch visual regressions on Android?  
+Check out **[PromptTest Studio](https://shriramsingh.github.io/prompttest-studio-site/)** — our zero-code visual desktop IDE for autonomous mobile testing:
+- 📱 **Live Android Device Mirroring**: Low-latency screen interaction with click, drag, and hardware navigation.
+- 🎯 **Visual Element Inspector**: Point and click to inspect native views with instant auto-generated plain-English assertions.
+- 📸 **Visual Regression & Exclude Masks**: Pixel-level baseline comparisons with draggable exclude masks for dynamic content.
+- 🚀 **100% Local-First & Air-Gapped**: Runs entirely on your machine over local ADB with zero cloud dependencies.
+
+👉 **[Explore PromptTest Studio](https://shriramsingh.github.io/prompttest-studio-site/)** &bull; **[Download Windows App](https://shriramsingh.github.io/prompttest-studio-site/downloads.html)**
+
+---
+
 ## 📦 Quick Start
 
 ### Launch Interactive Web Studio (Recommended)
