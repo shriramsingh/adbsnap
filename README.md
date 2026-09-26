@@ -3,6 +3,8 @@
 > **Automated Mobile Screenshot Capture, 4K Vector Device Framing & App Store / Google Play Asset Studio**
 
 [![npm version](https://img.shields.io/npm/v/adbsnap.svg?style=flat-square)](https://www.npmjs.com/package/adbsnap)
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/shriramsingh.adbsnap.svg?style=flat-square&color=blue&label=VS%20Code)](https://marketplace.visualstudio.com/items?itemName=shriramsingh.adbsnap)
+[![Website](https://img.shields.io/badge/website-live-success.svg?style=flat-square)](https://shriramsingh.github.io/adbsnap/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg?style=flat-square)](https://github.com/shriramsingh/adbsnap)
@@ -91,6 +93,12 @@ npx adbsnap snap
 ### Or Install Globally
 ```bash
 npm install -g adbsnap
+```
+
+### Install in Visual Studio Code
+Prefer an in-editor workflow? Install the official extension directly from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=shriramsingh.adbsnap):
+```bash
+code --install-extension shriramsingh.adbsnap
 ```
 
 ---
