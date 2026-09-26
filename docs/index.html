@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ADBSnap — 4K Mobile Device Framing &amp; App Store Asset Studio</title>
+    <meta
+      name="description"
+      content="Automated mobile screenshot capture, 4K vector device framing (iPhone 16 Pro, Pixel 9 Pro), and App Store / Google Play asset studio for Android."
+    />
+    <meta property="og:title" content="ADBSnap — 4K Mobile Device Framing &amp; App Store Asset Studio" />
+    <meta
+      property="og:description"
+      content="Direct RAM capture over ADB, 4K vector bezels, dynamic typography, and 1-click store asset generation."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://shriramsingh.github.io/adbsnap/" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="styles.css?v=1.2.0" />
+  </head>
+  <body>
+    <!-- Navbar -->
+    <header class="navbar">
+      <div class="shell nav-container">
+        <a class="brand" href="index.html">
+          <div class="brand-icon">📸</div>
+          <span>ADB<strong>Snap</strong></span>
+        </a>
+        <ul class="nav-links">
+          <li><a class="nav-link" href="#features">Features</a></li>
+          <li><a class="nav-link" href="#quickstart">Quick Start</a></li>
+          <li><a class="nav-link" href="#cli">CLI Reference</a></li>
+          <li><a class="nav-link" href="#vscode">VS Code</a></li>
+          <li><a class="nav-link" href="https://shriramsingh.github.io/prompttest-studio-site/" target="_blank">PromptTest Studio ↗</a></li>
+        </ul>
+        <div class="nav-cta">
+          <a class="btn btn-secondary btn-pill" href="https://www.npmjs.com/package/adbsnap" target="_blank" rel="noreferrer">
+            <span>npm v1.2.0</span>
+          </a>
+          <a class="btn btn-primary btn-pill" href="https://github.com/shriramsingh/adbsnap" target="_blank" rel="noreferrer">
+            <span>GitHub ↗</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="shell hero-content">
+        <div class="badge">
+          <span class="badge-dot"></span>
+          <span>v1.2.0: Zero-Dependency Native Engine (< 15ms Boot)</span>
+        </div>
+        <h1 class="hero-title">
+          Automated Mobile Screenshots &amp;<br />
+          <span class="gradient-text">4K Store Asset Studio</span>
+        </h1>
+        <p class="hero-lead">
+          Stop wrestling with manual Figma mockups and low-res screenshots. ADBSnap captures your Android device directly into RAM, wraps it into vector-crisp device bezels, and generates ready-to-upload store graphics in under a second.
+        </p>
+
+        <!-- Command Launcher -->
+        <div class="cmd-box">
+          <span class="cmd-prompt">$</span>
+          <span class="cmd-text">npx adbsnap studio</span>
+          <button class="cmd-copy" data-copy="npx adbsnap studio" title="Copy to Clipboard">Copy</button>
+        </div>
+
+        <div>
+          <a class="btn btn-primary" href="#quickstart" style="padding: 12px 28px; font-size: 15px;">Get Started in 10s</a>
+          <a class="btn btn-secondary" href="https://github.com/shriramsingh/adbsnap" target="_blank" rel="noreferrer" style="padding: 12px 24px; font-size: 15px; margin-left: 12px;">View Source on GitHub</a>
+        </div>
+
+        <!-- Interactive Mockup Showcase -->
+        <div class="mockup-preview-wrapper" id="preview">
+          <div class="mockup-toolbar">
+            <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Interactive Mockup Presets:</span>
+            <div class="theme-selector">
+              <button class="theme-chip active" data-theme="hero">Hero Dual-Device</button>
+              <button class="theme-chip" data-theme="aurora">Aurora Theme</button>
+              <button class="theme-chip" data-theme="showcase">Framed Showcase</button>
+            </div>
+          </div>
+          <div class="mockup-image-container">
+            <img id="preview-mockup-img" src="assets/hero.png" alt="ADBSnap 4K Device Mockup Preview" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Superpowers Bento Grid -->
+    <section class="section" id="features">
+      <div class="shell">
+        <div class="section-head">
+          <h2>Engineered for High-Velocity Mobile Creators</h2>
+          <p>Everything you need to automate production marketing assets and visual QA in a single, zero-config tool.</p>
+        </div>
+
+        <div class="bento-grid">
+          <!-- Card 1 -->
+          <div class="bento-card span-2">
+            <div class="bento-icon">⚡</div>
+            <h3>Direct RAM Streaming via ADB</h3>
+            <p>
+              Bypasses device filesystem storage entirely. ADBSnap streams frame buffers directly from <code>screencap -p</code> into Node.js memory buffers via native ADB, leaving zero temporary files or junk on your physical test devices.
+            </p>
+            <div class="code-snippet">adbsnap snap --theme=aurora --device=iphone16pro</div>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="bento-card">
+            <div class="bento-icon">📱</div>
+            <h3>4K Vector Bezels</h3>
+            <p>
+              Pixel-crisp iPhone 16 Pro (with Dynamic Island), Google Pixel 9 Pro, Android Tablets, and frameless floating canvas styles composite at high DPI with realistic shadows and screen reflections.
+            </p>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="bento-card">
+            <div class="bento-icon">📦</div>
+            <h3>1-Click Store Asset Bundler</h3>
+            <p>
+              One command generates all required App Store (6.9", 6.7", 6.5") and Google Play Store resolutions, bundled into a clean, ready-to-upload ZIP archive.
+            </p>
+          </div>
+
+          <!-- Card 4 -->
+          <div class="bento-card">
+            <div class="bento-icon">🤖</div>
+            <h3>Autonomous Tab Crawler</h3>
+            <p>
+              Hands-free screen capture: ADBSnap automatically inspects your app's view hierarchy, identifies bottom navigation tabs, traverses each view, and exports framed showcases.
+            </p>
+          </div>
+
+          <!-- Card 5 -->
+          <div class="bento-card">
+            <div class="bento-icon">📶</div>
+            <h3>Wireless ADB Suite (Android 11+)</h3>
+            <p>
+              Untether from USB cables effortlessly. Includes 6-digit wireless pairing code support, automatic IP discovery, and 1-click seamless toggle between USB and Wi-Fi modes.
+            </p>
+          </div>
+
+          <!-- Card 6: Studio App Mode -->
+          <div class="bento-card span-3">
+            <div class="bento-icon">🪟</div>
+            <h3>Dedicated Desktop App Window Mode</h3>
+            <p>
+              Run <code>npx adbsnap studio</code> to launch an ultra-responsive visual workspace that boots in under 15ms. Operates in frameless desktop application mode without browser address bars, tabs, or Webpack reload delays.
+            </p>
+            <div class="code-snippet">npx adbsnap studio # Boots instantly at http://adbsnap.localhost:3000</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PromptTest Studio Cross-Promotion -->
+    <section class="shell">
+      <div class="studio-callout">
+        <div class="studio-callout-content">
+          <span style="font-size: 13px; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.05em;">Companion Dev Tool</span>
+          <h3>Looking for Plain-English Automated Testing?</h3>
+          <p>
+            While ADBSnap creates stunning App Store marketing graphics, <strong>PromptTest Studio</strong> automates full user journeys, inspects native Android view hierarchies, and catches visual regressions using natural human language.
+          </p>
+          <div style="margin-top: 18px; display: flex; gap: 12px; flex-wrap: wrap;">
+            <a class="btn btn-primary" href="https://shriramsingh.github.io/prompttest-studio-site/" target="_blank">Explore PromptTest Studio ↗</a>
+            <a class="btn btn-secondary" href="https://shriramsingh.github.io/prompttest-studio-site/downloads.html" target="_blank">Download Desktop App ↗</a>
+          </div>
+        </div>
+        <div style="font-size: 72px; opacity: 0.85;">🧪</div>
+      </div>
+    </section>
+
+    <!-- Quickstart & CLI Reference -->
+    <section class="section" id="quickstart">
+      <div class="shell">
+        <div class="section-head">
+          <h2>Quick Start &amp; CLI Reference</h2>
+          <p>Install globally, add to your React Native / Flutter project, or run on demand via npx.</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 50px;">
+          <div class="bento-card">
+            <h3>Option 1: Interactive Desktop Studio</h3>
+            <p>Best for visual drag-and-drop framing, headline tweaking, and instant ZIP export:</p>
+            <div class="code-snippet" style="margin-top: 14px;">npx adbsnap studio</div>
+          </div>
+          <div class="bento-card">
+            <h3>Option 2: Headless Command Line</h3>
+            <p>Best for CI/CD pipelines, automated release scripts, and fast local terminal captures:</p>
+            <div class="code-snippet" style="margin-top: 14px;">npx adbsnap snap --title="Track Progress" --theme=sunset</div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div style="overflow-x: auto;" id="cli">
+          <table style="width: 100%; border-collapse: collapse; background: var(--bg-surface); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); font-size: 14px;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--border-subtle); text-align: left; background: rgba(255, 255, 255, 0.02);">
+                <th style="padding: 16px 20px; font-weight: 700;">Command</th>
+                <th style="padding: 16px 20px; font-weight: 700;">Description</th>
+                <th style="padding: 16px 20px; font-weight: 700;">Key Flags</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom: 1px solid var(--border-subtle);">
+                <td style="padding: 14px 20px; font-family: var(--font-mono); color: #38bdf8;">adbsnap snap</td>
+                <td style="padding: 14px 20px; color: var(--text-secondary);">Capture screen, apply vector bezel, and export framed image.</td>
+                <td style="padding: 14px 20px; font-family: var(--font-mono); font-size: 13px;">--title, --sub, --theme, --device</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-subtle);">
+                <td style="padding: 14px 20px; font-family: var(--font-mono); color: #38bdf8;">adbsnap studio</td>
+                <td style="padding: 14px 20px; color: var(--text-secondary);">Launch interactive visual studio in dedicated app window.</td>
+                <td style="padding: 14px 20px; font-family: var(--font-mono); font-size: 13px;">--port=3000</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-subtle);">
+                <td style="padding: 14px 20px; font-family: var(--font-mono); color: #38bdf8;">adbsnap export</td>
+                <td style="padding: 14px 20px; color: var(--text-secondary);">Bundle framed screens into multi-size App Store &amp; Play Store ZIP.</td>
+                <td style="padding: 14px 20px; font-family: var(--font-mono); font-size: 13px;">--output=store-assets.zip</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-subtle);">
+                <td style="padding: 14px 20px; font-family: var(--font-mono); color: #38bdf8;">adbsnap doctor</td>
+                <td style="padding: 14px 20px; color: var(--text-secondary);">Diagnose ADB path, permissions, USB authorization, and dependencies.</td>
+                <td style="padding: 14px 20px; font-family: var(--font-mono); font-size: 13px;">—</td>
+              </tr>
+              <tr>
+                <td style="padding: 14px 20px; font-family: var(--font-mono); color: #38bdf8;">adbsnap explore</td>
+                <td style="padding: 14px 20px; color: var(--text-secondary);">Autonomous bottom-tab crawler: captures each app tab hands-free.</td>
+                <td style="padding: 14px 20px; font-family: var(--font-mono); font-size: 13px;">--max-tabs=5</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- VS Code Extension -->
+    <section class="section" id="vscode" style="background: rgba(15, 23, 42, 0.4); border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle);">
+      <div class="shell">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 40px; flex-wrap: wrap;">
+          <div style="max-width: 580px;">
+            <div class="badge">
+              <span class="badge-dot"></span>
+              <span>Developer Productivity</span>
+            </div>
+            <h2 style="font-size: 32px; font-weight: 800; margin-bottom: 16px;">Snap Directly from VS Code</h2>
+            <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px;">
+              Capture live device screens, generate framed mockups, and paste images directly into your Markdown documentation, PR descriptions, or bug reports without leaving your IDE.
+            </p>
+            <div style="display: flex; gap: 12px;">
+              <a class="btn btn-primary" href="https://github.com/shriramsingh/adbsnap/tree/main/vscode" target="_blank">Inspect Extension Source ↗</a>
+            </div>
+          </div>
+          <div style="background: #020617; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: var(--radius-md); padding: 24px; min-width: 320px;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+              <img src="assets/icon.png" width="36" height="36" alt="VS Code Extension Icon" style="border-radius: 6px;" />
+              <div>
+                <div style="font-weight: 700; font-size: 15px;">ADBSnap for VS Code</div>
+                <div style="color: var(--text-muted); font-size: 12px;">Version 0.2.2 &bull; MIT License</div>
+              </div>
+            </div>
+            <div style="font-family: var(--font-mono); font-size: 12px; color: #94a3b8; line-height: 1.8;">
+              <div>&gt; ADBSnap: Quick Capture (Framed)</div>
+              <div>&gt; ADBSnap: Capture &amp; Copy to Clipboard</div>
+              <div>&gt; ADBSnap: Capture Raw Screenshot</div>
+              <div>&gt; ADBSnap: Switch to Wireless ADB (WiFi)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <div class="shell">
+        <div class="footer-grid">
+          <div>
+            <a class="brand" href="index.html" style="margin-bottom: 14px;">
+              <div class="brand-icon">📸</div>
+              <span>ADB<strong>Snap</strong></span>
+            </a>
+            <p style="color: var(--text-muted); max-width: 320px; line-height: 1.6;">
+              Open-source automated screenshot capture, 4K vector device framing &amp; store asset studio for Android.
+            </p>
+          </div>
+          <div class="footer-col">
+            <h4>Product</h4>
+            <ul>
+              <li><a href="#features">Features</a></li>
+              <li><a href="#quickstart">Quick Start</a></li>
+              <li><a href="#cli">CLI Reference</a></li>
+              <li><a href="#vscode">VS Code Extension</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h4>Ecosystem</h4>
+            <ul>
+              <li><a href="https://shriramsingh.github.io/prompttest-studio-site/" target="_blank">PromptTest Studio ↗</a></li>
+              <li><a href="https://www.npmjs.com/package/prompttest" target="_blank">PromptTest CLI (npm) ↗</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h4>Community</h4>
+            <ul>
+              <li><a href="https://github.com/shriramsingh/adbsnap" target="_blank">GitHub Repository ↗</a></li>
+              <li><a href="https://www.npmjs.com/package/adbsnap" target="_blank">npm Package ↗</a></li>
+              <li><a href="https://github.com/shriramsingh/adbsnap/issues" target="_blank">Issue Tracker ↗</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <span>&copy; 2026 Shriram Singh. Released under the MIT License.</span>
+          <span>Hosted on GitHub Pages</span>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Interactive Script -->
+    <script src="app.js?v=1.2.0"></script>
+  </body>
+</html>

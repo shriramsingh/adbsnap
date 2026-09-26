@@ -27,7 +27,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 ));
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-// src/extension.ts
+// vscode/src/extension.ts
 var extension_exports = {};
 __export(extension_exports, {
   activate: () => activate,
@@ -38,13 +38,13 @@ var vscode5 = __toESM(require("vscode"));
 var import_node_path6 = __toESM(require("node:path"));
 var import_promises3 = __toESM(require("node:fs/promises"));
 
-// ../lib/adb.ts
+// lib/adb.ts
 var import_node_child_process = require("node:child_process");
 var import_node_fs = __toESM(require("node:fs"), 1);
 var import_node_path = __toESM(require("node:path"), 1);
 var import_node_os = __toESM(require("node:os"), 1);
 
-// ../constants/commands.ts
+// constants/commands.ts
 var ADB_COMMANDS = {
   DEVICES: ["devices", "-l"],
   SCREENCAP: ["exec-out", "screencap", "-p"],
@@ -72,7 +72,7 @@ var ADB_COMMANDS = {
   ]
 };
 
-// ../constants/config.ts
+// constants/config.ts
 var CONFIG = {
   DEFAULT_PORT: 5555,
   DEFAULT_OUTPUT_DIR: "./output",
@@ -81,7 +81,7 @@ var CONFIG = {
   ADB_DEFAULT_HOST: "127.0.0.1"
 };
 
-// ../lib/adb.ts
+// lib/adb.ts
 var cachedAdbPath = null;
 function resolveAdbPath() {
   if (cachedAdbPath) return cachedAdbPath;
@@ -165,7 +165,7 @@ var AndroidDriver = class {
         }
       }
       let type = "usb";
-      if (id.includes(":")) {
+      if (id.includes(":") || id.includes("._tcp") || id.includes("_adb-tls-") || id.includes("._adb.") || id.includes("tls-connect")) {
         type = "wifi";
       } else if (id.startsWith("emulator-")) {
         type = "emulator";
@@ -180,6 +180,16 @@ var AndroidDriver = class {
         rawStatus
       });
     }
+    devices.sort((a, b) => {
+      if (a.isAuthorized !== b.isAuthorized) return a.isAuthorized ? -1 : 1;
+      const rank = (type) => {
+        if (type === "usb") return 0;
+        if (type === "wifi") return 1;
+        if (type === "emulator") return 2;
+        return 3;
+      };
+      return rank(a.type) - rank(b.type);
+    });
     return devices;
   }
   /**
@@ -222,16 +232,45 @@ var AndroidDriver = class {
     });
   }
   /**
-   * Extracts the internal local Wi-Fi IP address of an attached device.
+   * Extracts the internal local Wi-Fi IP address of an attached device with multi-layer fallbacks.
    */
   async getDeviceIp(deviceId) {
-    const args = ["-s", deviceId, ...ADB_COMMANDS.WLAN_IP];
-    const output = await this.exec(args);
-    const match = output.match(/inet\s+(\d+\.\d+\.\d+\.\d+)/);
-    if (!match || !match[1]) {
-      throw new Error(`Unable to determine Wi-Fi IP address for device ${deviceId}. Ensure phone is connected to Wi-Fi.`);
+    try {
+      const output = await this.exec(["-s", deviceId, ...ADB_COMMANDS.WLAN_IP]);
+      const match = output.match(/inet\s+(\d+\.\d+\.\d+\.\d+)/);
+      if (match && match[1] && !match[1].startsWith("127.")) {
+        return match[1];
+      }
+    } catch {
     }
-    return match[1];
+    try {
+      const routeOutput = await this.exec(["-s", deviceId, "shell", "ip", "route"]);
+      const routeMatch = routeOutput.match(/src\s+(\d+\.\d+\.\d+\.\d+)/);
+      if (routeMatch && routeMatch[1] && !routeMatch[1].startsWith("127.")) {
+        return routeMatch[1];
+      }
+    } catch {
+    }
+    try {
+      const addrOutput = await this.exec(["-s", deviceId, "shell", "ip", "-f", "inet", "addr"]);
+      const lines = addrOutput.split("\n");
+      for (const line of lines) {
+        const m = line.match(/inet\s+(\d+\.\d+\.\d+\.\d+)/);
+        if (m && m[1] && !m[1].startsWith("127.")) {
+          return m[1];
+        }
+      }
+    } catch {
+    }
+    try {
+      const propOutput = await this.exec(["-s", deviceId, "shell", "getprop", "dhcp.wlan0.ipaddress"]);
+      const trimmed = propOutput.trim();
+      if (/^\d+\.\d+\.\d+\.\d+$/.test(trimmed)) {
+        return trimmed;
+      }
+    } catch {
+    }
+    throw new Error(`Unable to determine Wi-Fi IP address for device ${deviceId}. Please verify that your phone is connected to your Wi-Fi network.`);
   }
   /**
    * 1-Click Switch: Puts USB-connected device in TCP mode, finds its IP, and connects over Wi-Fi.
@@ -239,10 +278,10 @@ var AndroidDriver = class {
   async enableWireless(deviceId, port = CONFIG.DEFAULT_PORT) {
     const ip = await this.getDeviceIp(deviceId);
     await this.exec(["-s", deviceId, ...ADB_COMMANDS.TCP_IP(port)]);
-    await new Promise((r) => setTimeout(r, 600));
+    await new Promise((r) => setTimeout(r, 800));
     const connectOutput = await this.exec(ADB_COMMANDS.CONNECT(ip, port));
-    if (!connectOutput.includes("connected to")) {
-      throw new Error(`Failed to connect over Wi-Fi: ${connectOutput}`);
+    if (!connectOutput.includes("connected to") && !connectOutput.includes("already connected")) {
+      throw new Error(`Failed to connect over Wi-Fi to ${ip}:${port}: ${connectOutput}`);
     }
     return `${ip}:${port}`;
   }
@@ -250,28 +289,44 @@ var AndroidDriver = class {
    * Disconnects a wireless ADB session and resets device connection back to USB mode.
    */
   async disableWireless(deviceId) {
-    if (deviceId && deviceId.includes(":")) {
+    const isWireless = deviceId && (deviceId.includes(":") || deviceId.includes("._tcp") || deviceId.includes("_adb-tls-") || deviceId.includes("tls-connect"));
+    if (isWireless) {
       try {
-        await this.exec(["disconnect", deviceId]);
+        return await this.exec(["disconnect", deviceId]);
       } catch {
+        return "disconnected";
       }
     }
-    const prefix = deviceId && !deviceId.includes(":") ? ["-s", deviceId] : [];
+    const prefix = deviceId ? ["-s", deviceId] : [];
     return await this.exec([...prefix, "usb"]);
   }
   /**
    * Connects directly to an existing wireless device endpoint (IP:Port).
    */
   async connectWifi(ip, port = CONFIG.DEFAULT_PORT) {
-    const output = await this.exec(ADB_COMMANDS.CONNECT(ip, port));
-    return output.includes("connected to");
+    try {
+      const output = await this.exec(ADB_COMMANDS.CONNECT(ip, port));
+      if (output.includes("connected to") || output.includes("already connected")) {
+        return { success: true, message: output };
+      }
+      return { success: false, message: output || "Failed to connect" };
+    } catch (err) {
+      return { success: false, message: err instanceof Error ? err.message : String(err) };
+    }
   }
   /**
    * Pairs an Android 11+ device using pairing code and pairing port.
    */
   async pairWifi(ip, port, code) {
-    const output = await this.exec(ADB_COMMANDS.PAIR(ip, port, code));
-    return output.includes("Successfully paired");
+    try {
+      const output = await this.exec(ADB_COMMANDS.PAIR(ip, port, code));
+      if (output.includes("Successfully paired") || output.includes("already paired")) {
+        return { success: true, message: output };
+      }
+      return { success: false, message: output || "Pairing failed" };
+    } catch (err) {
+      return { success: false, message: err instanceof Error ? err.message : String(err) };
+    }
   }
   /**
    * Detects the currently open/focused application package on the phone screen.
@@ -303,10 +358,55 @@ var AndroidDriver = class {
     const prefix = deviceId ? ["-s", deviceId] : [];
     await this.exec([...prefix, ...ADB_COMMANDS.FORCE_STOP(packageName)]);
   }
+  /**
+   * Toggles Android SystemUI Demo Mode (pristine 9:41 AM, 100% battery, full wifi, no notifications).
+   */
+  async setDemoMode(enable, deviceId) {
+    const prefix = deviceId ? ["-s", deviceId] : [];
+    if (enable) {
+      await this.exec([...prefix, "shell", "settings", "put", "global", "sysui_demo_allowed", "1"]);
+      await this.exec([...prefix, "shell", "am", "broadcast", "-a", "com.android.systemui.demo", "-e", "command", "enter"]);
+      await this.exec([...prefix, "shell", "am", "broadcast", "-a", "com.android.systemui.demo", "-e", "command", "clock", "-e", "hhmm", "0941"]);
+      await this.exec([...prefix, "shell", "am", "broadcast", "-a", "com.android.systemui.demo", "-e", "command", "battery", "-e", "level", "100", "-e", "plugged", "false"]);
+      await this.exec([...prefix, "shell", "am", "broadcast", "-a", "com.android.systemui.demo", "-e", "command", "network", "-e", "wifi", "show", "-e", "level", "4", "-e", "fully", "true"]);
+      await this.exec([...prefix, "shell", "am", "broadcast", "-a", "com.android.systemui.demo", "-e", "command", "network", "-e", "mobile", "show", "-e", "datatype", "false", "-e", "level", "4"]);
+      await this.exec([...prefix, "shell", "am", "broadcast", "-a", "com.android.systemui.demo", "-e", "command", "notifications", "-e", "visible", "false"]);
+    } else {
+      await this.exec([...prefix, "shell", "am", "broadcast", "-a", "com.android.systemui.demo", "-e", "command", "exit"]);
+    }
+  }
+  /**
+   * Records a high-definition MP4 clip directly from the mobile screen using adb screenrecord.
+   */
+  async recordVideo(seconds = 5, deviceId) {
+    const prefix = deviceId ? ["-s", deviceId] : [];
+    const remotePath = "/sdcard/adbsnap_temp_rec.mp4";
+    const localTmp = import_node_path.default.join(import_node_os.default.tmpdir(), `adbsnap-rec-${Date.now()}.mp4`);
+    try {
+      await this.exec([...prefix, "shell", "rm", "-f", remotePath]);
+    } catch {
+    }
+    const duration = Math.min(Math.max(seconds, 1), 30);
+    await this.exec(
+      [...prefix, "shell", "screenrecord", "--time-limit", String(duration), remotePath],
+      (duration + 10) * 1e3
+    );
+    await this.exec([...prefix, "pull", remotePath, localTmp], 3e4);
+    const buffer = import_node_fs.default.readFileSync(localTmp);
+    try {
+      import_node_fs.default.unlinkSync(localTmp);
+    } catch {
+    }
+    try {
+      await this.exec([...prefix, "shell", "rm", "-f", remotePath]);
+    } catch {
+    }
+    return buffer;
+  }
 };
 var androidDriver = new AndroidDriver();
 
-// src/clipboard.ts
+// vscode/src/clipboard.ts
 var import_promises = __toESM(require("node:fs/promises"));
 var import_node_path2 = __toESM(require("node:path"));
 var import_node_os2 = __toESM(require("node:os"));
@@ -374,7 +474,7 @@ $img.Dispose();
   }
 }
 
-// src/statusBar.ts
+// vscode/src/statusBar.ts
 var vscode = __toESM(require("vscode"));
 var AdbStatusBarManager = class {
   statusBarItem;
@@ -453,7 +553,7 @@ Click to switch devices.`;
   }
 };
 
-// src/cli.ts
+// vscode/src/cli.ts
 var import_node_child_process3 = require("node:child_process");
 var import_node_path3 = __toESM(require("node:path"));
 var import_node_fs2 = __toESM(require("node:fs"));
@@ -511,7 +611,7 @@ function getCliRunnerLabel(extensionPath) {
   return resolveCliRunner(extensionPath).label;
 }
 
-// src/views/devicesProvider.ts
+// vscode/src/views/devicesProvider.ts
 var vscode2 = __toESM(require("vscode"));
 var DeviceTreeItem = class extends vscode2.TreeItem {
   constructor(device, isActive) {
@@ -582,7 +682,7 @@ var DevicesTreeDataProvider = class {
   }
 };
 
-// src/views/capturesProvider.ts
+// vscode/src/views/capturesProvider.ts
 var vscode3 = __toESM(require("vscode"));
 var import_node_fs3 = __toESM(require("node:fs"));
 var import_node_path4 = __toESM(require("node:path"));
@@ -652,7 +752,7 @@ var CapturesTreeDataProvider = class {
   }
 };
 
-// src/studio/studioWebview.ts
+// vscode/src/studio/studioWebview.ts
 var vscode4 = __toESM(require("vscode"));
 var import_node_path5 = __toESM(require("node:path"));
 var import_promises2 = __toESM(require("node:fs/promises"));
@@ -1214,7 +1314,7 @@ var StudioWebviewManager = class _StudioWebviewManager {
   }
 };
 
-// src/extension.ts
+// vscode/src/extension.ts
 var statusBarManager;
 var outputChannel;
 var devicesProvider;
