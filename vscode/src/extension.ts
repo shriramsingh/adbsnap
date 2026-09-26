@@ -283,22 +283,25 @@ async function handleSnapCommand(context: vscode.ExtensionContext, options: { co
           const imgBuffer = await fs.readFile(filePath);
           await copyImageBufferToClipboard(Buffer.from(imgBuffer));
           vscode.window.showInformationMessage('📸 ADBSnap: Framed screenshot copied to clipboard!');
-          if (capturesProvider) {
-            capturesProvider.refresh();
-          }
-
-          const action = await vscode.window.showInformationMessage(
-            `📸 Saved screenshot to ${fileName}`,
-            'Open Image',
-            'Reveal in Explorer'
-          );
-
-          if (action === 'Open Image') {
-            await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(filePath));
-          } else if (action === 'Reveal in Explorer') {
-            await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(filePath));
-          }
         }
+
+        if (capturesProvider) {
+          capturesProvider.refresh();
+        }
+
+        const action = await vscode.window.showInformationMessage(
+          `📸 Saved screenshot to ${fileName}`,
+          'Open Image',
+          'Reveal in Explorer'
+        );
+
+        if (action === 'Open Image') {
+          await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(filePath));
+        } else if (action === 'Reveal in Explorer') {
+          await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(filePath));
+        }
+
+        await checkAndPromptReview(context);
       } catch (err: any) {
         vscode.window.showErrorMessage(`ADBSnap Capture Failed: ${err.message || err}`);
       }
@@ -361,11 +364,48 @@ async function handleSnapRawCommand(context: vscode.ExtensionContext): Promise<v
         } else if (action === 'Reveal in Explorer') {
           await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(filePath));
         }
+
+        await checkAndPromptReview(context);
       } catch (err: any) {
         vscode.window.showErrorMessage(`ADBSnap Raw Capture Failed: ${err.message || err}`);
       }
     }
   );
+}
+
+/**
+ * Prompts the user for a 5-star review on the Visual Studio Marketplace
+ * after they have successfully performed 5 captures (proven value delivery).
+ */
+async function checkAndPromptReview(context: vscode.ExtensionContext): Promise<void> {
+  const HAS_RATED_KEY = 'adbsnap.hasRatedOrDismissed';
+  const SNAP_COUNT_KEY = 'adbsnap.successfulSnapCount';
+
+  if (context.globalState.get<boolean>(HAS_RATED_KEY)) {
+    return;
+  }
+
+  const currentCount = (context.globalState.get<number>(SNAP_COUNT_KEY) || 0) + 1;
+  await context.globalState.update(SNAP_COUNT_KEY, currentCount);
+
+  // Trigger prompt on 5th successful capture
+  if (currentCount === 5) {
+    const response = await vscode.window.showInformationMessage(
+      '⭐ Enjoying ADBSnap? Leaving a 5-star review on the Marketplace helps support open-source development!',
+      'Leave a Review',
+      'Maybe Later',
+      "Don't Ask Again"
+    );
+
+    if (response === 'Leave a Review') {
+      await context.globalState.update(HAS_RATED_KEY, true);
+      vscode.env.openExternal(
+        vscode.Uri.parse('https://marketplace.visualstudio.com/items?itemName=shriramsingh.adbsnap&ssr=false#review-details')
+      );
+    } else if (response === "Don't Ask Again") {
+      await context.globalState.update(HAS_RATED_KEY, true);
+    }
+  }
 }
 
 /**

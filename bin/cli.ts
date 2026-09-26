@@ -286,6 +286,9 @@ async function handleSnap(options: {
   console.log('\n' + '─'.repeat(50));
   logger.success(`Showcase Asset Ready: ${STYLES.bold(finalPath)}`);
   logger.info(`Specs: ${result.width}x${result.height} px | Frame: ${frame} | Theme: ${theme} | Layout: ${layout} | Fit: ${fit} | Font: ${font}`);
+  if (!process.env.CI) {
+    console.log(STYLES.dim('⭐ Enjoying ADBSnap? Star on GitHub: ') + STYLES.info('https://github.com/shriramsingh/adbsnap'));
+  }
   console.log('─'.repeat(50) + '\n');
 }
 
@@ -399,6 +402,9 @@ async function handleExport(options: {
 
   logger.success(MESSAGES.EXPORT_COMPLETE(results.length, totalExportMs));
   logger.info(`Output Folder: ${STYLES.bold(baseOutDir)}\n`);
+  if (!process.env.CI) {
+    console.log(STYLES.dim('⭐ Enjoying ADBSnap? Star on GitHub: ') + STYLES.info('https://github.com/shriramsingh/adbsnap') + '\n');
+  }
 }
 
 async function handleJourney(options: {
