@@ -9,7 +9,19 @@
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg?style=flat-square)](https://github.com/shriramsingh/adbsnap)
 
-Stop wrestling with manual Figma templates or low-res screenshot scripts. **ADBSnap** captures your live Android device or emulator directly into memory, wraps it into vector-sharp device bezels (iPhone 16 Pro, Pixel 9 Pro), lays down studio-grade gradient backdrops with auto-wrapped typography, and exports ready-to-upload store graphics in **under a second**.
+Stop wrestling with manual Figma templates or low-res screenshot scripts. **ADBSnap** is the all-in-one Android ADB screenshot and 4K device mockup tool available as an [NPM package](https://www.npmjs.com/package/adbsnap) and official [VS Code Marketplace extension](https://marketplace.visualstudio.com/items?itemName=shriramsingh.adbsnap). It captures your live Android device or emulator directly into memory, wraps it into vector-sharp device bezels (iPhone 16 Pro, Pixel 9 Pro), lays down studio-grade gradient backdrops with auto-wrapped typography, and exports ready-to-upload store graphics in **under a second**.
+
+---
+
+## 🚀 What's New in v1.2.1
+
+- 🔄 **Unified Versioning & Automated Multi-Platform Release Engine**:
+  - Synchronized versions across NPM (`adbsnap@1.2.1`), VS Code Marketplace extension, and CLI binary.
+  - One-command automated dual-builder and packager (`npm run version:sync`).
+- ⭐ **Community & Rating Prompts**:
+  - Polite 5th-capture VS Code Marketplace review prompt and CLI GitHub star prompt.
+- 🔍 **SEO & Discoverability Infrastructure**:
+  - Added structured Schema.org JSON-LD, canonical indexing, robots.txt, and sitemap.xml to the official showcase site at [shriramsingh.github.io/adbsnap](https://shriramsingh.github.io/adbsnap/).
 
 ---
 

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://shriramsingh.github.io/adbsnap/sitemap.xml
