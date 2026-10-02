@@ -3,28 +3,82 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ADBSnap — 4K Mobile Device Framing &amp; App Store Asset Studio</title>
+    <title>ADBSnap — Android Screenshot, 4K Device Framing &amp; Store Mockup Studio (CLI &amp; VS Code)</title>
     <meta
       name="description"
-      content="Automated mobile screenshot capture, 4K vector device framing (iPhone 16 Pro, Pixel 9 Pro), and App Store / Google Play asset studio for Android."
+      content="Automated mobile screenshot capture, 4K vector device framing (iPhone 16 Pro, Pixel 9 Pro), and App Store / Google Play asset studio for Android via ADB and VS Code extension."
     />
-    <meta property="og:title" content="ADBSnap — 4K Mobile Device Framing &amp; App Store Asset Studio" />
     <meta
-      property="og:description"
-      content="Direct RAM capture over ADB, 4K vector bezels, dynamic typography, and 1-click store asset generation."
+      name="keywords"
+      content="adbsnap, adbsnap npm, adb screenshot, android screenshot mockup, app store screenshot generator, google play store assets, device framing cli, mobile screenshot capture, vscode adbsnap, android mockup studio"
     />
+    <meta name="author" content="Shriram Singh" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://shriramsingh.github.io/adbsnap/" />
+
+    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://shriramsingh.github.io/adbsnap/" />
+    <meta property="og:title" content="ADBSnap — Android Screenshot, 4K Device Framing &amp; Store Mockup Studio" />
+    <meta
+      property="og:description"
+      content="Capture mobile screens over ADB directly into RAM, composite 4K vector bezels, and generate App Store &amp; Play Store mockups in under a second."
+    />
+    <meta property="og:image" content="https://shriramsingh.github.io/adbsnap/assets/hero.png" />
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://shriramsingh.github.io/adbsnap/" />
+    <meta name="twitter:title" content="ADBSnap — Android Screenshot, 4K Device Framing &amp; Store Mockup Studio" />
+    <meta
+      name="twitter:description"
+      content="Direct RAM capture over ADB, 4K vector bezels (iPhone 16 Pro, Pixel 9 Pro), dynamic typography, and 1-click store asset generation."
+    />
+    <meta name="twitter:image" content="https://shriramsingh.github.io/adbsnap/assets/hero.png" />
+
+    <!-- Google Site Verification (Placeholder: replace with your verification code from Google Search Console) -->
+    <!-- <meta name="google-site-verification" content="GSC_VERIFICATION_TOKEN" /> -->
+
+    <!-- Schema.org JSON-LD Structured Data for Google Rich Results -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "ADBSnap",
+      "alternateName": ["adbsnap npm", "adbsnap-cli", "adbsnap-vscode"],
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Windows, macOS, Linux, Android",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "description": "Automated mobile screenshot capture, 4K vector device framing (iPhone 16 Pro, Pixel 9 Pro), and App Store / Google Play asset studio for Android developers via ADB and VS Code.",
+      "url": "https://shriramsingh.github.io/adbsnap/",
+      "downloadUrl": "https://www.npmjs.com/package/adbsnap",
+      "softwareVersion": "1.2.1",
+      "author": {
+        "@type": "Person",
+        "name": "Shriram Singh",
+        "url": "https://github.com/shriramsingh"
+      },
+      "sameAs": [
+        "https://github.com/shriramsingh/adbsnap",
+        "https://www.npmjs.com/package/adbsnap",
+        "https://marketplace.visualstudio.com/items?itemName=shriramsingh.adbsnap"
+      ]
+    }
+    </script>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.gstatic.com" />
     <link
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
 
-    <link rel="stylesheet" href="styles.css?v=1.2.0" />
+    <link rel="stylesheet" href="styles.css?v=1.2.1" />
   </head>
   <body>
     <!-- Navbar -->
@@ -43,7 +97,7 @@
         </ul>
         <div class="nav-cta">
           <a class="btn btn-secondary btn-pill" href="https://www.npmjs.com/package/adbsnap" target="_blank" rel="noreferrer">
-            <span>npm v1.2.0</span>
+            <span>npm v1.2.1</span>
           </a>
           <a class="btn btn-primary btn-pill" href="https://github.com/shriramsingh/adbsnap" target="_blank" rel="noreferrer">
             <span>GitHub ↗</span>
@@ -57,7 +111,7 @@
       <div class="shell hero-content">
         <div class="badge">
           <span class="badge-dot"></span>
-          <span>v1.2.0: Zero-Dependency Native Engine (< 15ms Boot)</span>
+          <span>v1.2.1: Zero-Dependency Native Engine (< 15ms Boot)</span>
         </div>
         <h1 class="hero-title">
           Automated Mobile Screenshots &amp;<br />
@@ -268,7 +322,7 @@
               <img src="assets/icon.png" width="36" height="36" alt="VS Code Extension Icon" style="border-radius: 6px;" />
               <div>
                 <div style="font-weight: 700; font-size: 15px;">ADBSnap for VS Code</div>
-                <div style="color: var(--text-muted); font-size: 12px;">Version 0.2.2 &bull; MIT License</div>
+                <div style="color: var(--text-muted); font-size: 12px;">Version 1.2.1 &bull; MIT License</div>
               </div>
             </div>
             <div style="font-family: var(--font-mono); font-size: 12px; color: #94a3b8; line-height: 1.8;">
@@ -328,6 +382,6 @@
     </footer>
 
     <!-- Interactive Script -->
-    <script src="app.js?v=1.2.0"></script>
+    <script src="app.js?v=1.2.1"></script>
   </body>
 </html>

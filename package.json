@@ -1,7 +1,7 @@
 {
   "name": "adbsnap",
   "version": "1.2.1",
-  "description": "Automated mobile screenshot capture, 4K vector device framing & App Store / Google Play asset studio",
+  "description": "Automated mobile screenshot capture, 4K vector device framing & App Store / Google Play asset studio for Android developers (CLI & VS Code)",
   "main": "dist/bin/cli.js",
   "bin": {
     "adbsnap": "dist/bin/cli.js",
@@ -10,15 +10,24 @@
   "author": "Shriram Singh",
   "license": "MIT",
   "keywords": [
+    "adbsnap",
     "adb",
     "android",
     "screenshot",
+    "adb-screenshot",
+    "android-screenshot",
+    "mockup",
+    "device-mockup",
+    "device-frames",
     "appstore",
     "google-play",
-    "mockup",
-    "device-frames",
-    "sharp",
+    "app-store-screenshots",
+    "play-store-screenshots",
+    "frameless-mockup",
     "mobile-showcase",
+    "sharp",
+    "developer-tools",
+    "vscode",
     "cli"
   ],
   "files": [
