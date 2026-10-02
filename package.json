@@ -1,6 +1,6 @@
 {
   "name": "adbsnap",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Automated mobile screenshot capture, 4K vector device framing & App Store / Google Play asset studio",
   "main": "dist/bin/cli.js",
   "bin": {
@@ -28,6 +28,9 @@
     "LICENSE"
   ],
   "scripts": {
+    "version:sync": "node scripts/bump-version.mjs",
+    "bump:patch": "node scripts/bump-version.mjs patch",
+    "bump:minor": "node scripts/bump-version.mjs minor",
     "build:cli": "node scripts/build-cli.mjs",
     "build": "node scripts/build-cli.mjs",
     "snap": "tsx bin/cli.ts snap",
@@ -43,9 +46,7 @@
     "studio": "tsx bin/cli.ts studio",
     "build:vscode": "node vscode/esbuild.mjs",
     "watch:vscode": "node vscode/esbuild.mjs --watch",
-    "package:vscode": "cd vscode && npx @vscode/vsce package --no-dependencies",
-    "release:patch": "cd vscode && npm version patch && node esbuild.mjs && npx @vscode/vsce package --no-dependencies",
-    "release:minor": "cd vscode && npm version minor && node esbuild.mjs && npx @vscode/vsce package --no-dependencies"
+    "package:vscode": "cd vscode && npx @vscode/vsce package --no-dependencies"
   },
   "type": "module",
   "engines": {
