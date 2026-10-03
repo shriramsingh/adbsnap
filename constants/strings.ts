@@ -42,8 +42,11 @@ SNAP & EXPORT OPTIONS:
                        Available: cover (safe aspect ratio), contain, fill
   --font <preset|name> Typography font family (default: modern)
                        Available: modern, rounded, editorial, mono, or custom font name
-  --title <text>       Headline text on canvas (auto-wraps long titles)
+  --title <text>       Headline text on canvas (supports multi-line with \n)
   --subtitle <text>    Subtitle description under headline
+  --footer <text>      Footer callout text (useful when text-pos is 'both')
+  --text-pos <pos>     Text placement on canvas (default: top)
+                       Available: top, bottom, both
   --stars              Display 5-star rating chip (★★★★★ 5.0 RATED)
   --zip                Package outputs into a single .zip archive for instant store upload
   --config <path>      Load project settings & screens from JSON (e.g. adbsnap.config.json)

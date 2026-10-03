@@ -13,8 +13,9 @@ export interface CompositeFrameOptions {
   font?: string;
   title?: string;
   subtitle?: string;
+  footer?: string;
   showStarBadge?: boolean;
-  typographyPosition?: 'top' | 'bottom';
+  typographyPosition?: 'top' | 'bottom' | 'both';
   canvasWidth?: number;
   canvasHeight?: number;
   phoneTopOffset?: number;
@@ -182,8 +183,20 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
 
   // 6. Calculate Placement
   const phoneLeft = Math.round((canvasWidth - targetPhoneWidth) / 2);
-  const layoutPreset = LAYOUT_PRESETS[layout] || LAYOUT_PRESETS.appstore;
-  const defaultPhoneTop = layoutPreset.phoneTop(canvasHeight, targetPhoneHeight);
+  let defaultPhoneTop: number;
+
+  if (typographyPosition === 'bottom') {
+    // Phone placed near top, bleeding top or high center, leaving generous headroom at bottom
+    defaultPhoneTop = layout === 'appstore' ? Math.round(-80 * phoneScale) : Math.round(canvasHeight * 0.05);
+  } else if (typographyPosition === 'both') {
+    // Phone centered vertically between top headline and bottom footer
+    defaultPhoneTop = Math.round((canvasHeight - targetPhoneHeight) / 2);
+  } else {
+    // Top typography (default)
+    const layoutPreset = LAYOUT_PRESETS[layout] || LAYOUT_PRESETS.appstore;
+    defaultPhoneTop = layoutPreset.phoneTop(canvasHeight, targetPhoneHeight);
+  }
+
   const phoneTop = options.phoneTopOffset ?? defaultPhoneTop;
 
   // 7. Generate Gradient Backdrop SVG
@@ -210,6 +223,7 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
     canvasHeight,
     title: options.title,
     subtitle: options.subtitle,
+    footer: options.footer,
     showStarBadge: options.showStarBadge,
     position: typographyPosition,
     isDarkTheme,

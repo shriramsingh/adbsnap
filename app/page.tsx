@@ -186,6 +186,7 @@ export default function StudioPage() {
   const [title, setTitle] = useState('Transform Your Workflow');
   const [subtitle, setSubtitle] = useState('Effortless automated mobile screenshot studio.');
   const [showStars, setShowStars] = useState(true);
+  const [typographyPosition, setTypographyPosition] = useState<'top' | 'bottom' | 'both'>('top');
 
   // Images & Screen Session History
   const [screenshotBase64, setScreenshotBase64] = useState<string | null>(null);
@@ -273,6 +274,7 @@ export default function StudioPage() {
             title,
             subtitle,
             showStarBadge: showStars,
+            typographyPosition,
             format: 'preview',
           }),
         });
@@ -287,7 +289,7 @@ export default function StudioPage() {
         setIsRendering(false);
       }
     },
-    [screenshotBase64, selectedDevice, bezelId, themeId, layout, font, title, subtitle, showStars]
+    [screenshotBase64, selectedDevice, bezelId, themeId, layout, font, title, subtitle, showStars, typographyPosition]
   );
 
   // Debounced auto-preview when styling knobs change
@@ -300,7 +302,7 @@ export default function StudioPage() {
     return () => {
       if (renderTimeoutRef.current) clearTimeout(renderTimeoutRef.current);
     };
-  }, [themeId, bezelId, layout, font, title, subtitle, showStars, refreshPreview]);
+  }, [themeId, bezelId, layout, font, title, subtitle, showStars, typographyPosition, refreshPreview]);
 
   // 3. 1-Click Capture from Mobile Phone
   const handleSnap = useCallback(
@@ -801,6 +803,7 @@ export default function StudioPage() {
           title,
           subtitle,
           showStarBadge: showStars,
+          typographyPosition,
           format: 'zip',
         }),
       });
@@ -1280,25 +1283,76 @@ export default function StudioPage() {
                 )}
               </div>
               <div className="space-y-3">
+                {/* Text Positioning: Top, Bottom, Both */}
                 <div>
-                  <span className="text-[11px] text-slate-400 block mb-1">Headline</span>
-                  <input
-                    type="text"
+                  <span className="text-[11px] text-slate-400 block mb-1">Text Position</span>
+                  <div className="grid grid-cols-3 gap-1.5 p-1 bg-[#161922] border border-[#232733] rounded-lg text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setTypographyPosition('top')}
+                      className={`py-1.5 px-2 rounded font-medium transition cursor-pointer ${
+                        typographyPosition === 'top'
+                          ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                      title="Headline and subtitle rendered above phone with bottom-bleed frame"
+                    >
+                      ⬆ Top
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTypographyPosition('bottom')}
+                      className={`py-1.5 px-2 rounded font-medium transition cursor-pointer ${
+                        typographyPosition === 'bottom'
+                          ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                      title="Headline and subtitle rendered below phone with top-positioned frame"
+                    >
+                      ⬇ Bottom
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTypographyPosition('both')}
+                      className={`py-1.5 px-2 rounded font-medium transition cursor-pointer ${
+                        typographyPosition === 'both'
+                          ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                      title="Top headline & star rating chip with bottom subtitle / callout text"
+                    >
+                      ↕ Both
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] text-slate-400">Headline</span>
+                    <span className="text-[10px] text-slate-500 font-mono">Multi-line (Enter ↵)</span>
+                  </div>
+                  <textarea
+                    rows={2}
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Enter punchy headline..."
-                    className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                    placeholder="Enter punchy headline (press Enter for new line)..."
+                    className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 resize-none font-sans leading-relaxed"
                   />
                 </div>
 
                 <div>
-                  <span className="text-[11px] text-slate-400 block mb-1">Subtitle</span>
-                  <input
-                    type="text"
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] text-slate-400">
+                      {typographyPosition === 'both' ? 'Bottom Callout / Footer' : 'Subtitle'}
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-mono">Multi-line (Enter ↵)</span>
+                  </div>
+                  <textarea
+                    rows={2}
                     value={subtitle}
                     onChange={(e) => setSubtitle(e.target.value)}
-                    placeholder="Enter explanatory copy..."
-                    className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                    placeholder={typographyPosition === 'both' ? 'Enter bottom callout or feature copy...' : 'Enter explanatory copy...'}
+                    className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 resize-none font-sans leading-relaxed"
                   />
                 </div>
 

@@ -35,6 +35,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Added `lib/ios.ts` using macOS `xcrun simctl` to detect booted iOS simulators and capture uncompressed screenshots.
   - Unified device routing (`lib/devices.ts`) returning `ios` transport with `iOS 🍎` badge in CLI and Studio device lists.
 
+### ✍️ Flexible Multi-Line Typography & Positioning
+- **Top, Bottom & Both Placement (`lib/backdrop-generator.ts`, `lib/sharp.ts`)**:
+  - Added support for `'top'` (default), `'bottom'` (marketing text rendered below device chassis with top-positioned phone), and `'both'` (top punchy headline/badge + bottom feature callout/subtitle with vertically centered phone).
+  - Dynamically calculates phone chassis placement based on active typography positioning to ensure ample breathing room and prevent visual overlap.
+- **Multi-Line Text Formatting**:
+  - Upgraded `wrapText` to preserve user-entered explicit line breaks (`\n`) across paragraphs while wrapping long lines.
+  - Implemented dynamic auto-downscaling for headlines with 3+ lines to prevent canvas edge clipping.
+  - Upgraded Studio UI with multi-line `<textarea>` inputs with `Enter` support and a segmented text position selector (`[ ⬆ Top | ⬇ Bottom | ↕ Both ]`).
+  - Added `--text-pos <top|bottom|both>` and `--footer <text>` CLI options.
+
 ### 🐛 Bug Fixes & Studio UX
 - **Filmstrip Delete Action**:
   - Fixed click blocking caused by `pointer-events-none` on filmstrip thumbnail wrappers in `app/page.tsx`.

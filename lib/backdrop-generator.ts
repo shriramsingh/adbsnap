@@ -10,8 +10,9 @@ export interface TypographyOptions {
   canvasHeight: number;
   title?: string;
   subtitle?: string;
+  footer?: string;
   showStarBadge?: boolean;
-  position?: 'top' | 'bottom';
+  position?: 'top' | 'bottom' | 'both';
   isDarkTheme?: boolean;
   fontFamily?: string;
 }
@@ -48,81 +49,166 @@ export function generateGradientSvg(options: BackdropOptions): string {
 
 /**
  * Generates an SVG typography overlay with headlines, subtitles, and rating chips.
+ * Supports multi-line headlines, automatic downscaling, and 'top', 'bottom', or 'both' positioning.
  */
 export function generateTypographySvg(options: TypographyOptions): string {
-  const { canvasWidth, canvasHeight, title, subtitle, showStarBadge, position = 'top', isDarkTheme = true, fontFamily } = options;
-  if (!title && !subtitle && !showStarBadge) return '';
+  const {
+    canvasWidth,
+    canvasHeight,
+    title,
+    subtitle,
+    footer,
+    showStarBadge,
+    position = 'top',
+    isDarkTheme = true,
+    fontFamily,
+  } = options;
+
+  if (!title && !subtitle && !footer && !showStarBadge) return '';
 
   const font = fontFamily || "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, sans-serif";
   const scale = Math.min(canvasWidth / 1290, canvasHeight / 2796);
-  const startY = position === 'top' ? Math.round(140 * scale) : Math.round((canvasHeight - 340) * scale);
-  let content = '';
-  let currentY = startY;
+  const centerX = canvasWidth / 2;
 
   const titleColor = isDarkTheme ? '#ffffff' : '#0f172a';
   const subtitleColor = isDarkTheme ? 'rgba(255,255,255,0.85)' : '#334155';
-  const badgeBg = isDarkTheme ? 'rgba(255,255,255,0.15)' : 'rgba(15,23,42,0.06)';
-  const badgeBorder = isDarkTheme ? 'rgba(255,255,255,0.25)' : 'rgba(15,23,42,0.12)';
-  const starColor = isDarkTheme ? '#facc15' : '#d97706';
-  const badgeTextColor = isDarkTheme ? '#ffffff' : '#0f172a';
 
-  if (showStarBadge) {
+  let content = '';
+
+  // 1. Prepare Title Lines and Dynamic Sizing
+  const maxTitleChars = Math.max(18, Math.round(22 * (canvasWidth / 1290)));
+  const titleLines = title ? wrapText(title, maxTitleChars) : [];
+  const lineCount = titleLines.length;
+  const titleScaleFactor = lineCount > 2 ? Math.max(0.68, 1 - (lineCount - 2) * 0.12) : 1;
+  const titleSize = Math.max(26, Math.round(62 * scale * titleScaleFactor));
+  const titleLineHeight = Math.round(titleSize * 1.15);
+
+  // 2. Prepare Subtitle Lines
+  const maxSubChars = Math.max(28, Math.round(36 * (canvasWidth / 1290)));
+  const subtitleLines = subtitle ? wrapText(subtitle, maxSubChars) : [];
+  const subtitleSize = Math.max(16, Math.round(28 * scale));
+  const subtitleLineHeight = Math.round(subtitleSize * 1.25);
+
+  // Helper for Star Rating Chip
+  const renderBadge = (y: number) => {
     const badgeWidth = Math.round(280 * scale);
     const badgeHeight = Math.round(48 * scale);
     const badgeRadius = Math.round(24 * scale);
     const badgeFontSize = Math.max(14, Math.round(20 * scale));
     const badgeTextY = Math.round(31 * scale);
     const badgeX = (canvasWidth - badgeWidth) / 2;
-    content += `
-      <g transform="translate(${badgeX}, ${currentY})">
-        <rect width="${badgeWidth}" height="${badgeHeight}" rx="${badgeRadius}" fill="${badgeBg}" stroke="${badgeBorder}" stroke-width="2" />
-        <text x="${badgeWidth / 2}" y="${badgeTextY}" text-anchor="middle" font-family="${font}" font-size="${badgeFontSize}" font-weight="bold" fill="${starColor}">
-          ★★★★★ <tspan fill="${badgeTextColor}" font-weight="600">5.0 RATED</tspan>
-        </text>
-      </g>
-    `;
-    currentY += Math.round(70 * scale);
-  }
+    const badgeBg = isDarkTheme ? 'rgba(255,255,255,0.15)' : 'rgba(15,23,42,0.06)';
+    const badgeBorder = isDarkTheme ? 'rgba(255,255,255,0.25)' : 'rgba(15,23,42,0.12)';
+    const starColor = isDarkTheme ? '#facc15' : '#d97706';
+    const badgeTextColor = isDarkTheme ? '#ffffff' : '#0f172a';
 
-  if (title) {
-    const titleSize = Math.max(34, Math.round(62 * scale));
-    const maxTitleChars = Math.max(18, Math.round(22 * (canvasWidth / 1290)));
-    const titleLines = wrapText(title, maxTitleChars);
-    const lineHeight = Math.round(titleSize * 1.15);
+    return {
+      svg: `
+        <g transform="translate(${badgeX}, ${y})">
+          <rect width="${badgeWidth}" height="${badgeHeight}" rx="${badgeRadius}" fill="${badgeBg}" stroke="${badgeBorder}" stroke-width="2" />
+          <text x="${badgeWidth / 2}" y="${badgeTextY}" text-anchor="middle" font-family="${font}" font-size="${badgeFontSize}" font-weight="bold" fill="${starColor}">
+            ★★★★★ <tspan fill="${badgeTextColor}" font-weight="600">5.0 RATED</tspan>
+          </text>
+        </g>
+      `,
+      height: badgeHeight + Math.round(22 * scale),
+    };
+  };
 
-    let titleTspans = '';
-    titleLines.forEach((line, idx) => {
-      titleTspans += `<tspan x="${canvasWidth / 2}" ${idx > 0 ? `dy="${lineHeight}"` : ''}>${escapeXml(line)}</tspan>`;
+  // Helper for Text Block
+  const renderText = (lines: string[], fontSize: number, lineHeight: number, fontWeight: string, color: string, y: number, letterSpacing = 'normal') => {
+    if (lines.length === 0) return { svg: '', height: 0 };
+    let tspans = '';
+    lines.forEach((line, idx) => {
+      tspans += `<tspan x="${centerX}" ${idx > 0 ? `dy="${lineHeight}"` : ''}>${escapeXml(line)}</tspan>`;
     });
 
-    content += `
-      <text x="${canvasWidth / 2}" y="${currentY + Math.round(45 * scale)}" text-anchor="middle" 
+    const blockHeight = fontSize + (lines.length - 1) * lineHeight;
+    const svg = `
+      <text x="${centerX}" y="${y + fontSize}" text-anchor="middle" 
             font-family="${font}" 
-            font-size="${titleSize}" font-weight="800" fill="${titleColor}" letter-spacing="-1">
-        ${titleTspans}
+            font-size="${fontSize}" font-weight="${fontWeight}" fill="${color}" letter-spacing="${letterSpacing}">
+        ${tspans}
       </text>
     `;
-    currentY += Math.round(45 * scale) + (titleLines.length - 1) * lineHeight + Math.round(25 * scale);
+    return { svg, height: blockHeight };
+  };
+
+  // POSITION: TOP (Default)
+  if (position === 'top') {
+    let currentY = Math.round(130 * scale);
+
+    if (showStarBadge) {
+      const badge = renderBadge(currentY);
+      content += badge.svg;
+      currentY += badge.height;
+    }
+
+    if (titleLines.length > 0) {
+      const titleBlock = renderText(titleLines, titleSize, titleLineHeight, '800', titleColor, currentY, '-1');
+      content += titleBlock.svg;
+      currentY += titleBlock.height + Math.round(22 * scale);
+    }
+
+    if (subtitleLines.length > 0) {
+      const subBlock = renderText(subtitleLines, subtitleSize, subtitleLineHeight, '500', subtitleColor, currentY);
+      content += subBlock.svg;
+    }
   }
 
-  if (subtitle) {
-    const subtitleSize = Math.max(18, Math.round(28 * scale));
-    const maxSubChars = Math.max(28, Math.round(36 * (canvasWidth / 1290)));
-    const subLines = wrapText(subtitle, maxSubChars);
-    const lineHeight = Math.round(subtitleSize * 1.25);
+  // POSITION: BOTTOM (Store copy under phone chassis)
+  else if (position === 'bottom') {
+    // Calculate total height required
+    let totalHeight = 0;
+    if (showStarBadge) totalHeight += Math.round(70 * scale);
+    if (titleLines.length > 0) totalHeight += titleSize + (titleLines.length - 1) * titleLineHeight + Math.round(18 * scale);
+    if (subtitleLines.length > 0) totalHeight += subtitleSize + (subtitleLines.length - 1) * subtitleLineHeight;
 
-    let subTspans = '';
-    subLines.forEach((line, idx) => {
-      subTspans += `<tspan x="${canvasWidth / 2}" ${idx > 0 ? `dy="${lineHeight}"` : ''}>${escapeXml(line)}</tspan>`;
-    });
+    const bottomPadding = Math.round(95 * scale);
+    let currentY = Math.max(Math.round(canvasHeight * 0.64), canvasHeight - totalHeight - bottomPadding);
 
-    content += `
-      <text x="${canvasWidth / 2}" y="${currentY + Math.round(20 * scale)}" text-anchor="middle" 
-            font-family="${font}" 
-            font-size="${subtitleSize}" font-weight="500" fill="${subtitleColor}">
-        ${subTspans}
-      </text>
-    `;
+    if (showStarBadge) {
+      const badge = renderBadge(currentY);
+      content += badge.svg;
+      currentY += badge.height;
+    }
+
+    if (titleLines.length > 0) {
+      const titleBlock = renderText(titleLines, titleSize, titleLineHeight, '800', titleColor, currentY, '-1');
+      content += titleBlock.svg;
+      currentY += titleBlock.height + Math.round(20 * scale);
+    }
+
+    if (subtitleLines.length > 0) {
+      const subBlock = renderText(subtitleLines, subtitleSize, subtitleLineHeight, '500', subtitleColor, currentY);
+      content += subBlock.svg;
+    }
+  }
+
+  // POSITION: BOTH (Top Headline/Badge + Bottom Subtitle/Callout)
+  else if (position === 'both') {
+    // TOP ZONE: Star Badge + Headline
+    let topY = Math.round(120 * scale);
+    if (showStarBadge) {
+      const badge = renderBadge(topY);
+      content += badge.svg;
+      topY += badge.height;
+    }
+
+    if (titleLines.length > 0) {
+      const titleBlock = renderText(titleLines, titleSize, titleLineHeight, '800', titleColor, topY, '-1');
+      content += titleBlock.svg;
+    }
+
+    // BOTTOM ZONE: Subtitle or Footer Callout
+    const bottomText = footer || subtitle || '';
+    const bottomLines = bottomText ? wrapText(bottomText, maxSubChars) : [];
+    if (bottomLines.length > 0) {
+      const bottomBlockHeight = subtitleSize + (bottomLines.length - 1) * subtitleLineHeight;
+      const bottomY = canvasHeight - Math.round(120 * scale) - bottomBlockHeight;
+      const subBlock = renderText(bottomLines, subtitleSize, subtitleLineHeight, '600', subtitleColor, bottomY);
+      content += subBlock.svg;
+    }
   }
 
   const shadowOpacity = isDarkTheme ? '0.3' : '0.08';
@@ -139,21 +225,34 @@ export function generateTypographySvg(options: TypographyOptions): string {
   </svg>`;
 }
 
-function wrapText(text: string, maxCharsPerLine: number = 24): string[] {
-  const words = text.trim().split(/\s+/);
-  const lines: string[] = [];
-  let currentLine = '';
+/**
+ * Splits text into wrapped lines, preserving explicit user newlines while wrapping paragraphs.
+ */
+export function wrapText(text: string, maxCharsPerLine: number = 24): string[] {
+  if (!text) return [];
+  const paragraphs = text.split(/\r?\n/);
+  const result: string[] = [];
 
-  for (const word of words) {
-    if ((currentLine + ' ' + word).trim().length <= maxCharsPerLine) {
-      currentLine = (currentLine + ' ' + word).trim();
-    } else {
-      if (currentLine) lines.push(currentLine);
-      currentLine = word;
+  for (const para of paragraphs) {
+    const trimmed = para.trim();
+    if (!trimmed) continue;
+    const words = trimmed.split(/\s+/);
+    let currentLine = '';
+
+    for (const word of words) {
+      if (!currentLine) {
+        currentLine = word;
+      } else if ((currentLine + ' ' + word).length <= maxCharsPerLine) {
+        currentLine += ' ' + word;
+      } else {
+        result.push(currentLine);
+        currentLine = word;
+      }
     }
+    if (currentLine) result.push(currentLine);
   }
-  if (currentLine) lines.push(currentLine);
-  return lines.length > 0 ? lines : [text];
+
+  return result.length > 0 ? result : [text.trim()];
 }
 
 function escapeXml(str: string): string {
@@ -164,3 +263,4 @@ function escapeXml(str: string): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;');
 }
+

@@ -230,7 +230,9 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
                   font: body.font,
                   title: scr.customTitle || body.title,
                   subtitle: body.subtitle,
+                  footer: body.footer,
                   showStarBadge: body.showStarBadge,
+                  typographyPosition: body.typographyPosition || body.textPosition || 'top',
                 });
                 zipFiles.push({ path: `mockups/${filename}`, buffer: framed.buffer });
               }
@@ -257,8 +259,10 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
               layout: body.layout,
               title: body.title,
               subtitle: body.subtitle,
+              footer: body.footer,
               font: body.font,
               showStarBadge: body.showStarBadge,
+              typographyPosition: body.typographyPosition || body.textPosition || 'top',
             });
 
             const zipFiles = outputs.map(o => ({ path: o.path, buffer: o.buffer }));
@@ -286,8 +290,10 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
             layout: body.layout,
             title: body.title,
             subtitle: body.subtitle,
+            footer: body.footer,
             font: body.font,
             showStarBadge: body.showStarBadge,
+            typographyPosition: body.typographyPosition || body.textPosition || 'top',
             canvasWidth,
             canvasHeight,
           });

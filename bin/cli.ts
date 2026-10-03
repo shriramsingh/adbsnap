@@ -38,6 +38,8 @@ async function main() {
       device: { type: 'string' },
       out: { type: 'string' },
       port: { type: 'string', default: '3000' },
+      'text-pos': { type: 'string', default: 'top' },
+      footer: { type: 'string' },
       browser: { type: 'boolean', default: false },
       'no-open': { type: 'boolean', default: false },
       raw: { type: 'boolean', default: false },
@@ -209,6 +211,8 @@ async function handleSnap(options: {
   fit?: string;
   title?: string;
   subtitle?: string;
+  footer?: string;
+  'text-pos'?: string;
   stars?: boolean;
   device?: string;
   out?: string;
@@ -259,6 +263,7 @@ async function handleSnap(options: {
   const fit = (options.fit as 'cover' | 'contain' | 'fill') || 'cover';
   const format = (options.format as 'png' | 'webp' | 'avif' | 'jpeg') || 'png';
   const quality = options.quality ? Number(options.quality) : undefined;
+  const textPos = (options['text-pos'] as 'top' | 'bottom' | 'both') || 'top';
 
   if (!BEZEL_PRESETS[frame]) {
     logger.warn(`Unknown frame "${frame}", falling back to "iphone-16-pro". Available: ${Object.keys(BEZEL_PRESETS).join(', ')}`);
@@ -282,8 +287,9 @@ async function handleSnap(options: {
     quality,
     title: options.title,
     subtitle: options.subtitle,
+    footer: options.footer,
     showStarBadge: options.stars,
-    typographyPosition: 'top',
+    typographyPosition: textPos,
   });
 
   logger.success(MESSAGES.COMPOSITE_SUCCESS(result.elapsedMs, result.width, result.height));
@@ -309,6 +315,8 @@ async function handleExport(options: {
   store?: string;
   title?: string;
   subtitle?: string;
+  footer?: string;
+  'text-pos'?: string;
   stars?: boolean;
   zip?: boolean;
   config?: string;
@@ -324,6 +332,8 @@ async function handleExport(options: {
   let font = options.font || 'modern';
   let title = options.title;
   let subtitle = options.subtitle;
+  let footer = options.footer;
+  let textPos = (options['text-pos'] as 'top' | 'bottom' | 'both') || 'top';
   let stars = options.stars ?? false;
 
   if (options.config && fs.existsSync(options.config)) {
@@ -334,6 +344,7 @@ async function handleExport(options: {
       if (cfg.layout) layout = cfg.layout;
       if (cfg.font) font = cfg.font;
       if (cfg.stars !== undefined) stars = cfg.stars;
+      if (cfg.textPos) textPos = cfg.textPos;
       if (cfg.screens && cfg.screens[0]) {
         if (!title) title = cfg.screens[0].title;
         if (!subtitle) subtitle = cfg.screens[0].subtitle;
@@ -379,8 +390,9 @@ async function handleExport(options: {
     font,
     title,
     subtitle,
+    footer,
     showStarBadge: stars,
-    typographyPosition: 'top',
+    typographyPosition: textPos,
     storeFilter,
   });
   const totalExportMs = Math.round(performance.now() - exportStart);

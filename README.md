@@ -33,6 +33,10 @@ Stop wrestling with manual Figma templates or low-res screenshot scripts. **ADBS
   - Added **iPhone 16 Pro Max** (`iphone-16-pro-max`, 6.9" Super Retina XDR with Dynamic Island).
   - Added **Pixel 9 Pro Fold** (`pixel-9-pro-fold`, Inner 8" Foldable OLED display).
   - Added **Galaxy S25 Ultra** (`galaxy-s25-ultra`, 6.8" Dynamic AMOLED 2X titanium chassis with punch-hole).
+- ✍️ **Flexible Multi-Line Typography & Positioning**:
+  - Support for **Top**, **Bottom**, or **Both** text placement: place copy above the device, below the device, or split headlines on top with feature callouts on bottom.
+  - Multi-line headline and subtitle formatting with explicit line breaks (`\n`) and dynamic font downscaling for 3+ lines.
+  - Interactive Studio dashboard includes a 1-click position switcher (`[ ⬆ Top | ⬇ Bottom | ↕ Both ]`) and multi-line textareas with live 60fps fast-preview.
 - 🍎 **Pluggable iOS Simulator Driver**:
   - Auto-detects booted iOS simulators via macOS `xcrun simctl` with unified device routing and an `iOS 🍎` indicator.
 - 🐛 **Studio Filmstrip Bug Fixes**:
@@ -252,8 +256,10 @@ Use ADBSnap directly inside Visual Studio Code without leaving your editor:
 | `--layout` | Positioning layout | `appstore` (bottom bleed), `social` (floating centered) | `appstore` |
 | `--fit` | Screenshot scaling | `cover` (safe aspect), `contain`, `fill` | `cover` |
 | `--font` | Typography preset | `modern`, `rounded`, `editorial`, `mono` | `modern` |
-| `--title` | Headline text | Any text (auto-wraps on long headlines) | None |
+| `--title` | Headline text | Any text (supports multi-line with \n) | None |
 | `--subtitle`| Supporting subtitle | Any text | None |
+| `--footer`  | Footer callout text | Any text (rendered at bottom when text-pos is 'both') | None |
+| `--text-pos`| Canvas text positioning | `top`, `bottom`, `both` | `top` |
 | `--no-stars`| Hide 5-star rating badge | Flag | Stars enabled |
 | `--raw` | Save raw unadorned screenshot | Flag | False |
 | `--device` | Target specific ADB device ID | Device serial / IP / mDNS / iOS sim ID | Auto-detect |
