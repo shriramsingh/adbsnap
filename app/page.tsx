@@ -295,7 +295,7 @@ export default function StudioPage() {
     if (renderTimeoutRef.current) clearTimeout(renderTimeoutRef.current);
     renderTimeoutRef.current = setTimeout(() => {
       refreshPreview();
-    }, 400);
+    }, 120);
 
     return () => {
       if (renderTimeoutRef.current) clearTimeout(renderTimeoutRef.current);

@@ -274,6 +274,10 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
           const rawBase64 = body.screenshotBase64 || (screens[0] ? screens[0].base64 : '');
           if (!rawBase64) return sendJson({ success: false, error: 'No screenshot provided' }, 400);
 
+          const isPreview = Boolean(body.format === 'preview' || body.preview || body.mode === 'preview');
+          const canvasWidth = isPreview ? 645 : (body.canvasWidth || 1290);
+          const canvasHeight = isPreview ? 1398 : (body.canvasHeight || 2796);
+
           const result = await compositeFrame({
             screenshotBuffer: Buffer.from(rawBase64, 'base64'),
             bezelId: body.bezelId,
@@ -283,6 +287,8 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
             subtitle: body.subtitle,
             font: body.font,
             showStarBadge: body.showStarBadge,
+            canvasWidth,
+            canvasHeight,
           });
 
           return sendJson({
