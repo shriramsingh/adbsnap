@@ -20,6 +20,8 @@ export interface CompositeFrameOptions {
   phoneTopOffset?: number;
   fit?: 'cover' | 'contain' | 'fill';
   precomputedPhoneDeviceBuffer?: Buffer;
+  format?: 'png' | 'webp' | 'avif' | 'jpeg';
+  quality?: number;
 }
 
 export interface CompositeResult {
@@ -227,12 +229,30 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
   }
 
   // 9. Composite everything onto canvas in a single Sharp pass
-  const finalBuffer = await sharp(gradientBaseBuffer)
+  const outputFormat = options.format || 'png';
+  const pipeline = sharp(gradientBaseBuffer)
     .composite(compositeLayers)
     .flatten({ background: { r: 10, g: 11, b: 14 } })
-    .toColorspace('srgb')
-    .png({ quality: 95, compressionLevel: 6 })
-    .toBuffer();
+    .toColorspace('srgb');
+
+  let finalBuffer: Buffer;
+  if (outputFormat === 'webp') {
+    finalBuffer = await pipeline
+      .webp({ quality: options.quality || 90, effort: 4 })
+      .toBuffer();
+  } else if (outputFormat === 'avif') {
+    finalBuffer = await pipeline
+      .avif({ quality: options.quality || 85, effort: 4 })
+      .toBuffer();
+  } else if (outputFormat === 'jpeg') {
+    finalBuffer = await pipeline
+      .jpeg({ quality: options.quality || 90, mozjpeg: true })
+      .toBuffer();
+  } else {
+    finalBuffer = await pipeline
+      .png({ quality: options.quality || 95, compressionLevel: 6 })
+      .toBuffer();
+  }
 
   const elapsedMs = Math.round(performance.now() - startTime);
 

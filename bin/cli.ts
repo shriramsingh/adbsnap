@@ -25,6 +25,8 @@ async function main() {
       layout: { type: 'string', default: 'appstore' },
       font: { type: 'string', default: 'modern' },
       fit: { type: 'string', default: 'cover' },
+      format: { type: 'string', default: 'png' },
+      quality: { type: 'string' },
       store: { type: 'string', default: 'all' },
       title: { type: 'string' },
       subtitle: { type: 'string' },
@@ -253,6 +255,8 @@ async function handleSnap(options: {
   const layout = (options.layout as LayoutMode) || 'appstore';
   const font = options.font || 'modern';
   const fit = (options.fit as 'cover' | 'contain' | 'fill') || 'cover';
+  const format = (options.format as 'png' | 'webp' | 'avif' | 'jpeg') || 'png';
+  const quality = options.quality ? Number(options.quality) : undefined;
 
   if (!BEZEL_PRESETS[frame]) {
     logger.warn(`Unknown frame "${frame}", falling back to "iphone-16-pro". Available: ${Object.keys(BEZEL_PRESETS).join(', ')}`);
@@ -272,6 +276,8 @@ async function handleSnap(options: {
     layout,
     font,
     fit,
+    format,
+    quality,
     title: options.title,
     subtitle: options.subtitle,
     showStarBadge: options.stars,
@@ -280,12 +286,13 @@ async function handleSnap(options: {
 
   logger.success(MESSAGES.COMPOSITE_SUCCESS(result.elapsedMs, result.width, result.height));
 
-  const finalPath = options.out || path.join(outDir, `snap-${theme}-${timestamp}.png`);
+  const ext = format === 'webp' ? 'webp' : format === 'avif' ? 'avif' : format === 'jpeg' ? 'jpg' : 'png';
+  const finalPath = options.out || path.join(outDir, `snap-${theme}-${timestamp}.${ext}`);
   fs.writeFileSync(finalPath, result.buffer);
 
   console.log('\n' + '─'.repeat(50));
   logger.success(`Showcase Asset Ready: ${STYLES.bold(finalPath)}`);
-  logger.info(`Specs: ${result.width}x${result.height} px | Frame: ${frame} | Theme: ${theme} | Layout: ${layout} | Fit: ${fit} | Font: ${font}`);
+  logger.info(`Specs: ${result.width}x${result.height} px | Format: ${format.toUpperCase()} | Frame: ${frame} | Theme: ${theme} | Layout: ${layout} | Fit: ${fit}`);
   if (!process.env.CI) {
     console.log(STYLES.dim('⭐ Enjoying ADBSnap? Star on GitHub: ') + STYLES.info('https://github.com/shriramsingh/adbsnap'));
   }
