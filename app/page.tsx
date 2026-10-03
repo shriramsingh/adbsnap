@@ -2173,6 +2173,46 @@ export default function StudioPage() {
                   className="max-h-[66vh] w-auto object-contain rounded-xl select-none"
                 />
 
+                {/* Direct On-Canvas Draggable Text Zone (Top Headline Area) */}
+                {themeId !== 'none' && (typographyPosition === 'top' || typographyPosition === 'both') && (
+                  <div
+                    onMouseDown={handleTextDragStart}
+                    onDoubleClick={() => setTextOffset(0)}
+                    className="absolute top-2 inset-x-2 h-[26%] z-20 cursor-ns-resize group/drag flex flex-col items-center justify-start pt-1.5 transition-all select-none rounded-xl border border-transparent hover:border-cyan-500/40 hover:bg-cyan-500/[0.04]"
+                    title="Click and drag up/down to reposition text. Double-click to reset."
+                  >
+                    <div className="opacity-0 group-hover/drag:opacity-100 transition-opacity duration-150 px-2.5 py-0.5 rounded-full bg-slate-900/90 text-cyan-300 text-[10px] font-medium border border-cyan-500/50 shadow-xl flex items-center gap-1 select-none pointer-events-none">
+                      <MoveVertical className="w-2.5 h-2.5 text-cyan-400" />
+                      <span>Drag to Reposition Text</span>
+                      {textOffset !== 0 && (
+                        <span className="font-mono text-[9px] text-cyan-400 font-bold ml-1">
+                          ({textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Direct On-Canvas Draggable Text Zone (Bottom Callout Area) */}
+                {themeId !== 'none' && (typographyPosition === 'bottom' || typographyPosition === 'both') && (
+                  <div
+                    onMouseDown={handleTextDragStart}
+                    onDoubleClick={() => setTextOffset(0)}
+                    className="absolute bottom-2 inset-x-2 h-[26%] z-20 cursor-ns-resize group/drag flex flex-col items-center justify-end pb-1.5 transition-all select-none rounded-xl border border-transparent hover:border-cyan-500/40 hover:bg-cyan-500/[0.04]"
+                    title="Click and drag up/down to reposition text. Double-click to reset."
+                  >
+                    <div className="opacity-0 group-hover/drag:opacity-100 transition-opacity duration-150 px-2.5 py-0.5 rounded-full bg-slate-900/90 text-cyan-300 text-[10px] font-medium border border-cyan-500/50 shadow-xl flex items-center gap-1 select-none pointer-events-none">
+                      <MoveVertical className="w-2.5 h-2.5 text-cyan-400" />
+                      <span>Drag to Reposition Text</span>
+                      {textOffset !== 0 && (
+                        <span className="font-mono text-[9px] text-cyan-400 font-bold ml-1">
+                          ({textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Dynamic Live HUD Badge only when dragging */}
                 {isDraggingText && (
                   <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 px-3.5 py-1.5 rounded-full bg-slate-900/95 border border-cyan-400 text-cyan-300 text-xs font-mono font-semibold shadow-2xl backdrop-blur flex items-center gap-2 pointer-events-none animate-in fade-in duration-100">
