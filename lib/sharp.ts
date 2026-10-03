@@ -27,8 +27,9 @@ export interface CompositeFrameOptions {
   titleScaleMultiplier?: number;
   subtitleScaleMultiplier?: number;
   titleWeight?: '400' | '500' | '600' | '700' | '800' | '900';
-  subtitleWeight?: '400' | '500' | '600' | '700';
+  subtitleWeight?: string;
   isItalic?: boolean;
+  subtitleItalic?: boolean;
   textYOffset?: number;
   bottomTextOffset?: number;
   useCustomColors?: boolean;
@@ -256,6 +257,7 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
     titleWeight: options.titleWeight,
     subtitleWeight: options.subtitleWeight,
     isItalic: options.isItalic,
+    subtitleItalic: options.subtitleItalic,
     textYOffset: options.textYOffset,
     bottomTextOffset: options.bottomTextOffset,
     phoneTop,

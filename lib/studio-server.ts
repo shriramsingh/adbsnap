@@ -251,6 +251,7 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
                   titleWeight: scr.titleWeight || body.titleWeight,
                   subtitleWeight: scr.subtitleWeight || body.subtitleWeight,
                   isItalic: scr.isItalic !== undefined ? Boolean(scr.isItalic) : (body.isItalic !== undefined ? Boolean(body.isItalic) : undefined),
+                  subtitleItalic: scr.subtitleItalic !== undefined ? Boolean(scr.subtitleItalic) : (body.subtitleItalic !== undefined ? Boolean(body.subtitleItalic) : undefined),
                   textYOffset: scr.textOffset !== undefined ? Number(scr.textOffset) : (body.textYOffset !== undefined ? Number(body.textYOffset) : undefined),
                   bottomTextOffset: scr.bottomTextOffset !== undefined ? Number(scr.bottomTextOffset) : (body.bottomTextOffset !== undefined ? Number(body.bottomTextOffset) : undefined),
                   useCustomColors: scr.useCustomColors !== undefined
@@ -348,6 +349,7 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
             titleWeight: body.titleWeight,
             subtitleWeight: body.subtitleWeight,
             isItalic: body.isItalic !== undefined ? Boolean(body.isItalic) : undefined,
+            subtitleItalic: body.subtitleItalic !== undefined ? Boolean(body.subtitleItalic) : undefined,
             textYOffset: body.textYOffset !== undefined ? Number(body.textYOffset) : undefined,
             bottomTextOffset: body.bottomTextOffset !== undefined ? Number(body.bottomTextOffset) : undefined,
             useCustomColors: Boolean(body.useCustomColors),

@@ -22,8 +22,9 @@ export interface TypographyOptions {
   titleScaleMultiplier?: number;
   subtitleScaleMultiplier?: number;
   titleWeight?: '400' | '500' | '600' | '700' | '800' | '900';
-  subtitleWeight?: '400' | '500' | '600' | '700';
+  subtitleWeight?: string;
   isItalic?: boolean;
+  subtitleItalic?: boolean;
   textYOffset?: number;
   bottomTextOffset?: number;
   phoneTop?: number;
@@ -115,6 +116,7 @@ export function generateTypographySvg(options: TypographyOptions): string {
     titleWeight = '800',
     subtitleWeight = '500',
     isItalic = false,
+    subtitleItalic = false,
     textYOffset = 0,
     bottomTextOffset,
     phoneTop,
@@ -263,6 +265,7 @@ export function generateTypographySvg(options: TypographyOptions): string {
   };
 
   const titleFontStyle = isItalic ? 'italic' : 'normal';
+  const subFontStyle = subtitleItalic ? 'italic' : 'normal';
 
   // Compute total top content height for collision calculation
   const titleBlockHeight = titleLines.length > 0 ? titleSize + (titleLines.length - 1) * titleLineHeight : 0;
@@ -305,7 +308,7 @@ export function generateTypographySvg(options: TypographyOptions): string {
     }
 
     if (subtitleLines.length > 0) {
-      const subBlock = renderText(subtitleLines, subtitleSize, subtitleLineHeight, subtitleWeight, subtitleColor, currentY, sFont);
+      const subBlock = renderText(subtitleLines, subtitleSize, subtitleLineHeight, subtitleWeight, subtitleColor, currentY, sFont, subFontStyle);
       content += subBlock.svg;
     }
   }
@@ -338,7 +341,7 @@ export function generateTypographySvg(options: TypographyOptions): string {
     }
 
     if (subtitleLines.length > 0) {
-      const subBlock = renderText(subtitleLines, subtitleSize, subtitleLineHeight, subtitleWeight, subtitleColor, currentY, sFont);
+      const subBlock = renderText(subtitleLines, subtitleSize, subtitleLineHeight, subtitleWeight, subtitleColor, currentY, sFont, subFontStyle);
       content += subBlock.svg;
     }
   }
@@ -388,7 +391,7 @@ export function generateTypographySvg(options: TypographyOptions): string {
       const maxBottomY = canvasHeight - bottomBlockHeight - Math.round(24 * scale);
       const minBottomY = Math.round(canvasHeight * 0.55);
       const bottomY = Math.max(minBottomY, Math.min(maxBottomY, defaultBottomY + scaledBottomOffset));
-      const subBlock = renderText(bottomLines, subtitleSize, subtitleLineHeight, subtitleWeight, subtitleColor, bottomY, sFont);
+      const subBlock = renderText(bottomLines, subtitleSize, subtitleLineHeight, subtitleWeight, subtitleColor, bottomY, sFont, subFontStyle);
       content += subBlock.svg;
     }
   }
