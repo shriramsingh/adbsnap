@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { androidDriver } from './adb';
+import { listAllDevices, captureDeviceScreenshot } from './devices';
 import { compositeFrame, exportMultiStore, createAnimatedGif } from './sharp';
 import { createStoreZip } from './zip';
 import { uiCrawler } from './crawler';
@@ -109,9 +110,9 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
         const sendUpdate = async () => {
           if (!isAlive) return;
           try {
-            const devices = await androidDriver.listDevices();
+            const devices = await listAllDevices();
             let activeApp: string | null = null;
-            if (devices.some(d => d.isAuthorized)) {
+            if (devices.some(d => d.platform === 'android' && d.isAuthorized)) {
               try {
                 activeApp = await androidDriver.getForegroundApp();
               } catch {}
@@ -134,9 +135,9 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
       if (pathname === '/api/devices') {
         if (req.method === 'GET') {
           try {
-            const devices = await androidDriver.listDevices();
+            const devices = await listAllDevices();
             let activeApp: string | null = null;
-            if (devices.some(d => d.isAuthorized)) {
+            if (devices.some(d => d.platform === 'android' && d.isAuthorized)) {
               try {
                 activeApp = await androidDriver.getForegroundApp();
               } catch {}
@@ -187,7 +188,7 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
         try {
           const body = await readJson();
           const start = performance.now();
-          const buffer = await androidDriver.captureScreenshot(body.deviceId);
+          const buffer = await captureDeviceScreenshot(body.deviceId);
           const latencyMs = Math.round(performance.now() - start);
           return sendJson({
             success: true,

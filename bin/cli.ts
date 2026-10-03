@@ -5,6 +5,7 @@ import readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import { parseArgs } from 'node:util';
 import { androidDriver } from '../lib/adb';
+import { listAllDevices, captureDeviceScreenshot } from '../lib/devices';
 import { compositeFrame, exportMultiStore } from '../lib/sharp';
 import { saveStoreZip, type ZipFileInput } from '../lib/zip';
 import { uiCrawler } from '../lib/crawler';
@@ -103,7 +104,7 @@ async function handleDevices() {
   logger.banner(APP_INFO.NAME, 'Connected Device Discovery');
   logger.info(MESSAGES.SCANNING_DEVICES);
 
-  const devices = await androidDriver.listDevices();
+  const devices = await listAllDevices();
   if (devices.length === 0) {
     logger.warn(MESSAGES.NO_DEVICES_FOUND);
     return;
@@ -113,15 +114,16 @@ async function handleDevices() {
 
   for (const d of devices) {
     let badge = STYLES.badgeUsb();
-    if (d.type === 'wifi') badge = STYLES.badgeWifi();
-    if (d.type === 'emulator') badge = STYLES.badgeEmulator();
+    if (d.platform === 'ios') badge = STYLES.badgeIos();
+    else if (d.type === 'wifi') badge = STYLES.badgeWifi();
+    else if (d.type === 'emulator') badge = STYLES.badgeEmulator();
 
     const authStatus = d.isAuthorized
       ? STYLES.success('READY')
       : STYLES.error('UNAUTHORIZED');
 
     console.log(`  ${badge} ${STYLES.bold(d.model)} (${STYLES.dim(d.id)})`);
-    console.log(`     └─ Status: ${authStatus} | Product: ${d.product || 'generic'}\n`);
+    console.log(`     └─ Status: ${authStatus} | Platform: ${d.platform.toUpperCase()} | Product: ${d.product || 'generic'}\n`);
   }
 }
 
@@ -214,7 +216,7 @@ async function handleSnap(options: {
 }) {
   logger.banner(APP_INFO.NAME, 'Automated Mobile Capture & Showcase');
 
-  const devices = await androidDriver.listDevices();
+  const devices = await listAllDevices();
   const ready = devices.filter((d) => d.isAuthorized);
 
   if (ready.length === 0) {
@@ -226,11 +228,11 @@ async function handleSnap(options: {
     ? ready.find((d) => d.id === options.device) || ready[0]
     : ready[0];
 
-  logger.info(`Target: ${STYLES.bold(targetDevice.model)} (${targetDevice.id}) [${targetDevice.type.toUpperCase()}]`);
+  logger.info(`Target: ${STYLES.bold(targetDevice.model)} (${targetDevice.id}) [${targetDevice.platform.toUpperCase()} ${targetDevice.type.toUpperCase()}]`);
   logger.info(MESSAGES.CAPTURE_START);
 
   const captureStart = performance.now();
-  const rawBuffer = await androidDriver.captureScreenshot(targetDevice.id);
+  const rawBuffer = await captureDeviceScreenshot(targetDevice.id);
   const captureMs = Math.round(performance.now() - captureStart);
   logger.success(`Screen captured in ${captureMs}ms (RAM stream)`);
 
@@ -342,7 +344,7 @@ async function handleExport(options: {
     }
   }
 
-  const devices = await androidDriver.listDevices();
+  const devices = await listAllDevices();
   const ready = devices.filter((d) => d.isAuthorized);
 
   if (ready.length === 0) {
@@ -354,11 +356,11 @@ async function handleExport(options: {
     ? ready.find((d) => d.id === options.device) || ready[0]
     : ready[0];
 
-  logger.info(`Target: ${STYLES.bold(targetDevice.model)} (${targetDevice.id})`);
+  logger.info(`Target: ${STYLES.bold(targetDevice.model)} (${targetDevice.id}) [${targetDevice.platform.toUpperCase()} ${targetDevice.type.toUpperCase()}]`);
   logger.info(MESSAGES.CAPTURE_START);
 
   const captureStart = performance.now();
-  const rawBuffer = await androidDriver.captureScreenshot(targetDevice.id);
+  const rawBuffer = await captureDeviceScreenshot(targetDevice.id);
   const captureMs = Math.round(performance.now() - captureStart);
   logger.success(`Screen captured in ${captureMs}ms (RAM stream)`);
 
