@@ -2046,7 +2046,7 @@ export default function StudioPage() {
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[11px] text-slate-400">Headline</span>
                     <div className="flex items-center gap-1.5">
-                      <div className="flex items-center gap-1 bg-[#161922] border border-[#232733] rounded px-1.5 py-0.5">
+                      <div className="flex items-center gap-1 bg-[#0f1117] border border-cyan-500/30 rounded px-1.5 py-0.5">
                         <Wand2 className="w-3 h-3 text-cyan-400 shrink-0" />
                         <select
                           value=""
@@ -2075,15 +2075,29 @@ export default function StudioPage() {
                               }
                             }
                           }}
-                          className="text-[10px] bg-transparent text-cyan-300 cursor-pointer focus:outline-none"
+                          style={{ backgroundColor: '#0f1117', color: '#67e8f9' }}
+                          className="text-[10px] bg-[#0f1117] text-cyan-300 cursor-pointer focus:outline-none border-0"
+                          title="Magic Copy Templates & Presets"
                         >
-                          <option value="" disabled>Magic Copy...</option>
-                          <option value="__clear__" className="text-rose-400 font-medium">✕ Clear All Copy</option>
-                          <option value="__reset__" className="text-amber-300 font-medium">↺ Reset Default Copy</option>
-                          <option disabled className="text-slate-600">──────────</option>
+                          <option value="" disabled style={{ backgroundColor: '#0f1117', color: '#94a3b8' }}>
+                            Magic Copy...
+                          </option>
+                          <option value="__clear__" style={{ backgroundColor: '#0f1117', color: '#fb7185' }} className="font-medium">
+                            ✕ Clear All Copy
+                          </option>
+                          <option value="__reset__" style={{ backgroundColor: '#0f1117', color: '#fcd34d' }} className="font-medium">
+                            ↺ Reset Default Copy
+                          </option>
+                          <option disabled style={{ backgroundColor: '#0f1117', color: '#475569' }}>
+                            ───────────────────────────
+                          </option>
                           {MAGIC_COPY_TEMPLATES.map((tpl) => (
-                            <option key={tpl.name} value={tpl.name} className="text-slate-200">
-                              {tpl.name}
+                            <option
+                              key={tpl.name}
+                              value={tpl.name}
+                              style={{ backgroundColor: '#0f1117', color: '#f1f5f9' }}
+                            >
+                              {tpl.name}: &quot;{tpl.title.replace(/\*\*/g, '')}&quot;
                             </option>
                           ))}
                         </select>
@@ -2114,6 +2128,29 @@ export default function StudioPage() {
                     placeholder="Enter punchy headline (press Enter for new line)..."
                     className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 resize-none font-sans leading-relaxed"
                   />
+                  
+                  {/* Quick Magic Copy Chips */}
+                  <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                    <span className="text-[9px] text-slate-500 font-medium mr-0.5">Quick:</span>
+                    {MAGIC_COPY_TEMPLATES.map((tpl) => (
+                      <button
+                        key={tpl.name}
+                        type="button"
+                        onClick={() => {
+                          setTitle(tpl.title);
+                          setSubtitle(tpl.subtitle);
+                          if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+                          setToastMessage(`✨ Applied "${tpl.name}"`);
+                          toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2000);
+                        }}
+                        className="text-[9px] px-1.5 py-0.5 rounded bg-[#161922] hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 border border-[#232733] hover:border-cyan-500/40 transition cursor-pointer"
+                        title={`${tpl.title.replace(/\*\*/g, '')} — ${tpl.subtitle}`}
+                      >
+                        {tpl.name.split('/')[0].trim()}
+                      </button>
+                    ))}
+                  </div>
+
                   <p className="text-[10px] text-slate-500 mt-1">
                     Tip: Use <span className="text-cyan-400 font-mono font-bold">**bold radiant**</span> and <span className="text-cyan-300 font-mono italic">*italic*</span> for accents.
                   </p>
