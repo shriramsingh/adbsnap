@@ -439,7 +439,7 @@ export default function StudioPage() {
     const initialOffset = target === 'top' ? textOffset : bottomTextOffset;
     startOffsetRef.current = initialOffset;
     currentDragOffsetRef.current = initialOffset;
-    document.body.style.cursor = 'ns-resize';
+    document.body.style.cursor = 'grabbing';
     document.body.style.userSelect = 'none';
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
@@ -447,11 +447,6 @@ export default function StudioPage() {
       const deltaY = moveEvent.clientY - dragStartYRef.current;
       const newOffset = Math.max(-200, Math.min(200, Math.round(startOffsetRef.current + deltaY * 1.5)));
       currentDragOffsetRef.current = newOffset;
-      if (dragTargetRef.current === 'top') {
-        setTextOffset(newOffset);
-      } else {
-        setBottomTextOffset(newOffset);
-      }
     };
 
     const handleMouseUp = () => {
@@ -463,7 +458,12 @@ export default function StudioPage() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
       
-      // Explicitly pass the final computed offset to avoid React closure staleness
+      // Update state and refresh preview cleanly on release
+      if (targetType === 'top') {
+        setTextOffset(finalOffset);
+      } else {
+        setBottomTextOffset(finalOffset);
+      }
       refreshPreview(undefined, {
         [targetType === 'top' ? 'textOffset' : 'bottomTextOffset']: finalOffset,
       });
@@ -2656,115 +2656,89 @@ export default function StudioPage() {
           )}
 
           {/* Canvas Wrapper */}
-          <div className="relative max-h-[72vh] max-w-[85vw] flex items-center justify-center">
+          <div className="relative max-h-[72vh] max-w-[85vw] flex flex-col items-center justify-center">
             {previewBase64 ? (
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-black/80 border border-white/10 group transition duration-300">
-                {/* Camera Shutter Flash Animation */}
-                {isFlashing && (
-                  <div className="absolute inset-0 bg-white/70 z-30 pointer-events-none transition-opacity duration-150 rounded-xl" />
-                )}
+              <>
+                <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-black/80 border border-white/10 group transition duration-300">
+                  {/* Camera Shutter Flash Animation */}
+                  {isFlashing && (
+                    <div className="absolute inset-0 bg-white/70 z-30 pointer-events-none transition-opacity duration-150 rounded-xl" />
+                  )}
 
-                <img
-                  src={`data:image/png;base64,${previewBase64}`}
-                  alt="ADBSnap Canvas Preview"
-                  draggable={false}
-                  className="max-h-[66vh] w-auto object-contain rounded-xl select-none pointer-events-none"
-                />
+                  <img
+                    src={`data:image/png;base64,${previewBase64}`}
+                    alt="ADBSnap Canvas Preview"
+                    draggable={false}
+                    className="max-h-[64vh] w-auto object-contain rounded-xl select-none pointer-events-none"
+                  />
 
-                {/* Direct On-Canvas Draggable Text Zone (Top Headline Area) */}
-                {themeId !== 'none' && (typographyPosition === 'top' || typographyPosition === 'both') && (
-                  <div
-                    onMouseDown={(e) => handleTextDragStart(e, 'top')}
-                    onDoubleClick={(e) => {
-                      e.stopPropagation();
-                      setTextOffset(0);
-                    }}
-                    className="absolute top-0 inset-x-0 h-[32%] z-20 cursor-ns-resize group/drag flex flex-col items-center justify-start pt-3 transition-all select-none rounded-t-xl hover:bg-cyan-500/[0.04]"
-                    title="Click and drag up/down to reposition headline. Double-click to reset."
-                  >
-                    <div className="opacity-0 group-hover/drag:opacity-100 transition-opacity duration-150 px-3 py-1 rounded-full bg-slate-900/90 text-cyan-300 text-[11px] font-medium border border-cyan-500/50 shadow-2xl flex items-center gap-1.5 select-none pointer-events-none">
-                      <MoveVertical className="w-3 h-3 text-cyan-400" />
-                      <span>Drag to Reposition Headline</span>
-                      {textOffset !== 0 && (
-                        <span className="font-mono text-[10px] text-cyan-400 font-bold ml-1">
-                          ({textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`})
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
+                  {/* Direct On-Canvas Draggable Text Zone (Top Headline Area) */}
+                  {themeId !== 'none' && (typographyPosition === 'top' || typographyPosition === 'both') && (
+                    <div
+                      onMouseDown={(e) => handleTextDragStart(e, 'top')}
+                      onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        setTextOffset(0);
+                        refreshPreview(undefined, { textOffset: 0 });
+                      }}
+                      className="absolute top-0 inset-x-0 h-[32%] z-20 cursor-grab active:cursor-grabbing select-none"
+                      title="Drag up/down to reposition headline. Double-click to reset."
+                    />
+                  )}
 
-                {/* Direct On-Canvas Draggable Text Zone (Bottom Callout Area) */}
-                {themeId !== 'none' && (typographyPosition === 'bottom' || typographyPosition === 'both') && (
-                  <div
-                    onMouseDown={(e) => handleTextDragStart(e, 'bottom')}
-                    onDoubleClick={(e) => {
-                      e.stopPropagation();
-                      setBottomTextOffset(0);
-                    }}
-                    className="absolute bottom-0 inset-x-0 h-[28%] z-20 cursor-ns-resize group/drag flex flex-col items-center justify-start pt-2 transition-all select-none rounded-b-xl hover:bg-cyan-500/[0.04]"
-                    title="Click and drag up/down to reposition callout text. Double-click to reset."
-                  >
-                    <div className="opacity-0 group-hover/drag:opacity-100 transition-opacity duration-150 px-3 py-1 rounded-full bg-slate-900/90 text-cyan-300 text-[11px] font-medium border border-cyan-500/50 shadow-2xl flex items-center gap-1.5 select-none pointer-events-none">
-                      <MoveVertical className="w-3 h-3 text-cyan-400" />
-                      <span>Drag to Reposition Callout</span>
-                      {bottomTextOffset !== 0 && (
-                        <span className="font-mono text-[10px] text-cyan-400 font-bold ml-1">
-                          ({bottomTextOffset > 0 ? `+${bottomTextOffset}px` : `${bottomTextOffset}px`})
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
+                  {/* Direct On-Canvas Draggable Text Zone (Bottom Callout Area) */}
+                  {themeId !== 'none' && (typographyPosition === 'bottom' || typographyPosition === 'both') && (
+                    <div
+                      onMouseDown={(e) => handleTextDragStart(e, 'bottom')}
+                      onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        setBottomTextOffset(0);
+                        refreshPreview(undefined, { bottomTextOffset: 0 });
+                      }}
+                      className="absolute bottom-0 inset-x-0 h-[28%] z-20 cursor-grab active:cursor-grabbing select-none"
+                      title="Drag up/down to reposition callout text. Double-click to reset."
+                    />
+                  )}
+                </div>
 
-                {/* Dynamic Live HUD Badge only when dragging */}
-                {isDraggingText && (
-                  <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 px-3.5 py-1.5 rounded-full bg-slate-900/95 border border-cyan-400 text-cyan-300 text-xs font-mono font-semibold shadow-2xl backdrop-blur flex items-center gap-2 pointer-events-none animate-in fade-in duration-100">
-                    <MoveVertical className="w-3.5 h-3.5 text-cyan-400 animate-bounce" />
-                    <span>
-                      {isDraggingText === 'top'
-                        ? `Headline Nudge: ${textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`}`
-                        : `Callout Nudge: ${bottomTextOffset > 0 ? `+${bottomTextOffset}px` : `${bottomTextOffset}px`}`}
-                    </span>
-                  </div>
-                )}
-
-                {/* Subtle Non-Blocking Updating Badge */}
-                {isRendering && (
-                  <div className="absolute top-3 left-3 z-30 px-2.5 py-1 rounded-full bg-slate-900/85 backdrop-blur border border-cyan-500/40 text-cyan-300 text-[10px] font-medium flex items-center gap-1.5 shadow-lg pointer-events-none animate-in fade-in duration-100">
-                    <RefreshCw className="w-3 h-3 animate-spin text-cyan-400" />
-                    <span>Updating...</span>
-                  </div>
-                )}
-
-                {/* Floating Quick Action Buttons at Top-Right (never covers bottom text) */}
-                <div
-                  className={`absolute top-3 right-3 z-30 flex items-center gap-2 transition-all duration-200 ${
-                    isDraggingText ? 'opacity-0 pointer-events-none' : 'opacity-0 group-hover:opacity-100'
-                  }`}
-                >
+                {/* Clean Canvas Stage Actions Dock (outside artboard) */}
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#161922]/90 backdrop-blur-md border border-[#232733] shadow-xl mt-3 select-none">
                   <button
+                    type="button"
                     onClick={handleCopyImage}
                     disabled={isCopying}
-                    className="px-2.5 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-medium border border-white/15 shadow-xl backdrop-blur flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white px-2 py-0.5 rounded transition cursor-pointer disabled:opacity-50"
                     title="Copy framed mockup directly to clipboard"
                   >
-                    <Copy className="w-3 h-3 text-cyan-400" />
+                    <Copy className="w-3.5 h-3.5 text-cyan-400" />
                     <span>{isCopying ? 'Copied!' : 'Copy Image'}</span>
                   </button>
 
+                  <div className="w-px h-3.5 bg-slate-700/60" />
+
                   <button
+                    type="button"
                     onClick={() => handleSnap(false)}
                     disabled={isCapturing}
-                    className="px-2.5 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-medium border border-white/15 shadow-xl backdrop-blur flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white px-2 py-0.5 rounded transition cursor-pointer disabled:opacity-50"
                     title="Sync current phone screen (Space)"
                   >
-                    <RefreshCw className={`w-3 h-3 ${isCapturing ? 'animate-spin' : ''}`} />
+                    <RefreshCw className={`w-3.5 h-3.5 ${isCapturing ? 'animate-spin text-cyan-400' : 'text-cyan-400'}`} />
                     <span>Sync Screen</span>
-                    <kbd className="text-[10px] font-mono text-cyan-400">Space</kbd>
+                    <kbd className="text-[10px] px-1 py-0.2 rounded bg-slate-800 text-cyan-300 font-mono">Space</kbd>
                   </button>
+
+                  {isRendering && (
+                    <>
+                      <div className="w-px h-3.5 bg-slate-700/60" />
+                      <div className="flex items-center gap-1.5 text-[11px] text-cyan-400 pl-1">
+                        <RefreshCw className="w-3 h-3 animate-spin" />
+                        <span>Updating...</span>
+                      </div>
+                    </>
+                  )}
                 </div>
-              </div>
+              </>
             ) : (
               <div
                 onClick={() => fileInputRef.current?.click()}
