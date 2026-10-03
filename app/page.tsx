@@ -161,6 +161,136 @@ const MAGIC_COPY_TEMPLATES = [
   },
 ];
 
+interface DesignerAesthetic {
+  id: string;
+  name: string;
+  badge: string;
+  subtitle: string;
+  icon: string;
+  gradient: string;
+  config: {
+    themeId: string;
+    useCustomColors: boolean;
+    headlineFont: string;
+    subtitleFont: string;
+    titleWeight: '400' | '600' | '700' | '800' | '900';
+    isItalic: boolean;
+    bezelId: string;
+    ambientGlow: boolean;
+    textAlign: 'left' | 'center' | 'right';
+    phoneScale: number;
+    layout: 'appstore' | 'social';
+  };
+}
+
+const DESIGNER_AESTHETICS: DesignerAesthetic[] = [
+  {
+    id: 'cupertino',
+    name: 'Cupertino Clean',
+    badge: 'Apple Keynote',
+    subtitle: 'Studio White • SF Modern',
+    icon: '🍏',
+    gradient: 'from-slate-100 to-slate-200 text-slate-900',
+    config: {
+      themeId: 'pureWhite',
+      useCustomColors: false,
+      headlineFont: 'modern',
+      subtitleFont: 'match',
+      titleWeight: '700',
+      isItalic: false,
+      bezelId: 'iphone-16-pro',
+      ambientGlow: false,
+      textAlign: 'center',
+      phoneScale: 1.0,
+      layout: 'appstore',
+    },
+  },
+  {
+    id: 'cyberpunk',
+    name: 'Cyberpunk Neon',
+    badge: 'High Voltage',
+    subtitle: 'Magenta Void • Bold 900',
+    icon: '⚡',
+    gradient: 'from-fuchsia-600 to-purple-800 text-white',
+    config: {
+      themeId: 'cyberpunk',
+      useCustomColors: false,
+      headlineFont: 'geometric',
+      subtitleFont: 'match',
+      titleWeight: '900',
+      isItalic: false,
+      bezelId: 'galaxy-s24-ultra',
+      ambientGlow: true,
+      textAlign: 'center',
+      phoneScale: 1.02,
+      layout: 'appstore',
+    },
+  },
+  {
+    id: 'editorial',
+    name: 'Editorial Luxury',
+    badge: 'Linear / Vogue',
+    subtitle: 'Obsidian • Serif Italic',
+    icon: '🏛️',
+    gradient: 'from-zinc-800 to-black text-amber-200',
+    config: {
+      themeId: 'cleanDark',
+      useCustomColors: false,
+      headlineFont: 'editorial',
+      subtitleFont: 'humanist',
+      titleWeight: '600',
+      isItalic: true,
+      bezelId: 'iphone-16',
+      ambientGlow: true,
+      textAlign: 'center',
+      phoneScale: 0.98,
+      layout: 'appstore',
+    },
+  },
+  {
+    id: 'action-tech',
+    name: 'Action Tech',
+    badge: 'Impact Store',
+    subtitle: 'Cobalt Deep • Bebas Heavy',
+    icon: '🚀',
+    gradient: 'from-blue-600 to-indigo-900 text-white',
+    config: {
+      themeId: 'cobalt',
+      useCustomColors: false,
+      headlineFont: 'impact',
+      subtitleFont: 'modern',
+      titleWeight: '800',
+      isItalic: false,
+      bezelId: 'pixel-9-pro',
+      ambientGlow: true,
+      textAlign: 'center',
+      phoneScale: 1.0,
+      layout: 'appstore',
+    },
+  },
+  {
+    id: 'fintech-trust',
+    name: 'Fintech Trust',
+    badge: 'Enterprise Emerald',
+    subtitle: 'Emerald Green • Titanium',
+    icon: '🌿',
+    gradient: 'from-emerald-700 to-teal-950 text-emerald-100',
+    config: {
+      themeId: 'fintech',
+      useCustomColors: false,
+      headlineFont: 'modern',
+      subtitleFont: 'match',
+      titleWeight: '800',
+      isItalic: false,
+      bezelId: 'iphone-16-pro',
+      ambientGlow: true,
+      textAlign: 'center',
+      phoneScale: 1.0,
+      layout: 'appstore',
+    },
+  },
+];
+
 /**
  * Intelligently formats an Android package ID into a clean human-readable product name
  * e.g. com.coachconnect.app -> Coachconnect, com.instagram.android -> Instagram
@@ -1240,6 +1370,62 @@ export default function StudioPage() {
     setStatusMessage(`Style synchronized across all ${screens.length} screens.`);
   };
 
+  // 1-Click Designer Aesthetic Recipe Application
+  const applyDesignerAesthetic = (aesthetic: DesignerAesthetic) => {
+    const { config } = aesthetic;
+    setThemeId(config.themeId);
+    setUseCustomColors(config.useCustomColors);
+    setHeadlineFont(config.headlineFont);
+    setSubtitleFont(config.subtitleFont);
+    setTitleWeight(config.titleWeight);
+    setIsItalic(config.isItalic);
+    setBezelId(config.bezelId);
+    setAmbientGlow(config.ambientGlow);
+    setTextAlign(config.textAlign);
+    setPhoneScale(config.phoneScale);
+    setLayout(config.layout);
+
+    setScreens((prev) => {
+      if (!prev[activeScreenIndex]) return prev;
+      const next = [...prev];
+      next[activeScreenIndex] = {
+        ...next[activeScreenIndex],
+        themeId: config.themeId,
+        useCustomColors: config.useCustomColors,
+        customColors: undefined,
+        headlineFont: config.headlineFont,
+        subtitleFont: config.subtitleFont,
+        titleWeight: config.titleWeight,
+        isItalic: config.isItalic,
+        bezelId: config.bezelId,
+        ambientGlow: config.ambientGlow,
+        textAlign: config.textAlign,
+        phoneScale: config.phoneScale,
+        layout: config.layout,
+      };
+      return next;
+    });
+
+    refreshPreview(undefined, {
+      themeId: config.themeId,
+      useCustomColors: config.useCustomColors,
+      headlineFont: config.headlineFont,
+      subtitleFont: config.subtitleFont === 'match' ? config.headlineFont : config.subtitleFont,
+      titleWeight: config.titleWeight,
+      isItalic: config.isItalic,
+      bezelId: config.bezelId,
+      ambientGlow: config.ambientGlow,
+      textAlign: config.textAlign,
+      phoneScale: config.phoneScale,
+      layout: config.layout,
+    });
+
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setToastMessage(`✨ Applied "${aesthetic.name}" aesthetic!`);
+    toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2500);
+    setStatusMessage(`Applied ${aesthetic.name} style preset.`);
+  };
+
   // 5. Autonomous Tab Crawler
   const handleAutonomousCrawl = async () => {
     setIsCrawling(true);
@@ -1531,6 +1717,61 @@ export default function StudioPage() {
         {/* Left Sidebar Controls */}
         <aside className="w-84 border-r border-[#232733] bg-[#0f1117] flex flex-col shrink-0 overflow-y-auto">
           <div className="p-4 space-y-6">
+            {/* 1-Click Designer Aesthetics */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Wand2 className="w-3.5 h-3.5 text-amber-400" />
+                  Designer Aesthetics
+                </label>
+                <span className="text-[10px] text-amber-400 font-medium">1-Click Combos</span>
+              </div>
+              <div className="grid grid-cols-1 gap-1.5">
+                {DESIGNER_AESTHETICS.map((aesthetic) => {
+                  const isActive =
+                    !useCustomColors &&
+                    themeId === aesthetic.config.themeId &&
+                    headlineFont === aesthetic.config.headlineFont &&
+                    titleWeight === aesthetic.config.titleWeight;
+                  return (
+                    <button
+                      key={aesthetic.id}
+                      type="button"
+                      onClick={() => applyDesignerAesthetic(aesthetic)}
+                      className={`group relative flex items-center justify-between p-2 rounded-lg border text-left transition cursor-pointer ${
+                        isActive
+                          ? 'border-amber-400/80 bg-amber-400/10 shadow-sm shadow-amber-400/15'
+                          : 'border-[#232733] hover:border-slate-600 bg-[#161922] hover:bg-[#1c202d]'
+                      }`}
+                      title={aesthetic.subtitle}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-base select-none shrink-0">{aesthetic.icon}</span>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-semibold text-white truncate">{aesthetic.name}</span>
+                            <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-white/10 text-slate-300 font-medium shrink-0">
+                              {aesthetic.badge}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-400 block truncate">{aesthetic.subtitle}</span>
+                        </div>
+                      </div>
+                      <div
+                        className={`w-4 h-4 rounded-full border shrink-0 flex items-center justify-center transition ${
+                          isActive
+                            ? 'border-amber-400 bg-amber-400 text-black'
+                            : 'border-slate-700 bg-black/40 group-hover:border-slate-500'
+                        }`}
+                      >
+                        {isActive && <span className="text-[9px] font-bold">✓</span>}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Theme Presets */}
             <div>
               <div className="flex items-center justify-between mb-2">

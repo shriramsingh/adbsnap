@@ -135,16 +135,16 @@ flowchart TD
 ## ⚡ Phase 7: Studio Superpowers (Workflow & Growth)
 **Status:** 📋 Planned (`v1.4.x`)  
 
-1. **1-Click "Sync Styling to All Screens"**:
+1. **1-Click "Sync Styling to All Screens"**: ✅ Completed (`v1.4.0`)
    - Single button in the filmstrip that applies the active screen's Theme, Fonts, Alignment, Sizing, and Device Scale across all screens in the project.
-2. **Multi-Platform Canvas Aspect Ratios**:
-   - App Store/Play Store (Portrait 9:19.5), Product Hunt / Twitter / LinkedIn (16:9 Landscape 1920×1080), and Square Showcase (1:1 1080×1080).
-3. **1-Click "Designer Aesthetics"**:
-   - Curated instant presets: *Cupertino Minimal*, *Cyberpunk Glow*, *Editorial Luxury*, and *Action Tech*.
-4. **"Magic Copy" Headline Templates**:
-   - High-converting store copywriting starter formulas with 1-click insert.
-5. **WYSIWYG On-Canvas Direct Dragging**:
+2. **1-Click "Designer Aesthetics"**: ✅ Completed (`v1.4.0`)
+   - Curated instant presets: *Cupertino Clean*, *Cyberpunk Neon*, *Editorial Luxury*, *Action Tech*, and *Fintech Trust*.
+3. **"Magic Copy" Headline Templates + Quick-Clear**: ✅ Completed (`v1.4.0`)
+   - High-converting store copywriting starter formulas with 1-click insert, plus 1-click clear and reset default actions.
+4. **WYSIWYG On-Canvas Direct Dragging**: ✅ Completed (`v1.4.0`)
    - Click and drag text directly on the live preview canvas with real-time bidirectional slider synchronization.
+5. **Multi-Platform Canvas Aspect Ratios**:
+   - App Store/Play Store (Portrait 9:19.5), Product Hunt / Twitter / LinkedIn (16:9 Landscape 1920×1080), and Square Showcase (1:1 1080×1080).
 
 ---
 
