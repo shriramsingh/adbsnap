@@ -543,18 +543,20 @@ export default function StudioPage() {
 
   const deleteScreen = (e: React.MouseEvent, index: number) => {
     e.stopPropagation();
+    e.preventDefault();
     setScreens((prev) => {
       const updated = prev.filter((_, i) => i !== index);
-      if (activeScreenIndex >= updated.length) {
-        const nextIdx = Math.max(0, updated.length - 1);
+      if (updated.length === 0) {
+        setActiveScreenIndex(0);
+        setScreenshotBase64(null);
+        setPreviewBase64(null);
+      } else if (activeScreenIndex === index) {
+        const nextIdx = Math.min(index, updated.length - 1);
         setActiveScreenIndex(nextIdx);
-        if (updated.length > 0) {
-          setScreenshotBase64(updated[nextIdx].base64);
-          refreshPreview(updated[nextIdx].base64);
-        } else {
-          setScreenshotBase64(null);
-          setPreviewBase64(null);
-        }
+        setScreenshotBase64(updated[nextIdx].base64);
+        refreshPreview(updated[nextIdx].base64);
+      } else if (activeScreenIndex > index) {
+        setActiveScreenIndex(activeScreenIndex - 1);
       }
       return updated;
     });
@@ -1650,7 +1652,7 @@ export default function StudioPage() {
                           : 'border-[#232733] hover:border-slate-600 bg-[#161922]'
                       } ${draggedIndex === idx ? 'opacity-40 scale-95 border-cyan-400' : ''}`}
                     >
-                      <div className="relative w-12 h-20 rounded overflow-hidden bg-black/50 flex items-center justify-center border border-white/5 pointer-events-none">
+                      <div className="relative w-12 h-20 rounded overflow-hidden bg-black/50 flex items-center justify-center border border-white/5">
                         <img
                           src={`data:image/png;base64,${s.base64}`}
                           alt={s.label}
@@ -1663,32 +1665,35 @@ export default function StudioPage() {
 
                         {/* Top Right: Delete Screen */}
                         <button
+                          type="button"
                           onClick={(e) => deleteScreen(e, idx)}
-                          className="absolute top-0.5 right-0.5 p-1 rounded bg-black/80 hover:bg-rose-600 text-white opacity-0 group-hover:opacity-100 transition shadow cursor-pointer z-10"
+                          className="absolute top-0.5 right-0.5 p-1 rounded bg-black/80 hover:bg-rose-600 text-white opacity-0 group-hover:opacity-100 transition shadow cursor-pointer z-20 pointer-events-auto"
                           title="Remove screen"
                         >
-                          <Trash2 className="w-2.5 h-2.5" />
+                          <Trash2 className="w-2.5 h-2.5 pointer-events-none" />
                         </button>
 
                         {/* Bottom Left: Move Left in Order */}
                         {idx > 0 && (
                           <button
+                            type="button"
                             onClick={(e) => moveScreen(e, idx, 'left')}
-                            className="absolute bottom-0.5 left-0.5 p-0.5 rounded bg-black/80 hover:bg-cyan-600 text-white opacity-0 group-hover:opacity-100 transition shadow cursor-pointer z-10"
+                            className="absolute bottom-0.5 left-0.5 p-0.5 rounded bg-black/80 hover:bg-cyan-600 text-white opacity-0 group-hover:opacity-100 transition shadow cursor-pointer z-20 pointer-events-auto"
                             title="Move left in export order"
                           >
-                            <ChevronLeft className="w-2.5 h-2.5" />
+                            <ChevronLeft className="w-2.5 h-2.5 pointer-events-none" />
                           </button>
                         )}
 
                         {/* Bottom Right: Move Right in Order */}
                         {idx < screens.length - 1 && (
                           <button
+                            type="button"
                             onClick={(e) => moveScreen(e, idx, 'right')}
-                            className="absolute bottom-0.5 right-0.5 p-0.5 rounded bg-black/80 hover:bg-cyan-600 text-white opacity-0 group-hover:opacity-100 transition shadow cursor-pointer z-10"
+                            className="absolute bottom-0.5 right-0.5 p-0.5 rounded bg-black/80 hover:bg-cyan-600 text-white opacity-0 group-hover:opacity-100 transition shadow cursor-pointer z-20 pointer-events-auto"
                             title="Move right in export order"
                           >
-                            <ChevronRight className="w-2.5 h-2.5" />
+                            <ChevronRight className="w-2.5 h-2.5 pointer-events-none" />
                           </button>
                         )}
                       </div>
