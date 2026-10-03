@@ -38,6 +38,7 @@ import {
   Palette,
   Wand2,
   MoveVertical,
+  RotateCcw,
 } from 'lucide-react';
 
 interface ConnectedDevice {
@@ -1786,26 +1787,66 @@ export default function StudioPage() {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[11px] text-slate-400">Headline</span>
-                    <div className="flex items-center gap-1">
-                      <Wand2 className="w-3 h-3 text-cyan-400" />
-                      <select
-                        onChange={(e) => {
-                          const t = MAGIC_COPY_TEMPLATES.find((tpl) => tpl.name === e.target.value);
-                          if (t) {
-                            setTitle(t.title);
-                            setSubtitle(t.subtitle);
-                          }
-                        }}
-                        defaultValue=""
-                        className="text-[10px] bg-[#161922] border border-[#232733] text-cyan-300 rounded px-1.5 py-0.5 cursor-pointer focus:outline-none"
-                      >
-                        <option value="" disabled>Magic Copy...</option>
-                        {MAGIC_COPY_TEMPLATES.map((tpl) => (
-                          <option key={tpl.name} value={tpl.name}>
-                            {tpl.name}
-                          </option>
-                        ))}
-                      </select>
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1 bg-[#161922] border border-[#232733] rounded px-1.5 py-0.5">
+                        <Wand2 className="w-3 h-3 text-cyan-400 shrink-0" />
+                        <select
+                          value=""
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '__clear__') {
+                              setTitle('');
+                              setSubtitle('');
+                              if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+                              setToastMessage('✕ Cleared headline and subtitle');
+                              toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2000);
+                            } else if (val === '__reset__') {
+                              setTitle('Transform Your Workflow');
+                              setSubtitle('Effortless automated mobile screenshot studio.');
+                              if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+                              setToastMessage('↺ Restored default studio copy');
+                              toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2000);
+                            } else {
+                              const t = MAGIC_COPY_TEMPLATES.find((tpl) => tpl.name === val);
+                              if (t) {
+                                setTitle(t.title);
+                                setSubtitle(t.subtitle);
+                                if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+                                setToastMessage(`✨ Applied "${t.name}"`);
+                                toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2000);
+                              }
+                            }
+                          }}
+                          className="text-[10px] bg-transparent text-cyan-300 cursor-pointer focus:outline-none"
+                        >
+                          <option value="" disabled>Magic Copy...</option>
+                          <option value="__clear__" className="text-rose-400 font-medium">✕ Clear All Copy</option>
+                          <option value="__reset__" className="text-amber-300 font-medium">↺ Reset Default Copy</option>
+                          <option disabled className="text-slate-600">──────────</option>
+                          {MAGIC_COPY_TEMPLATES.map((tpl) => (
+                            <option key={tpl.name} value={tpl.name} className="text-slate-200">
+                              {tpl.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {(title || subtitle) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTitle('');
+                            setSubtitle('');
+                            if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+                            setToastMessage('✕ Cleared copy');
+                            toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 1800);
+                          }}
+                          className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 transition cursor-pointer"
+                          title="Clear headline & subtitle"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
                     </div>
                   </div>
                   <textarea
