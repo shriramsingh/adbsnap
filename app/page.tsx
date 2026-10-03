@@ -70,6 +70,7 @@ interface SessionScreen {
   subtitleWeight?: string;
   isItalic?: boolean;
   textOffset?: number;
+  bottomTextOffset?: number;
   showStars?: boolean;
   ambientGlow?: boolean;
   phoneScale?: number;
@@ -391,6 +392,7 @@ export default function StudioPage() {
   const [titleWeight, setTitleWeight] = useState<'400' | '600' | '700' | '800' | '900'>('800');
   const [isItalic, setIsItalic] = useState(false);
   const [textOffset, setTextOffset] = useState<number>(0);
+  const [bottomTextOffset, setBottomTextOffset] = useState<number>(0);
   const [customColor1, setCustomColor1] = useState('#4f46e5');
   const [customColor2, setCustomColor2] = useState('#06b6d4');
   const [useCustomColors, setUseCustomColors] = useState(false);
@@ -422,16 +424,18 @@ export default function StudioPage() {
   const isSelectingScreenRef = useRef(false);
 
   // Interactive on-canvas text dragging state & refs
-  const [isDraggingText, setIsDraggingText] = useState(false);
+  const [isDraggingText, setIsDraggingText] = useState<'top' | 'bottom' | null>(null);
+  const dragTargetRef = useRef<'top' | 'bottom'>('top');
   const dragStartYRef = useRef(0);
   const startOffsetRef = useRef(0);
 
-  const handleTextDragStart = (e: React.MouseEvent) => {
+  const handleTextDragStart = (e: React.MouseEvent, target: 'top' | 'bottom' = 'top') => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDraggingText(true);
+    dragTargetRef.current = target;
+    setIsDraggingText(target);
     dragStartYRef.current = e.clientY;
-    startOffsetRef.current = textOffset;
+    startOffsetRef.current = target === 'top' ? textOffset : bottomTextOffset;
     document.body.style.cursor = 'ns-resize';
     document.body.style.userSelect = 'none';
 
@@ -439,11 +443,15 @@ export default function StudioPage() {
       moveEvent.preventDefault();
       const deltaY = moveEvent.clientY - dragStartYRef.current;
       const newOffset = Math.max(-200, Math.min(200, Math.round(startOffsetRef.current + deltaY * 1.5)));
-      setTextOffset(newOffset);
+      if (dragTargetRef.current === 'top') {
+        setTextOffset(newOffset);
+      } else {
+        setBottomTextOffset(newOffset);
+      }
     };
 
     const handleMouseUp = () => {
-      setIsDraggingText(false);
+      setIsDraggingText(null);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
       window.removeEventListener('mousemove', handleMouseMove);
@@ -533,6 +541,7 @@ export default function StudioPage() {
         const effTitleWeight = overrides?.titleWeight !== undefined ? overrides.titleWeight : titleWeight;
         const effIsItalic = overrides?.isItalic !== undefined ? overrides.isItalic : isItalic;
         const effTextOffset = overrides?.textOffset !== undefined ? overrides.textOffset : textOffset;
+        const effBottomTextOffset = overrides?.bottomTextOffset !== undefined ? overrides.bottomTextOffset : bottomTextOffset;
         const effTitle = overrides?.customTitle !== undefined ? overrides.customTitle : title;
         const effSubtitle = overrides?.subtitle !== undefined ? overrides.subtitle : subtitle;
         const effShowStars = overrides?.showStars !== undefined ? overrides.showStars : showStars;
@@ -560,6 +569,7 @@ export default function StudioPage() {
             titleWeight: effTitleWeight,
             isItalic: effIsItalic,
             textYOffset: effTextOffset,
+            bottomTextOffset: effBottomTextOffset,
             useCustomColors: effUseCustom,
             customColors: effUseCustom ? [effCustom1, effCustom2] : undefined,
             title: effTitle,
@@ -601,6 +611,7 @@ export default function StudioPage() {
       titleWeight,
       isItalic,
       textOffset,
+      bottomTextOffset,
       customColor1,
       customColor2,
       useCustomColors,
@@ -636,6 +647,7 @@ export default function StudioPage() {
     titleWeight,
     isItalic,
     textOffset,
+    bottomTextOffset,
     customColor1,
     customColor2,
     useCustomColors,
@@ -678,6 +690,7 @@ export default function StudioPage() {
           titleWeight,
           isItalic,
           textOffset,
+          bottomTextOffset,
           showStars,
           ambientGlow,
           phoneScale,
@@ -711,6 +724,7 @@ export default function StudioPage() {
     titleWeight,
     isItalic,
     textOffset,
+    bottomTextOffset,
     showStars,
     ambientGlow,
     phoneScale,
@@ -988,6 +1002,7 @@ export default function StudioPage() {
     if (target.titleWeight) setTitleWeight(target.titleWeight);
     if (target.isItalic !== undefined) setIsItalic(target.isItalic);
     if (target.textOffset !== undefined) setTextOffset(target.textOffset);
+    setBottomTextOffset(target.bottomTextOffset ?? 0);
     if (target.showStars !== undefined) setShowStars(target.showStars);
     if (target.ambientGlow !== undefined) setAmbientGlow(target.ambientGlow);
     if (target.phoneScale !== undefined) setPhoneScale(target.phoneScale);
@@ -1290,6 +1305,7 @@ export default function StudioPage() {
           titleWeight,
           isItalic,
           textYOffset: textOffset,
+          bottomTextOffset,
           useCustomColors,
           customColors: useCustomColors ? [customColor1, customColor2] : undefined,
           title,
@@ -1350,6 +1366,7 @@ export default function StudioPage() {
         titleWeight,
         isItalic,
         textOffset,
+        bottomTextOffset,
         showStars,
         ambientGlow,
         phoneScale,
@@ -2267,10 +2284,12 @@ export default function StudioPage() {
                     />
                   </div>
 
-                  {/* Vertical Offset (Nudge) */}
+                  {/* Vertical Offset (Top Headline Nudge) */}
                   <div className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-[11px] text-slate-400">Vertical Nudge</span>
+                      <span className="text-[11px] text-slate-400">
+                        {typographyPosition === 'both' ? 'Top Headline Nudge' : 'Vertical Nudge'}
+                      </span>
                       <div className="flex items-center gap-1.5">
                         <span className="font-mono text-cyan-400 text-[11px] font-semibold">{textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`}</span>
                         {textOffset !== 0 && (
@@ -2295,10 +2314,47 @@ export default function StudioPage() {
                     />
                     <div className="flex justify-between text-[8px] text-slate-500">
                       <span>-200px (Higher)</span>
-                      <span>0px (Safe)</span>
+                      <span>0px (Default)</span>
                       <span>+200px (Lower)</span>
                     </div>
                   </div>
+
+                  {/* Vertical Offset (Bottom Callout Nudge) when in both or bottom mode */}
+                  {(typographyPosition === 'both' || typographyPosition === 'bottom') && (
+                    <div className="space-y-1 pt-1 border-t border-white/5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-[11px] text-slate-400">Bottom Callout Nudge</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono text-cyan-400 text-[11px] font-semibold">
+                            {bottomTextOffset > 0 ? `+${bottomTextOffset}px` : `${bottomTextOffset}px`}
+                          </span>
+                          {bottomTextOffset !== 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setBottomTextOffset(0)}
+                              className="text-[9px] text-slate-400 hover:text-slate-200 underline cursor-pointer"
+                            >
+                              Reset
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <input
+                        type="range"
+                        min="-200"
+                        max="200"
+                        step="1"
+                        value={bottomTextOffset}
+                        onChange={(e) => setBottomTextOffset(parseInt(e.target.value, 10))}
+                        className="w-full accent-cyan-500 cursor-pointer h-1 bg-[#232733] rounded-lg appearance-none"
+                      />
+                      <div className="flex justify-between text-[8px] text-slate-500">
+                        <span>-200px (Higher)</span>
+                        <span>0px (Default)</span>
+                        <span>+200px (Lower)</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Star Badge Toggle */}
@@ -2571,17 +2627,17 @@ export default function StudioPage() {
                 {/* Direct On-Canvas Draggable Text Zone (Top Headline Area) */}
                 {themeId !== 'none' && (typographyPosition === 'top' || typographyPosition === 'both') && (
                   <div
-                    onMouseDown={handleTextDragStart}
+                    onMouseDown={(e) => handleTextDragStart(e, 'top')}
                     onDoubleClick={(e) => {
                       e.stopPropagation();
                       setTextOffset(0);
                     }}
                     className="absolute top-0 inset-x-0 h-[32%] z-20 cursor-ns-resize group/drag flex flex-col items-center justify-start pt-3 transition-all select-none rounded-t-xl hover:bg-cyan-500/[0.04]"
-                    title="Click and drag up/down to reposition text. Double-click to reset."
+                    title="Click and drag up/down to reposition headline. Double-click to reset."
                   >
                     <div className="opacity-0 group-hover/drag:opacity-100 transition-opacity duration-150 px-3 py-1 rounded-full bg-slate-900/90 text-cyan-300 text-[11px] font-medium border border-cyan-500/50 shadow-2xl flex items-center gap-1.5 select-none pointer-events-none">
                       <MoveVertical className="w-3 h-3 text-cyan-400" />
-                      <span>Drag to Reposition Text</span>
+                      <span>Drag to Reposition Headline</span>
                       {textOffset !== 0 && (
                         <span className="font-mono text-[10px] text-cyan-400 font-bold ml-1">
                           ({textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`})
@@ -2594,20 +2650,20 @@ export default function StudioPage() {
                 {/* Direct On-Canvas Draggable Text Zone (Bottom Callout Area) */}
                 {themeId !== 'none' && (typographyPosition === 'bottom' || typographyPosition === 'both') && (
                   <div
-                    onMouseDown={handleTextDragStart}
+                    onMouseDown={(e) => handleTextDragStart(e, 'bottom')}
                     onDoubleClick={(e) => {
                       e.stopPropagation();
-                      setTextOffset(0);
+                      setBottomTextOffset(0);
                     }}
                     className="absolute bottom-0 inset-x-0 h-[30%] z-20 cursor-ns-resize group/drag flex flex-col items-center justify-end pb-3 transition-all select-none rounded-b-xl hover:bg-cyan-500/[0.04]"
-                    title="Click and drag up/down to reposition text. Double-click to reset."
+                    title="Click and drag up/down to reposition callout text. Double-click to reset."
                   >
                     <div className="opacity-0 group-hover/drag:opacity-100 transition-opacity duration-150 px-3 py-1 rounded-full bg-slate-900/90 text-cyan-300 text-[11px] font-medium border border-cyan-500/50 shadow-2xl flex items-center gap-1.5 select-none pointer-events-none">
                       <MoveVertical className="w-3 h-3 text-cyan-400" />
-                      <span>Drag to Reposition Text</span>
-                      {textOffset !== 0 && (
+                      <span>Drag to Reposition Callout</span>
+                      {bottomTextOffset !== 0 && (
                         <span className="font-mono text-[10px] text-cyan-400 font-bold ml-1">
-                          ({textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`})
+                          ({bottomTextOffset > 0 ? `+${bottomTextOffset}px` : `${bottomTextOffset}px`})
                         </span>
                       )}
                     </div>
@@ -2618,7 +2674,11 @@ export default function StudioPage() {
                 {isDraggingText && (
                   <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 px-3.5 py-1.5 rounded-full bg-slate-900/95 border border-cyan-400 text-cyan-300 text-xs font-mono font-semibold shadow-2xl backdrop-blur flex items-center gap-2 pointer-events-none animate-in fade-in duration-100">
                     <MoveVertical className="w-3.5 h-3.5 text-cyan-400 animate-bounce" />
-                    <span>Nudge: {textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`}</span>
+                    <span>
+                      {isDraggingText === 'top'
+                        ? `Headline Nudge: ${textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`}`
+                        : `Callout Nudge: ${bottomTextOffset > 0 ? `+${bottomTextOffset}px` : `${bottomTextOffset}px`}`}
+                    </span>
                   </div>
                 )}
 
@@ -2631,7 +2691,7 @@ export default function StudioPage() {
                 )}
 
                 {/* Floating Quick Action Buttons on Canvas Hover */}
-                <div className="absolute bottom-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200">
+                <div className="absolute bottom-3 right-3 z-30 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200">
                   {themeId !== 'none' && (
                     <button
                       type="button"

@@ -252,6 +252,7 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
                   subtitleWeight: scr.subtitleWeight || body.subtitleWeight,
                   isItalic: scr.isItalic !== undefined ? Boolean(scr.isItalic) : (body.isItalic !== undefined ? Boolean(body.isItalic) : undefined),
                   textYOffset: scr.textOffset !== undefined ? Number(scr.textOffset) : (body.textYOffset !== undefined ? Number(body.textYOffset) : undefined),
+                  bottomTextOffset: scr.bottomTextOffset !== undefined ? Number(scr.bottomTextOffset) : (body.bottomTextOffset !== undefined ? Number(body.bottomTextOffset) : undefined),
                   useCustomColors: scr.useCustomColors !== undefined
                     ? Boolean(scr.useCustomColors)
                     : (body.useCustomColors !== undefined ? Boolean(body.useCustomColors) : false),
@@ -301,6 +302,7 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
               subtitleWeight: body.subtitleWeight,
               isItalic: body.isItalic !== undefined ? Boolean(body.isItalic) : undefined,
               textYOffset: body.textYOffset !== undefined ? Number(body.textYOffset) : undefined,
+              bottomTextOffset: body.bottomTextOffset !== undefined ? Number(body.bottomTextOffset) : undefined,
               useCustomColors: Boolean(body.useCustomColors),
               customColors: body.useCustomColors ? body.customColors : undefined,
               phoneScaleMultiplier: body.phoneScaleMultiplier !== undefined ? Number(body.phoneScaleMultiplier) : undefined,
@@ -347,6 +349,7 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
             subtitleWeight: body.subtitleWeight,
             isItalic: body.isItalic !== undefined ? Boolean(body.isItalic) : undefined,
             textYOffset: body.textYOffset !== undefined ? Number(body.textYOffset) : undefined,
+            bottomTextOffset: body.bottomTextOffset !== undefined ? Number(body.bottomTextOffset) : undefined,
             useCustomColors: Boolean(body.useCustomColors),
             customColors: body.useCustomColors ? body.customColors : undefined,
             phoneScaleMultiplier: body.phoneScaleMultiplier !== undefined ? Number(body.phoneScaleMultiplier) : undefined,

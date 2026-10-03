@@ -25,6 +25,7 @@ export interface TypographyOptions {
   subtitleWeight?: '400' | '500' | '600' | '700';
   isItalic?: boolean;
   textYOffset?: number;
+  bottomTextOffset?: number;
   phoneTop?: number;
   accentColors?: [string, string];
 }
@@ -115,6 +116,7 @@ export function generateTypographySvg(options: TypographyOptions): string {
     subtitleWeight = '500',
     isItalic = false,
     textYOffset = 0,
+    bottomTextOffset,
     phoneTop,
     accentColors = ['#38bdf8', '#c084fc'],
   } = options;
@@ -311,7 +313,8 @@ export function generateTypographySvg(options: TypographyOptions): string {
   // POSITION: BOTTOM (Store copy under phone chassis)
   else if (position === 'bottom') {
     const bottomPadding = Math.round(85 * scale);
-    let currentY = canvasHeight - totalTopBlockHeight - bottomPadding + textYOffset;
+    const effBottomOffset = bottomTextOffset !== undefined ? bottomTextOffset : textYOffset;
+    let currentY = canvasHeight - totalTopBlockHeight - bottomPadding + effBottomOffset;
 
     if (eyebrowTag) {
       const tag = renderEyebrow(currentY);
@@ -375,7 +378,8 @@ export function generateTypographySvg(options: TypographyOptions): string {
     const bottomLines = bottomText ? wrapText(bottomText, maxSubChars) : [];
     if (bottomLines.length > 0) {
       const bottomBlockHeight = subtitleSize + (bottomLines.length - 1) * subtitleLineHeight;
-      const bottomY = canvasHeight - Math.round(110 * scale) - bottomBlockHeight + textYOffset;
+      const effBottomOffset = bottomTextOffset !== undefined ? bottomTextOffset : textYOffset;
+      const bottomY = canvasHeight - Math.round(110 * scale) - bottomBlockHeight + effBottomOffset;
       const subBlock = renderText(bottomLines, subtitleSize, subtitleLineHeight, subtitleWeight, subtitleColor, bottomY, sFont);
       content += subBlock.svg;
     }

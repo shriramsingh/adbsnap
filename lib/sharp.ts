@@ -30,6 +30,7 @@ export interface CompositeFrameOptions {
   subtitleWeight?: '400' | '500' | '600' | '700';
   isItalic?: boolean;
   textYOffset?: number;
+  bottomTextOffset?: number;
   useCustomColors?: boolean;
   customColors?: [string, string];
   enableAmbientGlow?: boolean;
@@ -256,6 +257,7 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
     subtitleWeight: options.subtitleWeight,
     isItalic: options.isItalic,
     textYOffset: options.textYOffset,
+    bottomTextOffset: options.bottomTextOffset,
     phoneTop,
     accentColors: options.accentColors,
   });
