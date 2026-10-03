@@ -591,6 +591,26 @@ export default function StudioPage() {
               label: `${appName} #${nextIdx}`,
               base64: data.base64,
               timestamp: timeStr,
+              themeId,
+              bezelId,
+              layout,
+              font: headlineFont,
+              headlineFont,
+              subtitleFont,
+              textAlign,
+              titleScale,
+              subtitleScale,
+              titleWeight,
+              isItalic,
+              textOffset,
+              showStars,
+              ambientGlow,
+              phoneScale,
+              phoneOffset,
+              customColor1,
+              customColor2,
+              useCustomColors,
+              typographyPosition,
             };
             setActiveScreenIndex(prev.length);
             return [...prev, newScreen];
@@ -803,6 +823,7 @@ export default function StudioPage() {
     if (target.showStars !== undefined) setShowStars(target.showStars);
     if (target.ambientGlow !== undefined) setAmbientGlow(target.ambientGlow);
     if (target.phoneScale !== undefined) setPhoneScale(target.phoneScale);
+    if (target.phoneOffset !== undefined) setPhoneOffset(target.phoneOffset);
     if (target.customColor1) setCustomColor1(target.customColor1);
     if (target.customColor2) setCustomColor2(target.customColor2);
     if (target.useCustomColors !== undefined) setUseCustomColors(target.useCustomColors);
@@ -888,6 +909,26 @@ export default function StudioPage() {
             label: label || `Image #${nextIdx}`,
             base64: base64Data,
             timestamp: timeStr,
+            themeId,
+            bezelId,
+            layout,
+            font: headlineFont,
+            headlineFont,
+            subtitleFont,
+            textAlign,
+            titleScale,
+            subtitleScale,
+            titleWeight,
+            isItalic,
+            textOffset,
+            showStars,
+            ambientGlow,
+            phoneScale,
+            phoneOffset,
+            customColor1,
+            customColor2,
+            useCustomColors,
+            typographyPosition,
           };
           if (prev.length === 0 && i === 0) {
             setScreenshotBase64(base64Data);
@@ -1121,10 +1162,36 @@ export default function StudioPage() {
   // Sync styling across all screens in the filmstrip
   const handleSyncStyleToAll = () => {
     if (screens.length <= 1) return;
+    setScreens((prev) =>
+      prev.map((s) => ({
+        ...s,
+        themeId,
+        bezelId,
+        layout,
+        font: headlineFont,
+        headlineFont,
+        subtitleFont,
+        textAlign,
+        titleScale,
+        subtitleScale,
+        titleWeight,
+        isItalic,
+        textOffset,
+        showStars,
+        ambientGlow,
+        phoneScale,
+        phoneOffset,
+        customColor1,
+        customColor2,
+        useCustomColors,
+        typographyPosition,
+      }))
+    );
+
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
     setToastMessage(`✨ Applied current style & layout across all ${screens.length} screens!`);
     toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 3000);
-    setStatusMessage('Style synchronized across all screens.');
+    setStatusMessage(`Style synchronized across all ${screens.length} screens.`);
   };
 
   // 5. Autonomous Tab Crawler
