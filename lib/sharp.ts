@@ -236,7 +236,10 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
     return fontKey;
   };
   const headlineFontFamily = resolveFont(options.headlineFont || options.font);
-  const subtitleFontFamily = resolveFont(options.subtitleFont || options.font || options.headlineFont);
+  const subtitleFontFamily =
+    !options.subtitleFont || options.subtitleFont === 'match'
+      ? headlineFontFamily
+      : resolveFont(options.subtitleFont);
 
   const typographySvg = generateTypographySvg({
     canvasWidth,

@@ -39,6 +39,7 @@ import {
   Wand2,
   MoveVertical,
   RotateCcw,
+  Sliders,
 } from 'lucide-react';
 
 interface ConnectedDevice {
@@ -2088,192 +2089,215 @@ export default function StudioPage() {
                   </div>
                 </div>
 
-                {/* Contextual Active Layer Selector */}
-                {(typographyPosition === 'both' || typographyPosition === 'bottom') && (
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[11px] text-slate-400 font-medium">Selected Layer</span>
-                      <span className="text-[10px] text-cyan-400/80">Click canvas to switch</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 p-1 bg-[#161922] border border-[#232733] rounded-lg text-xs">
-                      {typographyPosition !== 'bottom' && (
-                        <button
-                          type="button"
-                          onClick={() => setActiveTextLayer('headline')}
-                          className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md font-medium transition cursor-pointer ${
-                            activeTextLayer === 'headline'
-                              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
-                              : 'text-slate-400 hover:text-slate-200'
-                          }`}
-                        >
-                          <span>🔤 Headline</span>
-                          {textOffset !== 0 && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />}
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setActiveTextLayer('callout')}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md font-medium transition cursor-pointer ${
-                          activeTextLayer === 'callout'
-                            ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
-                            : 'text-slate-400 hover:text-slate-200'
-                        }`}
-                      >
-                        <span>💬 Callout</span>
-                        {bottomTextOffset !== 0 && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Content Editor for Active Layer */}
+                {/* 1. Headline Text Box */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11px] text-slate-400 font-medium">
-                      {activeTextLayer === 'headline' ? 'Headline Text' : 'Callout Text'}
-                    </span>
-                    {activeTextLayer === 'headline' ? (
-                      <div className="flex items-center gap-1.5">
-                        <div className="flex items-center gap-1 bg-[#0f1117] border border-cyan-500/30 rounded px-1.5 py-0.5">
-                          <Wand2 className="w-3 h-3 text-cyan-400 shrink-0" />
-                          <select
-                            value=""
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              if (val === '__clear__') {
-                                setTitle('');
-                                setSubtitle('');
-                                if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-                                setToastMessage('✕ Cleared copy');
-                                toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2000);
-                              } else if (val === '__reset__') {
-                                setTitle('Transform Your Workflow');
-                                setSubtitle('Effortless automated mobile screenshot studio.');
-                                if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-                                setToastMessage('↺ Restored default studio copy');
-                                toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2000);
-                              } else {
-                                const t = MAGIC_COPY_TEMPLATES.find((tpl) => tpl.name === val);
-                                if (t) {
-                                  setTitle(t.title);
-                                  setSubtitle(t.subtitle);
-                                  if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-                                  setToastMessage(`✨ Applied "${t.name}"`);
-                                  toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2000);
-                                }
-                              }
-                            }}
-                            style={{ backgroundColor: '#0f1117', color: '#67e8f9' }}
-                            className="text-[10px] bg-[#0f1117] text-cyan-300 cursor-pointer focus:outline-none border-0"
-                            title="Magic Copy Templates & Presets"
-                          >
-                            <option value="" disabled style={{ backgroundColor: '#0f1117', color: '#94a3b8' }}>
-                              Magic Copy...
-                            </option>
-                            <option value="__clear__" style={{ backgroundColor: '#0f1117', color: '#fb7185' }} className="font-medium">
-                              ✕ Clear All Copy
-                            </option>
-                            <option value="__reset__" style={{ backgroundColor: '#0f1117', color: '#fcd34d' }} className="font-medium">
-                              ↺ Reset Default Copy
-                            </option>
-                            <option disabled style={{ backgroundColor: '#0f1117', color: '#475569' }}>
-                              ───────────────────────────
-                            </option>
-                            {MAGIC_COPY_TEMPLATES.map((tpl) => (
-                              <option
-                                key={tpl.name}
-                                value={tpl.name}
-                                style={{ backgroundColor: '#0f1117', color: '#f1f5f9' }}
-                              >
-                                {tpl.name}: &quot;{tpl.title.replace(/\*\*/g, '')}&quot;
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        {(title || subtitle) && (
-                          <button
-                            type="button"
-                            onClick={() => {
+                    <button
+                      type="button"
+                      onClick={() => setActiveTextLayer('headline')}
+                      className="text-[11px] font-semibold text-slate-300 flex items-center gap-1.5 cursor-pointer text-left"
+                    >
+                      <span>🔤 Headline Text</span>
+                      {activeTextLayer === 'headline' && (
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-normal">
+                          Active Styling
+                        </span>
+                      )}
+                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1 bg-[#0f1117] border border-cyan-500/30 rounded px-1.5 py-0.5">
+                        <Wand2 className="w-3 h-3 text-cyan-400 shrink-0" />
+                        <select
+                          value=""
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '__clear__') {
                               setTitle('');
-                              if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-                              setToastMessage('✕ Cleared headline');
-                              toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 1800);
-                            }}
-                            className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 transition cursor-pointer"
-                            title="Clear headline"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] text-slate-500 font-mono">Multi-line (Enter ↵)</span>
-                        {subtitle && (
-                          <button
-                            type="button"
-                            onClick={() => {
                               setSubtitle('');
                               if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-                              setToastMessage('✕ Cleared callout');
-                              toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 1800);
-                            }}
-                            className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 transition cursor-pointer"
-                            title="Clear callout"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        )}
+                              setToastMessage('✕ Cleared copy');
+                              toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2000);
+                            } else if (val === '__reset__') {
+                              setTitle('Transform Your Workflow');
+                              setSubtitle('Effortless automated mobile screenshot studio.');
+                              if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+                              setToastMessage('↺ Restored default studio copy');
+                              toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2000);
+                            } else {
+                              const t = MAGIC_COPY_TEMPLATES.find((tpl) => tpl.name === val);
+                              if (t) {
+                                setTitle(t.title);
+                                setSubtitle(t.subtitle);
+                                if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+                                setToastMessage(`✨ Applied "${t.name}"`);
+                                toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2000);
+                              }
+                            }
+                          }}
+                          style={{ backgroundColor: '#0f1117', color: '#67e8f9' }}
+                          className="text-[10px] bg-[#0f1117] text-cyan-300 cursor-pointer focus:outline-none border-0"
+                          title="Magic Copy Templates & Presets"
+                        >
+                          <option value="" disabled style={{ backgroundColor: '#0f1117', color: '#94a3b8' }}>
+                            Magic Copy...
+                          </option>
+                          <option value="__clear__" style={{ backgroundColor: '#0f1117', color: '#fb7185' }} className="font-medium">
+                            ✕ Clear All Copy
+                          </option>
+                          <option value="__reset__" style={{ backgroundColor: '#0f1117', color: '#fcd34d' }} className="font-medium">
+                            ↺ Reset Default Copy
+                          </option>
+                          <option disabled style={{ backgroundColor: '#0f1117', color: '#475569' }}>
+                            ───────────────────────────
+                          </option>
+                          {MAGIC_COPY_TEMPLATES.map((tpl) => (
+                            <option
+                              key={tpl.name}
+                              value={tpl.name}
+                              style={{ backgroundColor: '#0f1117', color: '#f1f5f9' }}
+                            >
+                              {tpl.name}: &quot;{tpl.title.replace(/\*\*/g, '')}&quot;
+                            </option>
+                          ))}
+                        </select>
                       </div>
+
+                      {title && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTitle('');
+                            if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+                            setToastMessage('✕ Cleared headline');
+                            toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 1800);
+                          }}
+                          className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 transition cursor-pointer"
+                          title="Clear headline"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <textarea
+                    rows={2}
+                    value={title}
+                    onFocus={() => setActiveTextLayer('headline')}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Enter punchy headline (press Enter for new line)..."
+                    className={`w-full bg-[#161922] border rounded-lg p-2 text-xs text-white focus:outline-none resize-none font-sans leading-relaxed transition ${
+                      activeTextLayer === 'headline'
+                        ? 'border-cyan-500/80 ring-1 ring-cyan-500/30'
+                        : 'border-[#232733] hover:border-slate-700'
+                    }`}
+                  />
+
+                  {/* Quick Magic Copy Chips */}
+                  <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                    <span className="text-[9px] text-slate-500 font-medium mr-0.5">Presets:</span>
+                    {MAGIC_COPY_TEMPLATES.map((tpl) => (
+                      <button
+                        key={tpl.name}
+                        type="button"
+                        onClick={() => {
+                          setTitle(tpl.title);
+                          setSubtitle(tpl.subtitle);
+                          if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+                          setToastMessage(`✨ Applied "${tpl.name}"`);
+                          toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2000);
+                        }}
+                        className="text-[9px] px-1.5 py-0.5 rounded bg-[#161922] hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 border border-[#232733] hover:border-cyan-500/40 transition cursor-pointer"
+                        title={`${tpl.title.replace(/\*\*/g, '')} — ${tpl.subtitle}`}
+                      >
+                        {tpl.name.split('/')[0].trim()}
+                      </button>
+                    ))}
+                  </div>
+
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    Tip: Use <span className="text-cyan-400 font-mono font-bold">**bold radiant**</span> and <span className="text-cyan-300 font-mono italic">*italic*</span> for accents.
+                  </p>
+                </div>
+
+                {/* 2. Subtitle Text Box */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTextLayer('callout')}
+                      className="text-[11px] font-semibold text-slate-300 flex items-center gap-1.5 cursor-pointer text-left"
+                    >
+                      <span>💬 Subtitle {typographyPosition === 'both' ? '(Bottom Callout)' : ''}</span>
+                      {activeTextLayer === 'callout' && (
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-normal">
+                          Active Styling
+                        </span>
+                      )}
+                    </button>
+                    {subtitle && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSubtitle('');
+                          if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+                          setToastMessage('✕ Cleared subtitle');
+                          toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 1800);
+                        }}
+                        className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 transition cursor-pointer"
+                        title="Clear subtitle"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
                     )}
                   </div>
 
-                  {activeTextLayer === 'headline' ? (
-                    <>
-                      <textarea
-                        rows={2}
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        placeholder="Enter punchy headline (press Enter for new line)..."
-                        className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 resize-none font-sans leading-relaxed"
-                      />
-                      
-                      {/* Quick Magic Copy Chips */}
-                      <div className="flex flex-wrap items-center gap-1 mt-1.5">
-                        <span className="text-[9px] text-slate-500 font-medium mr-0.5">Quick:</span>
-                        {MAGIC_COPY_TEMPLATES.map((tpl) => (
-                          <button
-                            key={tpl.name}
-                            type="button"
-                            onClick={() => {
-                              setTitle(tpl.title);
-                              setSubtitle(tpl.subtitle);
-                              if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-                              setToastMessage(`✨ Applied "${tpl.name}"`);
-                              toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2000);
-                            }}
-                            className="text-[9px] px-1.5 py-0.5 rounded bg-[#161922] hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 border border-[#232733] hover:border-cyan-500/40 transition cursor-pointer"
-                            title={`${tpl.title.replace(/\*\*/g, '')} — ${tpl.subtitle}`}
-                          >
-                            {tpl.name.split('/')[0].trim()}
-                          </button>
-                        ))}
-                      </div>
+                  <textarea
+                    rows={2}
+                    value={subtitle}
+                    onFocus={() => setActiveTextLayer('callout')}
+                    onChange={(e) => setSubtitle(e.target.value)}
+                    placeholder={typographyPosition === 'both' ? 'Enter bottom callout or feature copy...' : 'Enter explanatory subtitle copy...'}
+                    className={`w-full bg-[#161922] border rounded-lg p-2 text-xs text-white focus:outline-none resize-none font-sans leading-relaxed transition ${
+                      activeTextLayer === 'callout'
+                        ? 'border-cyan-500/80 ring-1 ring-cyan-500/30'
+                        : 'border-[#232733] hover:border-slate-700'
+                    }`}
+                  />
+                </div>
 
-                      <p className="text-[10px] text-slate-500 mt-1">
-                        Tip: Use <span className="text-cyan-400 font-mono font-bold">**bold radiant**</span> and <span className="text-cyan-300 font-mono italic">*italic*</span> for accents.
-                      </p>
-                    </>
-                  ) : (
-                    <textarea
-                      rows={2}
-                      value={subtitle}
-                      onChange={(e) => setSubtitle(e.target.value)}
-                      placeholder="Enter bottom callout, testimonial, or feature copy..."
-                      className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 resize-none font-sans leading-relaxed"
-                    />
-                  )}
+                {/* Contextual Typography Styling Bar Header */}
+                <div className="pt-1.5 border-t border-[#232733]/60">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-semibold text-slate-300 flex items-center gap-1.5">
+                      <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+                      Typography Styling
+                    </span>
+                    <div className="flex items-center gap-1 bg-[#0f1117] p-0.5 rounded-lg border border-[#232733]">
+                      <button
+                        type="button"
+                        onClick={() => setActiveTextLayer('headline')}
+                        className={`px-2 py-0.5 rounded text-[10px] font-medium transition cursor-pointer ${
+                          activeTextLayer === 'headline'
+                            ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        🔤 Headline
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTextLayer('callout')}
+                        className={`px-2 py-0.5 rounded text-[10px] font-medium transition cursor-pointer ${
+                          activeTextLayer === 'callout'
+                            ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        💬 Subtitle
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Universal Alignment, Weight & Italic Bar for Active Layer */}
@@ -2308,7 +2332,7 @@ export default function StudioPage() {
                       }
                     }}
                     className="bg-[#0f1117] border border-[#232733] text-slate-300 rounded px-1.5 py-1 text-[11px] focus:outline-none cursor-pointer"
-                    title={`${activeTextLayer === 'headline' ? 'Headline' : 'Callout'} Font Weight`}
+                    title={`${activeTextLayer === 'headline' ? 'Headline' : 'Subtitle'} Font Weight`}
                   >
                     <option value="400">Regular (400)</option>
                     <option value="500">Medium (500)</option>
@@ -2343,7 +2367,7 @@ export default function StudioPage() {
                 {/* Universal Font Selector for Active Layer */}
                 <div>
                   <span className="text-[10px] text-slate-400 block mb-1">
-                    {activeTextLayer === 'headline' ? 'Headline Font' : 'Callout Font'}
+                    {activeTextLayer === 'headline' ? 'Headline Font' : 'Subtitle Font'}
                   </span>
                   <select
                     value={activeTextLayer === 'headline' ? headlineFont : subtitleFont}
@@ -2358,7 +2382,7 @@ export default function StudioPage() {
                     className="w-full bg-[#161922] border border-[#232733] rounded-lg p-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 cursor-pointer"
                   >
                     {activeTextLayer === 'callout' && (
-                      <option value="match">Match Headline Font</option>
+                      <option value="match">Match Headline Font ({FONTS.find((f) => f.id === headlineFont)?.name || 'Default'})</option>
                     )}
                     {FONTS.map((f) => (
                       <option key={f.id} value={f.id}>
@@ -2374,7 +2398,7 @@ export default function StudioPage() {
                   <div className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-[11px] text-slate-400">
-                        {activeTextLayer === 'headline' ? 'Headline Scale' : 'Callout Scale'}
+                        {activeTextLayer === 'headline' ? 'Headline Scale' : 'Subtitle Scale'}
                       </span>
                       <div className="flex items-center gap-1.5">
                         <span className="font-mono text-cyan-400 text-[11px] font-semibold">
@@ -2413,7 +2437,9 @@ export default function StudioPage() {
                   <div className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-[11px] text-slate-400">
-                        {activeTextLayer === 'headline' ? 'Headline Nudge' : 'Callout Nudge'}
+                        {activeTextLayer === 'headline'
+                          ? (typographyPosition === 'both' ? 'Top Headline Nudge' : 'Vertical Nudge')
+                          : (typographyPosition === 'both' ? 'Bottom Callout Nudge' : 'Subtitle Nudge')}
                       </span>
                       <div className="flex items-center gap-1.5">
                         <span className="font-mono text-cyan-400 text-[11px] font-semibold">
@@ -2734,7 +2760,7 @@ export default function StudioPage() {
                         setTextOffset(0);
                         refreshPreview(undefined, { textOffset: 0 });
                       }}
-                      className={`absolute top-0 inset-x-0 h-[32%] z-20 cursor-grab active:cursor-grabbing select-none transition-all rounded-t-xl ${
+                      className={`absolute top-0 inset-x-0 ${typographyPosition === 'top' && subtitle ? 'h-[20%]' : 'h-[32%]'} z-20 cursor-grab active:cursor-grabbing select-none transition-all rounded-t-xl ${
                         activeTextLayer === 'headline'
                           ? 'border border-cyan-400/30 bg-cyan-500/[0.03]'
                           : 'hover:border hover:border-cyan-400/20 hover:bg-cyan-500/[0.01]'
@@ -2743,7 +2769,26 @@ export default function StudioPage() {
                     />
                   )}
 
-                  {/* Direct On-Canvas Draggable Text Zone (Bottom Callout Area) */}
+                  {/* Direct On-Canvas Draggable Text Zone (Top Subtitle Area in Top mode) */}
+                  {themeId !== 'none' && typographyPosition === 'top' && subtitle && (
+                    <div
+                      onClick={() => setActiveTextLayer('callout')}
+                      onMouseDown={(e) => handleTextDragStart(e, 'top')}
+                      onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        setTextOffset(0);
+                        refreshPreview(undefined, { textOffset: 0 });
+                      }}
+                      className={`absolute top-[20%] inset-x-0 h-[12%] z-20 cursor-grab active:cursor-grabbing select-none transition-all ${
+                        activeTextLayer === 'callout'
+                          ? 'border border-cyan-400/30 bg-cyan-500/[0.03]'
+                          : 'hover:border hover:border-cyan-400/20 hover:bg-cyan-500/[0.01]'
+                      }`}
+                      title="Click to select subtitle, or drag up/down to reposition. Double-click to reset."
+                    />
+                  )}
+
+                  {/* Direct On-Canvas Draggable Text Zone (Bottom Subtitle/Callout Area) */}
                   {themeId !== 'none' && (typographyPosition === 'bottom' || typographyPosition === 'both') && (
                     <div
                       onClick={() => setActiveTextLayer('callout')}
@@ -2758,7 +2803,7 @@ export default function StudioPage() {
                           ? 'border border-cyan-400/30 bg-cyan-500/[0.03]'
                           : 'hover:border hover:border-cyan-400/20 hover:bg-cyan-500/[0.01]'
                       }`}
-                      title="Click to select callout text, or drag up/down to reposition. Double-click to reset."
+                      title="Click to select subtitle/callout, or drag up/down to reposition. Double-click to reset."
                     />
                   )}
 

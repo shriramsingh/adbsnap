@@ -127,7 +127,7 @@ export function generateTypographySvg(options: TypographyOptions): string {
 
   const defaultFont = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, sans-serif";
   const hFont = headlineFontFamily || fontFamily || defaultFont;
-  const sFont = subtitleFontFamily || fontFamily || defaultFont;
+  const sFont = (!subtitleFontFamily || subtitleFontFamily === 'match') ? hFont : (subtitleFontFamily || fontFamily || defaultFont);
   const scale = Math.min(canvasWidth / 1290, canvasHeight / 2796);
 
   // Alignment coordinates
