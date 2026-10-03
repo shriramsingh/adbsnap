@@ -37,6 +37,7 @@ import {
   Italic,
   Palette,
   Wand2,
+  MoveVertical,
 } from 'lucide-react';
 
 interface ConnectedDevice {
@@ -263,6 +264,33 @@ export default function StudioPage() {
   const initialSnapTakenRef = useRef(false);
   const lastScreenBase64Ref = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Interactive on-canvas text dragging state & refs
+  const [isDraggingText, setIsDraggingText] = useState(false);
+  const dragStartYRef = useRef(0);
+  const startOffsetRef = useRef(0);
+
+  const handleTextDragStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDraggingText(true);
+    dragStartYRef.current = e.clientY;
+    startOffsetRef.current = textOffset;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaY = moveEvent.clientY - dragStartYRef.current;
+      const newOffset = Math.max(-200, Math.min(200, Math.round(startOffsetRef.current + deltaY * 1.5)));
+      setTextOffset(newOffset);
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingText(false);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
 
   // 1. Setup Server-Sent Events (SSE) for live device updates
   useEffect(() => {
@@ -1628,7 +1656,9 @@ export default function StudioPage() {
                 {/* Font Pairing Selection */}
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <span className="text-[10px] text-slate-400 block mb-1">Headline Font</span>
+                    <span className="text-[10px] text-slate-400 block mb-1">
+                      {typographyPosition === 'both' ? 'Top Font (Headline)' : 'Headline Font'}
+                    </span>
                     <select
                       value={headlineFont}
                       onChange={(e) => {
@@ -1645,7 +1675,9 @@ export default function StudioPage() {
                     </select>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 block mb-1">Subtitle Font</span>
+                    <span className="text-[10px] text-slate-400 block mb-1">
+                      {typographyPosition === 'both' ? 'Bottom Font (Callout)' : 'Subtitle Font'}
+                    </span>
                     <select
                       value={subtitleFont}
                       onChange={(e) => setSubtitleFont(e.target.value)}
@@ -2018,6 +2050,28 @@ export default function StudioPage() {
                   alt="ADBSnap Canvas Preview"
                   className="max-h-[66vh] w-auto object-contain rounded-xl select-none"
                 />
+
+                {/* Interactive On-Canvas Drag-to-Position Handle */}
+                {themeId !== 'none' && (
+                  <div
+                    onMouseDown={handleTextDragStart}
+                    onDoubleClick={() => setTextOffset(0)}
+                    className={`absolute ${
+                      typographyPosition === 'bottom' ? 'bottom-14' : 'top-3'
+                    } left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-full bg-slate-900/90 hover:bg-slate-800 border border-cyan-500/40 text-cyan-300 text-[11px] font-medium shadow-xl backdrop-blur flex items-center gap-1.5 cursor-ns-resize select-none transition-all ${
+                      isDraggingText ? 'ring-2 ring-cyan-400 bg-cyan-950 scale-105 opacity-100' : 'opacity-70 group-hover:opacity-100'
+                    }`}
+                    title="Click & drag vertically to reposition text. Double-click to reset to safe default."
+                  >
+                    <MoveVertical className={`w-3.5 h-3.5 text-cyan-400 ${isDraggingText ? 'animate-bounce' : ''}`} />
+                    <span>{isDraggingText ? `Nudge: ${textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`}` : 'Drag to Reposition Text'}</span>
+                    {textOffset !== 0 && !isDraggingText && (
+                      <span className="font-mono text-[9px] bg-cyan-500/20 px-1 py-0.2 rounded text-cyan-300">
+                        {textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`}
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {isRendering && (
                   <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center transition">
