@@ -44,10 +44,24 @@ import {
 
 interface ConnectedDevice {
   id: string;
+  platform: 'android' | 'ios';
   type: 'usb' | 'wifi' | 'emulator';
   model: string;
   product: string;
   isAuthorized: boolean;
+}
+
+interface IOSSimulatorApp {
+  bundleIdentifier: string;
+  name: string;
+  isDemo: boolean;
+}
+
+function deviceConnectionLabel(device: ConnectedDevice): string {
+  if (device.platform === 'ios') {
+    return device.type === 'emulator' ? 'iOS Sim' : `iOS ${device.type === 'wifi' ? 'Wi-Fi' : 'Device'}`;
+  }
+  return device.type === 'wifi' ? 'Wi-Fi' : device.type === 'emulator' ? 'Emulator' : 'USB';
 }
 
 interface SessionScreen {
@@ -352,6 +366,13 @@ export default function StudioPage() {
   const [selectedDevice, setSelectedDevice] = useState<string>('');
   const [isCapturing, setIsCapturing] = useState(false);
   const [isCrawling, setIsCrawling] = useState(false);
+  const [isIOSAppPickerOpen, setIsIOSAppPickerOpen] = useState(false);
+  const [iosApps, setIOSApps] = useState<IOSSimulatorApp[]>([]);
+  const [iosAppSearch, setIOSAppSearch] = useState('');
+  const [selectedIOSBundleIdentifier, setSelectedIOSBundleIdentifier] = useState('');
+  const [iosDevelopmentTeam, setIOSDevelopmentTeam] = useState('');
+  const [isLoadingIOSApps, setIsLoadingIOSApps] = useState(false);
+  const [iosAppsError, setIOSAppsError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [exportScope, setExportScope] = useState<'all' | 'active'>('all');
   const [isDragging, setIsDragging] = useState(false);
@@ -501,7 +522,7 @@ export default function StudioPage() {
           setSelectedDevice((prevSelected) => {
             if (!newDevices || newDevices.length === 0) return '';
 
-            const usbDev = newDevices.find((d) => d.type === 'usb' && d.isAuthorized);
+            const usbDev = newDevices.find((d) => d.platform === 'android' && d.type === 'usb' && d.isAuthorized);
             const currentDev = newDevices.find((d) => d.id === prevSelected);
 
             // If no previous selection, or current selected device disconnected:
@@ -510,7 +531,7 @@ export default function StudioPage() {
             }
 
             // Auto-prioritize USB: if currently on Wi-Fi and a USB connection appears (cable plugged in):
-            if (currentDev.type === 'wifi' && usbDev && usbDev.id !== prevSelected) {
+            if (currentDev.platform === 'android' && currentDev.type === 'wifi' && usbDev && usbDev.id !== prevSelected) {
               return usbDev.id;
             }
 
@@ -901,7 +922,7 @@ export default function StudioPage() {
       if (data.success) {
         if (data.devices) {
           setDevices(data.devices);
-          const usbDev = data.devices.find((d: ConnectedDevice) => d.type === 'usb' && d.isAuthorized);
+          const usbDev = data.devices.find((d: ConnectedDevice) => d.platform === 'android' && d.type === 'usb' && d.isAuthorized);
           if (usbDev) setSelectedDevice(usbDev.id);
           else if (data.devices.length > 0) setSelectedDevice(data.devices[0].id);
           else setSelectedDevice('');
@@ -969,7 +990,7 @@ export default function StudioPage() {
         const refreshData = await refreshRes.json();
         if (refreshData.devices && refreshData.devices.length > 0) {
           setDevices(refreshData.devices);
-          const found = refreshData.devices.find((d: ConnectedDevice) => d.type === 'wifi') || refreshData.devices[0];
+          const found = refreshData.devices.find((d: ConnectedDevice) => d.platform === 'android' && d.type === 'wifi') || refreshData.devices[0];
           if (found) setSelectedDevice(found.id);
         }
 
@@ -1484,16 +1505,62 @@ export default function StudioPage() {
     setStatusMessage(`Applied ${aesthetic.name} style preset.`);
   };
 
+  const openIOSAppPicker = async () => {
+    if (!selectedDevice) {
+      setStatusMessage('Select a connected iOS simulator or device first.');
+      return;
+    }
+    setIsIOSAppPickerOpen(true);
+    setIsLoadingIOSApps(true);
+    setIOSAppsError(null);
+    setIOSAppSearch('');
+    try {
+      const query = new URLSearchParams({ deviceId: selectedDevice });
+      const res = await fetch(`/api/ios/apps?${query.toString()}`);
+      const data = await res.json();
+      if (!res.ok || !data.success || !Array.isArray(data.apps)) {
+        throw new Error(data.error || `Could not load iOS apps (${res.status}).`);
+      }
+      const apps = data.apps as IOSSimulatorApp[];
+      setIOSApps(apps);
+      setSelectedIOSBundleIdentifier((current) => {
+        const currentApp = apps.find((app) => app.bundleIdentifier === current);
+        if (currentApp && (!currentApp.isDemo || !apps.some((app) => !app.isDemo))) {
+          return current;
+        }
+        return apps.find((app) => !app.isDemo)?.bundleIdentifier || apps[0]?.bundleIdentifier || '';
+      });
+    } catch (err) {
+      setIOSApps([]);
+      setIOSAppsError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsLoadingIOSApps(false);
+    }
+  };
+
   // 5. Autonomous Tab Crawler
-  const handleAutonomousCrawl = async () => {
+  const handleAutonomousCrawl = async (iosBundleIdentifier?: string) => {
+    if (activeDevice?.platform === 'ios' && !iosBundleIdentifier) {
+      await openIOSAppPicker();
+      return;
+    }
+
     setIsCrawling(true);
-    setStatusMessage('Autonomous Crawler scanning tabs on mobile device...');
+    setStatusMessage(
+      activeDevice?.platform === 'ios'
+        ? activeDevice.type === 'emulator'
+          ? 'Launching XCTest Auto Explorer on iOS Simulator...'
+          : 'Signing and launching XCTest Auto Explorer on the connected iOS device...'
+        : 'Autonomous Crawler scanning tabs on mobile device...'
+    );
     try {
       const res = await fetch('/api/crawl', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           deviceId: selectedDevice || undefined,
+          bundleIdentifier: iosBundleIdentifier,
+          developmentTeam: iosDevelopmentTeam.trim().toUpperCase() || undefined,
           theme: themeId,
           frame: bezelId,
           layout,
@@ -1560,9 +1627,170 @@ export default function StudioPage() {
   });
 
   const activeDevice = devices.find((d) => d.id === selectedDevice) || devices[0];
+  const filteredIOSApps = iosApps.filter((app) =>
+    `${app.name} ${app.bundleIdentifier}`.toLowerCase().includes(iosAppSearch.trim().toLowerCase())
+  );
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-[#0a0b0e] text-slate-100 font-sans">
+      {isIOSAppPickerOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setIsIOSAppPickerOpen(false);
+          }}
+        >
+          <section
+            aria-labelledby="ios-app-picker-title"
+            aria-modal="true"
+            className="flex max-h-[min(80vh,680px)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-[#303746] bg-[#11141b] shadow-2xl"
+            role="dialog"
+          >
+            <header className="flex items-start justify-between border-b border-[#232733] p-5">
+              <div>
+                <h2 id="ios-app-picker-title" className="text-base font-semibold text-white">
+                  Choose an iOS app
+                </h2>
+                <p className="mt-1 text-xs text-slate-400">
+                  Captures tabs and safe navigation links up to 2 levels deep (20 screens max).
+                  {activeDevice?.type !== 'emulator' && ' The app may be relaunched during exploration.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close app picker"
+                onClick={() => setIsIOSAppPickerOpen(false)}
+                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </header>
+
+            <div className="border-b border-[#232733] p-4">
+              <input
+                autoFocus
+                type="search"
+                value={iosAppSearch}
+                onChange={(event) => setIOSAppSearch(event.target.value)}
+                placeholder="Search by app name or bundle ID"
+                aria-label="Search iOS apps"
+                className="w-full rounded-lg border border-[#303746] bg-[#0b0d12] px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-500 focus:outline-none"
+              />
+            </div>
+
+            {activeDevice?.type !== 'emulator' && (
+              <div className="border-b border-[#232733] px-4 py-3">
+                <label htmlFor="ios-development-team" className="block text-xs font-medium text-slate-200">
+                  Apple Developer Team ID
+                </label>
+                <input
+                  id="ios-development-team"
+                  type="text"
+                  value={iosDevelopmentTeam}
+                  onChange={(event) => setIOSDevelopmentTeam(event.target.value.toUpperCase())}
+                  placeholder="10-character Team ID"
+                  autoComplete="off"
+                  maxLength={10}
+                  pattern="[A-Za-z0-9]{10}"
+                  aria-describedby="ios-team-help"
+                  className="mt-1.5 w-full rounded-lg border border-[#303746] bg-[#0b0d12] px-3 py-2 font-mono text-sm uppercase text-slate-100 placeholder:font-sans placeholder:normal-case placeholder:text-slate-500 focus:border-cyan-500 focus:outline-none"
+                />
+                <p id="ios-team-help" className="mt-1.5 text-[11px] leading-relaxed text-slate-400">
+                  Xcode uses this team to sign its temporary UI-test runner. A free Personal Team may work;
+                  Xcode must be signed in and the phone must trust this Mac with Developer Mode enabled.
+                  Avoid running while the app has unsaved work.
+                </p>
+              </div>
+            )}
+
+            <div className="min-h-0 flex-1 overflow-y-auto p-3">
+              {isLoadingIOSApps ? (
+                <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-400">
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  Loading apps from device...
+                </div>
+              ) : iosAppsError ? (
+                <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
+                  <p>{iosAppsError}</p>
+                  <button
+                    type="button"
+                    onClick={() => void openIOSAppPicker()}
+                    className="mt-2 font-semibold text-red-200 underline underline-offset-2"
+                  >
+                    Try again
+                  </button>
+                </div>
+              ) : filteredIOSApps.length === 0 ? (
+                <p className="py-10 text-center text-sm text-slate-400">
+                  No apps match “{iosAppSearch}”.
+                </p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {filteredIOSApps.map((app) => {
+                    const isSelected = selectedIOSBundleIdentifier === app.bundleIdentifier;
+                    return (
+                      <li key={app.bundleIdentifier}>
+                        <button
+                          type="button"
+                          aria-pressed={isSelected}
+                          onClick={() => setSelectedIOSBundleIdentifier(app.bundleIdentifier)}
+                          className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${
+                            isSelected
+                              ? 'border-cyan-500/60 bg-cyan-500/10'
+                              : 'border-transparent bg-[#191d26] hover:border-slate-600'
+                          }`}
+                        >
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-cyan-300">
+                            <Smartphone className="h-4 w-4" />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-center gap-2 text-sm font-medium text-white">
+                              <span className="truncate">{app.name}</span>
+                              {app.isDemo && (
+                                <span className="shrink-0 rounded-full bg-indigo-500/15 px-2 py-0.5 text-[10px] text-indigo-300">
+                                  Sample
+                                </span>
+                              )}
+                            </span>
+                            <span className="mt-0.5 block truncate font-mono text-[11px] text-slate-400">
+                              {app.bundleIdentifier}
+                            </span>
+                          </span>
+                          {isSelected && <CheckCircle2 className="h-4 w-4 shrink-0 text-cyan-400" />}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+
+            <footer className="flex items-center justify-between gap-3 border-t border-[#232733] p-4">
+              <p className="text-[11px] text-slate-500">
+                {iosApps.length} app{iosApps.length === 1 ? '' : 's'} available
+              </p>
+              <button
+                type="button"
+                disabled={
+                  isLoadingIOSApps ||
+                  Boolean(iosAppsError) ||
+                  iosApps.length === 0 ||
+                  !selectedIOSBundleIdentifier ||
+                  (activeDevice?.type !== 'emulator' && !/^[A-Z0-9]{10}$/.test(iosDevelopmentTeam.trim().toUpperCase()))
+                }
+                onClick={() => {
+                  setIsIOSAppPickerOpen(false);
+                  void handleAutonomousCrawl(selectedIOSBundleIdentifier);
+                }}
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Explore selected app
+              </button>
+            </footer>
+          </section>
+        </div>
+      )}
+
       {/* Top Header Bar */}
       <header className="h-14 border-b border-[#232733] bg-[#0f1117] px-4 sm:px-5 flex items-center justify-between shrink-0 gap-3">
         <div className="flex items-center gap-3 shrink-0">
@@ -1580,7 +1808,7 @@ export default function StudioPage() {
           </div>
         </div>
 
-        {/* Live Device Status & USB/Wi-Fi Switcher */}
+        {/* Live Device Status & Device Selector */}
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           <div className="flex items-center gap-1.5 p-1 rounded-full bg-[#161922] border border-[#232733] shrink-0">
             <div className="flex items-center gap-1.5 sm:gap-2 px-2 py-0.5">
@@ -1595,42 +1823,40 @@ export default function StudioPage() {
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        const otherDev = devices.find((d) => d.id !== activeDevice.id && d.isAuthorized) || devices.find((d) => d.id !== activeDevice.id);
+                        const otherDevices = devices.filter((d) => d.id !== activeDevice.id);
+                        const otherDev =
+                          otherDevices.find((d) => d.platform === activeDevice.platform && d.isAuthorized) ||
+                          otherDevices.find((d) => d.isAuthorized) ||
+                          otherDevices[0];
                         if (otherDev) {
                           setSelectedDevice(otherDev.id);
                           if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-                          setToastMessage(`Switched transport to ${otherDev.type === 'usb' ? '🔌 USB' : '📶 Wi-Fi'}`);
+                          setToastMessage(`Switched to ${otherDev.model} (${deviceConnectionLabel(otherDev)})`);
                           toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2500);
                         }
                       }}
                       className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center gap-1 shrink-0 transition cursor-pointer border border-slate-700/60"
-                      title={`Multiple connections active. Click to switch to ${activeDevice.type === 'wifi' ? 'USB' : 'Wi-Fi'}`}
+                      title="Multiple devices connected. Click to switch the active device."
                     >
-                      {activeDevice.type === 'wifi' ? (
-                        <>
-                          <Wifi className="w-2.5 h-2.5 text-cyan-400" />
-                          <span>Wi-Fi ▾</span>
-                        </>
+                      {activeDevice.platform === 'ios' ? (
+                        <Smartphone className="w-2.5 h-2.5 text-cyan-400" />
+                      ) : activeDevice.type === 'wifi' ? (
+                        <Wifi className="w-2.5 h-2.5 text-cyan-400" />
                       ) : (
-                        <>
-                          <Cable className="w-2.5 h-2.5 text-amber-400" />
-                          <span>USB ▾</span>
-                        </>
+                        <Cable className="w-2.5 h-2.5 text-amber-400" />
                       )}
+                      <span>{deviceConnectionLabel(activeDevice)} ▾</span>
                     </button>
                   ) : (
                     <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 flex items-center gap-1 shrink-0">
-                      {activeDevice.type === 'wifi' ? (
-                        <>
-                          <Wifi className="w-2.5 h-2.5 text-cyan-400" />
-                          <span>Wi-Fi</span>
-                        </>
+                      {activeDevice.platform === 'ios' ? (
+                        <Smartphone className="w-2.5 h-2.5 text-cyan-400" />
+                      ) : activeDevice.type === 'wifi' ? (
+                        <Wifi className="w-2.5 h-2.5 text-cyan-400" />
                       ) : (
-                        <>
-                          <Cable className="w-2.5 h-2.5 text-amber-400" />
-                          <span>USB</span>
-                        </>
+                        <Cable className="w-2.5 h-2.5 text-amber-400" />
                       )}
+                      <span>{deviceConnectionLabel(activeDevice)}</span>
                     </span>
                   )}
                   {activeApp && (
@@ -1663,7 +1889,7 @@ export default function StudioPage() {
             </div>
 
             {/* Switch to Wi-Fi Quick Button (When on USB) */}
-            {activeDevice && activeDevice.type === 'usb' && (
+            {activeDevice && activeDevice.platform === 'android' && activeDevice.type === 'usb' && (
               <button
                 type="button"
                 onClick={handleSwitchToWifi}
@@ -1681,7 +1907,7 @@ export default function StudioPage() {
             )}
 
             {/* Disconnect Wi-Fi Quick Button (When on Wi-Fi) */}
-            {activeDevice && activeDevice.type === 'wifi' && (
+            {activeDevice && activeDevice.platform === 'android' && activeDevice.type === 'wifi' && (
               <button
                 type="button"
                 onClick={handleDisconnectWifi}
@@ -1739,10 +1965,16 @@ export default function StudioPage() {
 
           {/* Autonomous Crawl Action */}
           <button
-            onClick={handleAutonomousCrawl}
+            onClick={() => void handleAutonomousCrawl()}
             disabled={isCrawling}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-md shadow-indigo-600/20 transition disabled:opacity-50 cursor-pointer shrink-0"
-            title="Automatically explore app tabs and capture screens"
+            title={
+              activeDevice?.platform === 'ios'
+                ? activeDevice.type === 'emulator'
+                  ? 'Explore accessible iOS tabs and navigation links using XCTest'
+                  : 'Explore accessible iOS app screens on a connected device using XCTest; requires an Apple Developer Team ID'
+                : 'Automatically explore app tabs and capture screens'
+            }
           >
             {isCrawling ? (
               <RefreshCw className="w-3.5 h-3.5 animate-spin" />

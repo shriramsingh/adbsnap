@@ -1,0 +1,269 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A00000000000000000000001 /* ADBSnapExplorerDemoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000001 /* ADBSnapExplorerDemoApp.swift */; };
+		A00000000000000000000002 /* ADBSnapExplorerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000002 /* ADBSnapExplorerUITests.swift */; };
+		A00000000000000000000003 /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B00000000000000000000003 /* XCTest.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		C00000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E00000000000000000000001;
+			remoteInfo = ADBSnapExplorerDemo;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		B00000000000000000000001 /* ADBSnapExplorerDemoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADBSnapExplorerDemoApp.swift; sourceTree = "<group>"; };
+		B00000000000000000000002 /* ADBSnapExplorerUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADBSnapExplorerUITests.swift; sourceTree = "<group>"; };
+		B00000000000000000000003 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = System/Library/Frameworks/XCTest.framework; sourceTree = SDKROOT; };
+		B00000000000000000000004 /* ADBSnapExplorerDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ADBSnapExplorerDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B00000000000000000000005 /* ADBSnapExplorerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ADBSnapExplorerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		F00000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F00000000000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (A00000000000000000000003 /* XCTest.framework in Frameworks */,);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		G00000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				G00000000000000000000002 /* ADBSnapExplorerDemo */,
+				G00000000000000000000003 /* ADBSnapExplorerUITests */,
+				G00000000000000000000004 /* Frameworks */,
+				G00000000000000000000005 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		G00000000000000000000002 /* ADBSnapExplorerDemo */ = {
+			isa = PBXGroup;
+			children = (B00000000000000000000001 /* ADBSnapExplorerDemoApp.swift */,);
+			path = ADBSnapExplorerDemo;
+			sourceTree = "<group>";
+		};
+		G00000000000000000000003 /* ADBSnapExplorerUITests */ = {
+			isa = PBXGroup;
+			children = (B00000000000000000000002 /* ADBSnapExplorerUITests.swift */,);
+			path = ADBSnapExplorerUITests;
+			sourceTree = "<group>";
+		};
+		G00000000000000000000004 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (B00000000000000000000003 /* XCTest.framework */,);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		G00000000000000000000005 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000004 /* ADBSnapExplorerDemo.app */,
+				B00000000000000000000005 /* ADBSnapExplorerUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E00000000000000000000001 /* ADBSnapExplorerDemo */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = H00000000000000000000002 /* Build configuration list for PBXNativeTarget "ADBSnapExplorerDemo" */;
+			buildPhases = (
+				F00000000000000000000001 /* Frameworks */,
+				F00000000000000000000003 /* Sources */,
+			);
+			buildRules = ();
+			dependencies = ();
+			name = ADBSnapExplorerDemo;
+			productName = ADBSnapExplorerDemo;
+			productReference = B00000000000000000000004 /* ADBSnapExplorerDemo.app */;
+			productType = "com.apple.product-type.application";
+		};
+		E00000000000000000000002 /* ADBSnapExplorerUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = H00000000000000000000003 /* Build configuration list for PBXNativeTarget "ADBSnapExplorerUITests" */;
+			buildPhases = (
+				F00000000000000000000004 /* Sources */,
+				F00000000000000000000002 /* Frameworks */,
+			);
+			buildRules = ();
+			dependencies = (C00000000000000000000002 /* PBXTargetDependency */,);
+			name = ADBSnapExplorerUITests;
+			productName = ADBSnapExplorerUITests;
+			productReference = B00000000000000000000005 /* ADBSnapExplorerUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		D00000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					E00000000000000000000001 = {CreatedOnToolsVersion = 16.0; };
+					E00000000000000000000002 = {CreatedOnToolsVersion = 16.0; TestTargetID = E00000000000000000000001; };
+				};
+			};
+			buildConfigurationList = H00000000000000000000001 /* Build configuration list for PBXProject "ADBSnapAutoExplorer" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (en, Base,);
+			mainGroup = G00000000000000000000001;
+			productRefGroup = G00000000000000000000005 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E00000000000000000000001 /* ADBSnapExplorerDemo */,
+				E00000000000000000000002 /* ADBSnapExplorerUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		F00000000000000000000003 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (A00000000000000000000001 /* ADBSnapExplorerDemoApp.swift in Sources */,);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F00000000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (A00000000000000000000002 /* ADBSnapExplorerUITests.swift in Sources */,);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		C00000000000000000000002 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E00000000000000000000001 /* ADBSnapExplorerDemo */;
+			targetProxy = C00000000000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		I00000000000000000000001 /* Project Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ADBSNAP_BUNDLE_PREFIX = com.adbsnap;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGNING_ALLOWED = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		I00000000000000000000002 /* Project Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ADBSNAP_BUNDLE_PREFIX = com.adbsnap;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGNING_ALLOWED = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		I00000000000000000000003 /* App Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(ADBSNAP_BUNDLE_PREFIX).AutoExplorerDemo";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		I00000000000000000000004 /* App Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(ADBSNAP_BUNDLE_PREFIX).AutoExplorerDemo";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		I00000000000000000000005 /* UI Tests Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_EXPAND_BUILD_SETTINGS = YES;
+				INFOPLIST_FILE = ADBSnapExplorerUITests/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(ADBSNAP_BUNDLE_PREFIX).AutoExplorerUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = ADBSnapExplorerDemo;
+			};
+			name = Debug;
+		};
+		I00000000000000000000006 /* UI Tests Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_EXPAND_BUILD_SETTINGS = YES;
+				INFOPLIST_FILE = ADBSnapExplorerUITests/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(ADBSNAP_BUNDLE_PREFIX).AutoExplorerUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = ADBSnapExplorerDemo;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		H00000000000000000000001 /* Build configuration list for PBXProject "ADBSnapAutoExplorer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (I00000000000000000000001 /* Project Debug */, I00000000000000000000002 /* Project Release */,);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		H00000000000000000000002 /* Build configuration list for PBXNativeTarget "ADBSnapExplorerDemo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (I00000000000000000000003 /* App Debug */, I00000000000000000000004 /* App Release */,);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		H00000000000000000000003 /* Build configuration list for PBXNativeTarget "ADBSnapExplorerUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (I00000000000000000000005 /* UI Tests Debug */, I00000000000000000000006 /* UI Tests Release */,);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = D00000000000000000000001 /* Project object */;
+}

@@ -15,6 +15,7 @@ USAGE:
 COMMANDS:
   snap                 Capture live screenshot and frame into showcase graphic (default)
   explore [package]    Autonomous hands-free screen discovery & tab crawler
+  explore-ios          Explore accessible screens in an installed iOS app (macOS/Xcode)
   crawl [package]      Tab crawler (auto-detects & captures all bottom tabs)
   run [config]         Execute automated scripted journey from JSON (launch, type, tap, snap)
   export               Auto-export across App Store & Google Play resolutions (parallelized)
@@ -50,9 +51,11 @@ SNAP & EXPORT OPTIONS:
   --stars              Display 5-star rating chip (★★★★★ 5.0 RATED)
   --zip                Package outputs into a single .zip archive for instant store upload
   --config <path>      Load project settings & screens from JSON (e.g. adbsnap.config.json)
-  --device <id>        Target specific device ID (defaults to first ready device)
+  --device <id>        Target Android serial or iOS simulator/device ID
   --out <path>         Custom output file path
   --raw                Skip device framing and export raw mobile screenshot
+  --bundle <id>        Installed iOS app bundle ID (for explore-ios)
+  --team <id>          Apple Developer Team ID (required for physical-device XCTest)
 
 EXAMPLES:
   adbsnap snap
@@ -60,10 +63,10 @@ EXAMPLES:
   adbsnap snap --frame pixel-9-pro-fold --title "Unfold Possibilities"
   adbsnap snap --theme studioLight --title "Minimal Productivity"
   adbsnap explore com.example.app --theme aurora --zip
+  adbsnap explore-ios --bundle com.example.myapp --device <simulator-or-device-id> --zip
+  adbsnap explore-ios --bundle com.example.myapp --device <device-id> --team <team-id> --zip
   adbsnap export --theme studioLight --zip --format avif
   adbsnap doctor
   adbsnap devices
   adbsnap wifi 192.168.1.100
 `;
-
-

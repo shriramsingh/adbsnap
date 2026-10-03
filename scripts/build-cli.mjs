@@ -10,6 +10,7 @@ if (fs.existsSync('dist')) {
   fs.rmSync('dist', { recursive: true, force: true });
 }
 fs.mkdirSync('dist/bin', { recursive: true });
+fs.cpSync('ios/AutoExplorer', 'dist/ios/AutoExplorer', { recursive: true });
 
 // 2. Build the CLI executable (dist/bin/cli.js)
 console.log('📦 Bundling CLI executable: bin/cli.ts -> dist/bin/cli.js ...');
@@ -76,4 +77,3 @@ console.log(`   ✔ CLI bundled: ${Math.round(cliStats.size / 1024)} KB`);
 console.log(`   ✔ Studio UI bundled: JS ${Math.round(studioJsStats.size / 1024)} KB | CSS ${Math.round(studioCssStats.size / 1024)} KB`);
 console.log(`   ✔ Total build completed in ${totalMs}ms`);
 console.log(`✨ Ready for execution: node dist/bin/cli.js or npx adbsnap\n`);
-

@@ -23,6 +23,7 @@ flowchart TD
     subgraph Capture [Layer 1: High-Speed Capture Engine]
         A1[Physical Device / Emulator] -->|Raw Framebuffer RGBA| B1[AndroidDriver in lib/adb.ts]
         A2[iOS Simulator xcrun simctl] -->|PNG Buffer| B2[IOSDriver in lib/ios.ts]
+        A3[Physical iPhone/iPad xcrun devicectl] -->|PNG Buffer| B2
         B1 & B2 --> C[In-Memory Buffer Pool]
     end
 
@@ -95,14 +96,17 @@ flowchart TD
 
 ---
 
-### Phase 5: Pluggable iOS Simulator Driver
-**Status:** ✅ Completed (`v1.3.0`)  
+### Phase 5: Cross-Platform iOS Device Driver & Auto Explorer
+**Status:** ✅ Implemented (`v1.3.0`; physical XCTest execution awaits real-device validation)
 **Core Implementation:** [`lib/driver.ts`](file:///f:/warmupWithTestingApps/adbsnap/lib/driver.ts), [`lib/ios.ts`](file:///f:/warmupWithTestingApps/adbsnap/lib/ios.ts)
 
 1. **Cross-Platform Mobile Driver Architecture**:
-   - Standardized `DeviceDriver` interface for both Android ADB and Apple iOS `simctl`.
+   - Standardized `DeviceDriver` interface for Android ADB and Apple's iOS tooling.
 2. **Unified Device Discovery & Capture**:
-   - Studio and CLI seamlessly discover, identify, and stream screenshots from Android USB/Wi-Fi devices and booted iOS simulators.
+   - Studio, CLI, and VS Code discover Android USB/Wi-Fi devices, booted iOS simulators (`simctl`), and paired physical iPhones/iPads (`devicectl`).
+3. **Native iOS Screen Exploration**:
+   - Simulator and physical-device exploration use XCTest/XCUITest; physical runs require Developer Mode and automatic signing with an Apple Developer Team ID.
+   - Exploration is accessibility-based and bounded; real physical-device execution still needs hardware validation.
 
 ---
 

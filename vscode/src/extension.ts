@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import { androidDriver, resolveAdbPath } from '../../lib/adb';
+import { listAllDevices } from '../../lib/devices';
 import { copyImageBufferToClipboard } from './clipboard';
 import { AdbStatusBarManager } from './statusBar';
 import { runAdbSnapCli, getCliRunnerLabel } from './cli';
@@ -422,19 +423,25 @@ async function handleSelectDeviceCommand(): Promise<void> {
     const active = statusBarManager.getActiveDevice();
     for (const d of devices) {
       const isCurrent = active?.id === d.id;
-      const typeLabel = d.type === 'wifi' ? 'Wi-Fi' : d.type === 'emulator' ? 'Emulator' : 'USB';
+      const typeLabel = d.platform === 'ios'
+        ? d.type === 'emulator' ? 'iOS Simulator' : `iOS ${d.type === 'wifi' ? 'Wi-Fi' : 'Device'}`
+        : d.type === 'wifi' ? 'Wi-Fi' : d.type === 'emulator' ? 'Emulator' : 'USB';
       const statusIcon = d.isAuthorized ? '$(check)' : '$(alert)';
       items.push({
         label: `${statusIcon} ${d.model} (${typeLabel}) ${isCurrent ? '• Active' : ''}`,
         description: d.id,
-        detail: d.isAuthorized ? `Status: Ready (${d.product})` : 'Status: Unauthorized - approve USB debugging on device',
+        detail: d.isAuthorized
+          ? `Status: Ready (${d.product})`
+          : d.platform === 'ios'
+            ? 'Status: Not paired - unlock the device and trust this Mac'
+            : 'Status: Unauthorized - approve USB debugging on device',
         device: d,
       });
     }
   } else {
     items.push({
       label: '$(warning) No devices detected',
-      description: 'Ensure USB debugging is enabled on your phone',
+      description: 'Connect an Android device or pair an iOS device with this Mac',
     });
   }
 
@@ -478,8 +485,8 @@ async function handleSelectDeviceCommand(): Promise<void> {
  * Switch to Wireless ADB (WiFi)
  */
 async function handleWifiCommand(): Promise<void> {
-  const devices = await androidDriver.listDevices();
-  const usbDevices = devices.filter((d) => d.type === 'usb' && d.isAuthorized);
+  const devices = await listAllDevices();
+  const usbDevices = devices.filter((d) => d.platform === 'android' && d.type === 'usb' && d.isAuthorized);
 
   if (usbDevices.length === 0) {
     vscode.window.showWarningMessage('ADBSnap: No authorized USB device found. Please connect your phone via USB first to enable wireless mode.');
@@ -574,9 +581,9 @@ async function handleDoctorCommand(context: vscode.ExtensionContext): Promise<vo
 
   outputChannel.appendLine('\n--- Connected Devices ---');
   try {
-    const devices = await androidDriver.listDevices();
+    const devices = await listAllDevices();
     if (devices.length === 0) {
-      outputChannel.appendLine('No attached Android devices detected.');
+      outputChannel.appendLine('No attached mobile devices detected.');
     } else {
       devices.forEach((d, index) => {
         outputChannel.appendLine(

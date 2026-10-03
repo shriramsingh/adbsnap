@@ -3,10 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { androidDriver } from './adb';
-import { listAllDevices, captureDeviceScreenshot } from './devices';
+import { isIosDeviceId, listAllDevices, captureDeviceScreenshot } from './devices';
 import { compositeFrame, exportMultiStore, createAnimatedGif } from './sharp';
 import { createStoreZip } from './zip';
 import { uiCrawler } from './crawler';
+import { exploreIosTabs, listIosDeviceApps, listIosSimulatorApps } from './ios-explorer';
 import type { LayoutMode } from '../constants/themes';
 
 export interface StudioServerOptions {
@@ -104,6 +105,28 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
             });
             return fs.createReadStream(cssPath).pipe(res);
           }
+        }
+      }
+
+      // iOS app picker API (/api/ios/apps)
+      if (req.method === 'GET' && pathname === '/api/ios/apps') {
+        const deviceId = parsedUrl.searchParams.get('deviceId') || '';
+        if (!isIosDeviceId(deviceId)) {
+          return sendJson({ success: false, error: 'Select a valid iOS simulator or paired iOS device first.' }, 400);
+        }
+        try {
+          const device = (await listAllDevices()).find(
+            (candidate) => candidate.platform === 'ios' && candidate.id === deviceId
+          );
+          if (!device || !device.isAuthorized) {
+            return sendJson({ success: false, error: 'The selected iOS device is not connected and authorized with this Mac.' }, 400);
+          }
+          const apps = device.type === 'emulator'
+            ? await listIosSimulatorApps(deviceId)
+            : await listIosDeviceApps(deviceId);
+          return sendJson({ success: true, apps });
+        } catch (err) {
+          return sendJson({ success: false, error: String(err) }, 500);
         }
       }
 
@@ -445,6 +468,62 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
       if (req.method === 'POST' && pathname === '/api/crawl') {
         try {
           const body = await readJson();
+          const iosDeviceId = typeof body.deviceId === 'string' && isIosDeviceId(body.deviceId)
+            ? body.deviceId
+            : undefined;
+          const iosDevice = iosDeviceId
+            ? (await listAllDevices()).find((device) => device.platform === 'ios' && device.id === iosDeviceId)
+            : undefined;
+
+          if (iosDevice) {
+            if (typeof body.bundleIdentifier !== 'string' || body.bundleIdentifier.trim().length === 0) {
+              return sendJson({ success: false, error: 'Provide the installed iOS app bundle identifier to explore.' }, 400);
+            }
+            if (!iosDevice.isAuthorized) {
+              return sendJson({ success: false, error: 'Pair and trust the iOS device with this Mac before exploring it.' }, 400);
+            }
+            if (iosDevice.type !== 'emulator' &&
+                (typeof body.developmentTeam !== 'string' || !/^[A-Z0-9]{10}$/i.test(body.developmentTeam.trim()))) {
+              return sendJson({
+                success: false,
+                error: 'Physical-device Auto Explorer requires a valid 10-character Apple Developer Team ID.',
+              }, 400);
+            }
+
+            const tabs = await exploreIosTabs({
+              bundleIdentifier: body.bundleIdentifier.trim(),
+              deviceId: iosDevice.id,
+              developmentTeam: typeof body.developmentTeam === 'string' ? body.developmentTeam : undefined,
+            });
+            const screens = [];
+            for (const [index, tab] of tabs.entries()) {
+              const title = tab.title
+                .replace(/^ADBSnap-screen-\d+-/, '')
+                .replace(/_\d+_[A-F0-9-]+\.png$/i, '')
+                .replace(/\.png$/i, '')
+                .replace(/[-_]+/g, ' ')
+                .trim() || `Tab ${index + 1}`;
+              const composited = await compositeFrame({
+                screenshotBuffer: tab.buffer,
+                bezelId: body.frame || 'iphone-16-pro',
+                gradientPreset: body.theme || 'studioLight',
+                layout: body.layout || 'appstore',
+                font: body.font || 'modern',
+                title,
+                subtitle: `Captured from ${body.bundleIdentifier}`,
+                showStarBadge: body.stars ?? true,
+              });
+              screens.push({
+                index: index + 1,
+                title,
+                base64: composited.buffer.toString('base64'),
+                rawBase64: tab.buffer.toString('base64'),
+                elapsedMs: 0,
+              });
+            }
+            return sendJson({ success: true, tabsCount: screens.length, screens });
+          }
+
           if (body.package) {
             await androidDriver.launchApp(body.package, body.deviceId);
             await new Promise(r => setTimeout(r, 1500));

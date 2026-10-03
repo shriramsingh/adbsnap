@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { androidDriver } from '../../../lib/adb';
+import { listAllDevices } from '../../../lib/devices';
 import type { ConnectedDevice } from '../../../lib/driver';
 import type { AdbStatusBarManager } from '../statusBar';
 
@@ -10,11 +10,16 @@ export class DeviceTreeItem extends vscode.TreeItem {
   ) {
     super(device.model, vscode.TreeItemCollapsibleState.None);
 
-    const typeLabel = device.type === 'wifi' ? 'Wi-Fi' : device.type === 'emulator' ? 'Emulator' : 'USB';
+    const typeLabel = device.platform === 'ios'
+      ? device.type === 'emulator' ? 'iOS Simulator' : `iOS ${device.type === 'wifi' ? 'Wi-Fi' : 'Device'}`
+      : device.type === 'wifi' ? 'Wi-Fi' : device.type === 'emulator' ? 'Emulator' : 'USB';
     this.description = `${device.id} • ${typeLabel}${isActive ? ' (Active)' : ''}`;
 
     if (!device.isAuthorized) {
-      this.tooltip = `Device: ${device.model} (${device.id})\nStatus: Unauthorized (Confirm USB debugging on phone)`;
+      const authorizationHelp = device.platform === 'ios'
+        ? 'Pair and trust this Mac on the device'
+        : 'Confirm USB debugging on the phone';
+      this.tooltip = `Device: ${device.model} (${device.id})\nStatus: Unauthorized (${authorizationHelp})`;
       this.iconPath = new vscode.ThemeIcon('alert', new vscode.ThemeColor('errorForeground'));
       this.contextValue = 'device-unauthorized';
     } else {
@@ -58,7 +63,7 @@ export class DevicesTreeDataProvider implements vscode.TreeDataProvider<DeviceTr
 
   async getChildren(): Promise<DeviceTreeItem[]> {
     try {
-      this.devices = await androidDriver.listDevices();
+      this.devices = await listAllDevices();
       const activeDevice = this.statusBarManager.getActiveDevice();
 
       if (this.devices.length === 0) {

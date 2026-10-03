@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { androidDriver } from '../../../lib/adb';
+import { listAllDevices } from '../../../lib/devices';
 import { runAdbSnapCli } from '../cli';
 import { copyImageBufferToClipboard } from '../clipboard';
 import type { AdbStatusBarManager } from '../statusBar';
@@ -49,7 +49,7 @@ export class StudioWebviewManager {
 
       switch (message.command) {
         case 'init': {
-          const devices = await androidDriver.listDevices();
+          const devices = await listAllDevices();
           panel.webview.postMessage({
             type: 'state',
             devices,

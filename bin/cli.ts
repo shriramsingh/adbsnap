@@ -9,6 +9,7 @@ import { listAllDevices, captureDeviceScreenshot } from '../lib/devices';
 import { compositeFrame, exportMultiStore } from '../lib/sharp';
 import { saveStoreZip, type ZipFileInput } from '../lib/zip';
 import { uiCrawler } from '../lib/crawler';
+import { exploreIosTabs } from '../lib/ios-explorer';
 import { flowRunner, type FlowConfig } from '../lib/runner';
 import { logger } from '../utils/logger';
 import { STYLES } from '../constants/styles';
@@ -35,7 +36,9 @@ async function main() {
       zip: { type: 'boolean', default: false },
       auto: { type: 'boolean', default: false },
       config: { type: 'string' },
+      bundle: { type: 'string' },
       device: { type: 'string' },
+      team: { type: 'string' },
       out: { type: 'string' },
       port: { type: 'string', default: '3000' },
       'text-pos': { type: 'string', default: 'top' },
@@ -99,6 +102,9 @@ async function main() {
     case 'explore':
       await handleExplore(positionals[1], values);
       break;
+    case 'explore-ios':
+      await handleIosExplore(values);
+      break;
     case 'crawl':
       await handleCrawl(positionals[1], values);
       break;
@@ -113,6 +119,83 @@ async function main() {
       console.log(CLI_HELP);
       process.exit(1);
   }
+}
+
+async function handleIosExplore(options: {
+  bundle?: string;
+  device?: string;
+  team?: string;
+  out?: string;
+  frame?: string;
+  theme?: string;
+  layout?: string;
+  font?: string;
+  format?: string;
+  quality?: string;
+  zip?: boolean;
+}) {
+  if (!options.bundle) {
+    console.error('Missing required --bundle <iOS-app-bundle-id>.');
+    console.error('Usage: adbsnap explore-ios --bundle com.example.myapp [--device <simulator-or-device-id>] [--team <10-character-team-id>] [--out <directory>]');
+    process.exitCode = 1;
+    return;
+  }
+
+  const bundleIdentifier = options.bundle;
+  const theme = options.theme || 'aurora';
+  const frame = options.frame || 'iphone-16-pro';
+  const layout = (options.layout as LayoutMode) || 'appstore';
+  const format = (options.format as 'png' | 'webp' | 'avif' | 'jpeg') || 'png';
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const outputDirectory = path.resolve(
+    options.out || path.join(CONFIG.DEFAULT_OUTPUT_DIR, `ios-explore-${timestamp}`)
+  );
+
+  const tabs = await exploreIosTabs({
+    bundleIdentifier,
+    deviceId: options.device,
+    developmentTeam: options.team,
+  });
+
+  fs.mkdirSync(outputDirectory, { recursive: true });
+  const zipFiles: ZipFileInput[] = [];
+  for (const [index, tab] of tabs.entries()) {
+    const title = tab.title
+      .replace(/^ADBSnap-screen-\d+-/, '')
+      .replace(/_\d+_[A-F0-9-]+\.png$/i, '')
+      .replace(/\.png$/i, '')
+      .replace(/[-_]+/g, ' ')
+      .trim() || `Tab ${index + 1}`;
+    const result = await compositeFrame({
+      screenshotBuffer: tab.buffer,
+      bezelId: frame,
+      gradientPreset: theme,
+      layout,
+      font: options.font || 'modern',
+      title,
+      subtitle: `Screen ${index + 1} from ${bundleIdentifier}`,
+      format,
+      quality: options.quality ? Number(options.quality) : undefined,
+    });
+    const extension = format === 'jpeg' ? 'jpg' : format;
+    const filename = `${String(index + 1).padStart(2, '0')}-${title.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase() || `tab-${index + 1}`}.${extension}`;
+    const relativePath = path.join('tabs', filename);
+    const filePath = path.join(outputDirectory, relativePath);
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, result.buffer);
+    zipFiles.push({ path: relativePath, buffer: result.buffer });
+    logger.success(`Captured "${title}" — ${result.width}x${result.height} px`);
+    console.log(`   └─ Saved: ${STYLES.dim(filePath)}`);
+  }
+
+  if (options.zip) {
+    const zipPath = path.join(outputDirectory, 'ios-tabs.zip');
+    const zipBytes = await saveStoreZip(zipFiles, zipPath);
+    logger.success(`ZIP archive created: ${STYLES.bold(zipPath)} (${(zipBytes / 1024).toFixed(1)} KB)`);
+  }
+
+  logger.success(`iOS Auto Explorer captured ${tabs.length} tabs.`);
+  logger.info(`Output Folder: ${STYLES.bold(outputDirectory)}`);
 }
 
 async function handleDevices() {
@@ -241,9 +324,11 @@ async function handleSnap(options: {
     return;
   }
 
-  const targetDevice = options.device
-    ? ready.find((d) => d.id === options.device) || ready[0]
-    : ready[0];
+  const targetDevice = options.device ? ready.find((d) => d.id === options.device) : ready[0];
+  if (!targetDevice) {
+    logger.error('DEVICE_NOT_FOUND', `Authorized device "${options.device}" is not connected.`);
+    return;
+  }
 
   logger.info(`Target: ${STYLES.bold(targetDevice.model)} (${targetDevice.id}) [${targetDevice.platform.toUpperCase()} ${targetDevice.type.toUpperCase()}]`);
   logger.info(MESSAGES.CAPTURE_START);
@@ -441,9 +526,11 @@ async function handleExport(options: {
     return;
   }
 
-  const targetDevice = options.device
-    ? ready.find((d) => d.id === options.device) || ready[0]
-    : ready[0];
+  const targetDevice = options.device ? ready.find((d) => d.id === options.device) : ready[0];
+  if (!targetDevice) {
+    logger.error('DEVICE_NOT_FOUND', `Authorized device "${options.device}" is not connected.`);
+    return;
+  }
 
   logger.info(`Target: ${STYLES.bold(targetDevice.model)} (${targetDevice.id}) [${targetDevice.platform.toUpperCase()} ${targetDevice.type.toUpperCase()}]`);
   logger.info(MESSAGES.CAPTURE_START);
@@ -932,5 +1019,3 @@ main().catch((err) => {
   logger.error('CRITICAL_ERROR', err instanceof Error ? err.message : String(err));
   process.exit(1);
 });
-
-

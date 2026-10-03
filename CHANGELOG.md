@@ -5,6 +5,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [Unreleased]
+
+### 🍎 iOS Device Support
+- Added physical iPhone/iPad discovery and screenshots through Xcode `devicectl` on macOS, alongside existing iOS Simulator support via `simctl`.
+- Wired iOS device selection through the CLI, Studio, and VS Code extension into the shared framing and App Store export pipelines.
+- Added a macOS GitHub Actions workflow for simulator capture/framing and mocked physical-device discovery/capture coverage.
+- Documented iOS pairing requirements and clarified Android-only automation features.
+- Added physical-device iOS app discovery and XCTest/XCUITest Auto Explorer support with explicit Apple Developer Team signing configuration.
+- Kept simulator Auto Explorer unsigned and added mocked physical app-inventory parsing coverage; physical hardware execution still requires local device verification.
+- Expanded npm and VS Code Marketplace documentation with platform support matrices, Android/iOS setup, capture and exploration workflows, signing requirements, expectations, and limitations; updated package discovery metadata for iOS.
+
 ## [1.3.0] - 2026-10-03
 
 ### ⚡ Performance & Engine Optimization

@@ -9,7 +9,7 @@
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg?style=flat-square)](https://github.com/shriramsingh/adbsnap)
 
-Stop wrestling with manual Figma templates or low-res screenshot scripts. **ADBSnap** is the all-in-one Android & iOS screenshot and 4K device mockup tool available as an [NPM package](https://www.npmjs.com/package/adbsnap) and official [VS Code Marketplace extension](https://marketplace.visualstudio.com/items?itemName=shriramsingh.adbsnap). It captures your live device or emulator directly into memory, wraps it into vector-sharp device bezels (iPhone 16 Pro Max, Pixel 9 Pro Fold, Galaxy S25 Ultra), lays down studio-grade gradient backdrops with auto-wrapped typography, and exports ready-to-upload store graphics in **under a second**.
+Stop wrestling with manual Figma templates or low-res screenshot scripts. **ADBSnap** is the all-in-one Android & iOS screenshot and 4K device mockup tool available as an [NPM package](https://www.npmjs.com/package/adbsnap) and official [VS Code Marketplace extension](https://marketplace.visualstudio.com/items?itemName=shriramsingh.adbsnap). It captures Android devices and, on macOS, booted iOS simulators or paired physical iPhones and iPads, then frames screenshots with vector-sharp device bezels, studio-grade backdrops, and auto-wrapped typography for store-ready exports.
 
 ---
 
@@ -37,8 +37,11 @@ Stop wrestling with manual Figma templates or low-res screenshot scripts. **ADBS
   - Support for **Top**, **Bottom**, or **Both** text placement: place copy above the device, below the device, or split headlines on top with feature callouts on bottom.
   - Multi-line headline and subtitle formatting with explicit line breaks (`\n`) and dynamic font downscaling for 3+ lines.
   - Interactive Studio dashboard includes a 1-click position switcher (`[ ⬆ Top | ⬇ Bottom | ↕ Both ]`) and multi-line textareas with live 60fps fast-preview.
-- 🍎 **Pluggable iOS Simulator Driver**:
-  - Auto-detects booted iOS simulators via macOS `xcrun simctl` with unified device routing and an `iOS 🍎` indicator.
+- 🍎 **iOS Simulator & Physical Device Support**:
+  - Auto-detects booted iOS simulators through `xcrun simctl` and paired physical iPhones/iPads through `xcrun devicectl` on macOS.
+  - Routes iOS screenshots through the same framing and App Store export pipelines used for Android captures.
+  - Adds native XCTest Auto Explorer for simulator apps and paired physical iOS devices (physical runs require Xcode automatic signing and a Team ID).
+  - Runs a macOS GitHub Actions smoke test for simulator capture and a mocked physical-device discovery/capture test.
 - 🐛 **Studio Filmstrip Bug Fixes**:
   - Resolved event propagation blocking on filmstrip thumbnails (`pointer-events-none`), restoring instant single-screen deletion (`Trash2`) and reordering.
 
@@ -97,6 +100,7 @@ Stop wrestling with manual Figma templates or low-res screenshot scripts. **ADBS
 ## ⚡ Highlights
 
 - 🚀 **Zero-Config Instant Capture:** Direct RAM streaming via ADB — no temporary device files left behind.
+- 🍎 **Android + iOS Capture:** Android via ADB on supported desktop OSes; iOS simulators and paired physical iPhones/iPads via Xcode on macOS.
 - 📱 **4K Vector Bezels:** Pixel-crisp iPhone 16 Pro (with Dynamic Island), Pixel 9 Pro, Tablets, and Frameless modes.
 - 🎨 **Curated Studio Backdrops:** 8 presets (`aurora`, `studioLight`, `sunset`, `midnight`, `freshMint`, `royal`, `cleanDark`, `none`) or custom styles.
 - ✍️ **Smart Typography:** Dynamic SVG headline and subtitle rendering with automatic text-wrapping and star rating badges.
@@ -143,6 +147,82 @@ Prefer an in-editor workflow? Install the official extension directly from the [
 ```bash
 code --install-extension shriramsingh.adbsnap
 ```
+
+### Platform support at a glance
+
+| Feature | Android device/emulator | iOS Simulator | Physical iPhone/iPad |
+| :--- | :--- | :--- | :--- |
+| Discover devices | Yes, using ADB | Yes, using Xcode `simctl` | Yes, using Xcode `devicectl` |
+| Capture raw/framed screenshots | Yes | Yes | Yes |
+| App Store / Google Play export | Yes | Yes | Yes |
+| Studio live capture and styling | Yes | Yes | Yes |
+| Android wireless ADB controls | Yes | Not applicable | Not applicable |
+| Automatic app-screen exploration | Android tab crawler | XCTest Auto Explorer | XCTest Auto Explorer (signing required) |
+
+The npm CLI and VS Code extension can be used on supported desktop operating systems for Android. **All iOS features require macOS and a working Xcode installation**; iOS commands are unavailable on Windows/Linux. Android uses Android SDK Platform-Tools (`adb`). iOS simulator discovery/capture uses `xcrun simctl`, while connected iPhones/iPads use Apple's `xcrun devicectl`.
+
+For Android, install Android SDK Platform-Tools, ensure `adb` is on `PATH` (or configure `adbsnap.customAdbPath` in VS Code), enable USB debugging, unlock the device, and accept the on-device debugging authorization prompt. Android emulators and ADB wireless connections are also supported.
+
+### iOS setup and screenshot capture (macOS)
+
+1. Install Xcode, open it once, accept its license, and select the intended installation with `xcode-select` if more than one Xcode is installed. Confirm `xcrun simctl list devices` works.
+2. **For a simulator:** install an iOS Simulator runtime in Xcode, boot a simulator, and keep it booted.
+3. **For a physical iPhone/iPad:** connect it to the Mac, unlock it, accept the Trust This Computer prompt, and complete pairing. It should appear as connected/paired in `xcrun devicectl list devices`. A cable is the simplest first connection; wireless pairing is managed by Apple's Xcode tooling, not ADBSnap's Android Wi-Fi controls.
+4. Run `npx adbsnap devices` (or `adbsnap devices` after installing the CLI) and copy the desired iOS device ID if more than one device is connected.
+
+```bash
+# Capture and frame from the active/first ready iOS device
+npx adbsnap snap --frame iphone-16-pro
+
+# Target a particular simulator/device explicitly
+npx adbsnap snap --device "<iOS device ID>" --frame iphone-16-pro
+
+# Export an App Store asset pack from the selected iPhone/iPad screen
+npx adbsnap export --device "<iOS device ID>" --store apple --zip
+
+# Open the full Studio workflow
+npx adbsnap studio
+```
+
+Once pairing is established, **iOS screenshot capture does not require an Apple Developer Program membership or signing the app**. Captures are routed into the same framing, styling, and store-export pipeline as Android. Select an appropriate iPhone/iPad bezel when preparing store graphics; the selected bezel is a mockup and does not change the underlying screenshot.
+
+**In VS Code:** install the ADBSnap extension, refresh Connected Devices, select the iOS simulator/device, then use Quick Capture or Capture Raw Screenshot. The extension provides capture and asset styling for iOS; use the npm CLI or full `adbsnap studio` app for automated screen exploration.
+
+### iOS Auto Explorer (XCTest preview)
+
+The iOS Auto Explorer uses Apple's XCTest/XCUITest, not a third-party automation library. In Studio, choose **Auto-Crawl** on an iOS device, select an installed app from the searchable picker, then start exploration. On simulators, the included ADBSnap demo app can also be selected and installed automatically. On a physical device, only apps already installed on that device are listed.
+
+Alternatively, use the published CLI. You need the app's bundle identifier and the target device ID. The target app must already be installed:
+
+```bash
+# Explore an installed app on a booted simulator
+npx adbsnap explore-ios --bundle com.example.myapp --device "<simulator ID>" --zip
+
+# Explore an installed app on a paired physical device
+npx adbsnap explore-ios --bundle com.example.myapp \
+  --device "<iOS device ID>" --team "<10-character Apple Developer Team ID>" --zip
+```
+
+Physical-device exploration has extra Apple/Xcode prerequisites:
+
+1. Pair and trust the unlocked iPhone/iPad with this Mac.
+2. Enable **Developer Mode** on the device (Settings > Privacy & Security > Developer Mode); iOS may require a restart and confirmation.
+3. Sign in to an Apple account in Xcode (Xcode > Settings > Accounts), and provide the account's 10-character **Team ID** in Studio or with `--team`. The Team ID is shown in Xcode under the account/team details. It is an identifier, not a password or signing certificate.
+4. Xcode uses automatic signing for ADBSnap's temporary XCTest runner and may contact Apple to create or refresh a provisioning profile. A free Personal Team may work for local testing, but account, provisioning, device, or app capability restrictions can prevent it; ADBSnap cannot bypass Apple's signing requirements. Follow any actionable Xcode signing or Developer Mode error.
+
+**What to expect:** the first run can take several minutes while Xcode builds the UI-test runner. XCTest launches the selected app and may terminate/relaunch it while replaying routes; do not run while the app has unsaved work or during a sensitive operation. It captures the initial screen/tab roots and follows a conservative set of accessible, labelled navigation controls (for example, Details or Settings), up to two navigation levels, 20 screens, and 30 navigation attempts.
+
+**What it does not do:** this is not a full test recorder or general-purpose crawler. It does not fill forms, use arbitrary buttons, follow external links, log in, or understand app-specific workflows. Destructive/transactional labels are skipped, but no automation can guarantee that every app action is safe. Screens/controls must be exposed to XCTest accessibility. The physical-device path is implemented, but has not yet been verified on real hardware; simulator XCTest and mocked physical-device parsing are covered by the project's CI checks.
+
+Android's `adbsnap explore`/`crawl` and wireless ADB commands remain Android-only; use `explore-ios` or Studio's iOS Auto-Crawl for iOS. The [iOS Simulator GitHub Actions workflow](.github/workflows/ios-simulator.yml) tests simulator capture and exploration on macOS. Hosted CI does not provide an attached physical iPhone/iPad.
+
+To run the iOS CI checks locally on a Mac with an installed iOS Simulator runtime:
+
+```bash
+npm run test:ios:ci
+```
+
+This runs the physical-device driver test with mocked `devicectl` output, boots a simulator for the XCUITest Auto Explorer and screenshot/framing verification, and builds the CLI/Studio and VS Code extension. Individual checks are available as `npm run test:ios-driver`, `npm run test:ios:explorer`, and `npm run test:ios:simulator`.
 
 ---
 
@@ -262,7 +342,9 @@ Use ADBSnap directly inside Visual Studio Code without leaving your editor:
 | `--text-pos`| Canvas text positioning | `top`, `bottom`, `both` | `top` |
 | `--no-stars`| Hide 5-star rating badge | Flag | Stars enabled |
 | `--raw` | Save raw unadorned screenshot | Flag | False |
-| `--device` | Target specific ADB device ID | Device serial / IP / mDNS / iOS sim ID | Auto-detect |
+| `--device` | Target a specific connected device | Android serial / IP / mDNS / iOS simulator or device ID | Auto-detect |
+| `--bundle` | Installed iOS app bundle ID for `explore-ios` | Bundle identifier, e.g. `com.example.myapp` | Required for iOS exploration |
+| `--team` | Apple Developer Team ID for physical iOS XCTest signing | 10 alphanumeric characters | Required only for physical iOS exploration |
 | `--out` | Custom output file or directory | File/directory path | `./output` |
 | `--zip` | Create ZIP bundle | Flag | True |
 
