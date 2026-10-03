@@ -314,7 +314,10 @@ export function generateTypographySvg(options: TypographyOptions): string {
   else if (position === 'bottom') {
     const bottomPadding = Math.round(85 * scale);
     const effBottomOffset = bottomTextOffset !== undefined ? bottomTextOffset : textYOffset;
-    let currentY = canvasHeight - totalTopBlockHeight - bottomPadding + effBottomOffset;
+    const scaledBottomOffset = Math.round(effBottomOffset * scale);
+    const maxBottomY = canvasHeight - totalTopBlockHeight - Math.round(24 * scale);
+    const minBottomY = Math.round(100 * scale);
+    let currentY = Math.max(minBottomY, Math.min(maxBottomY, canvasHeight - totalTopBlockHeight - bottomPadding + scaledBottomOffset));
 
     if (eyebrowTag) {
       const tag = renderEyebrow(currentY);
@@ -354,7 +357,8 @@ export function generateTypographySvg(options: TypographyOptions): string {
       }
     }
 
-    let topY = baseTopY + textYOffset;
+    const scaledTopOffset = Math.round(textYOffset * scale);
+    let topY = Math.max(Math.round(20 * scale), baseTopY + scaledTopOffset);
 
     if (eyebrowTag) {
       const tag = renderEyebrow(topY);
@@ -379,7 +383,11 @@ export function generateTypographySvg(options: TypographyOptions): string {
     if (bottomLines.length > 0) {
       const bottomBlockHeight = subtitleSize + (bottomLines.length - 1) * subtitleLineHeight;
       const effBottomOffset = bottomTextOffset !== undefined ? bottomTextOffset : textYOffset;
-      const bottomY = canvasHeight - Math.round(110 * scale) - bottomBlockHeight + effBottomOffset;
+      const scaledBottomOffset = Math.round(effBottomOffset * scale);
+      const defaultBottomY = canvasHeight - Math.round(110 * scale) - bottomBlockHeight;
+      const maxBottomY = canvasHeight - bottomBlockHeight - Math.round(24 * scale);
+      const minBottomY = Math.round(canvasHeight * 0.55);
+      const bottomY = Math.max(minBottomY, Math.min(maxBottomY, defaultBottomY + scaledBottomOffset));
       const subBlock = renderText(bottomLines, subtitleSize, subtitleLineHeight, subtitleWeight, subtitleColor, bottomY, sFont);
       content += subBlock.svg;
     }

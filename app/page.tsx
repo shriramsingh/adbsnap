@@ -428,6 +428,7 @@ export default function StudioPage() {
   const dragTargetRef = useRef<'top' | 'bottom'>('top');
   const dragStartYRef = useRef(0);
   const startOffsetRef = useRef(0);
+  const currentDragOffsetRef = useRef(0);
 
   const handleTextDragStart = (e: React.MouseEvent, target: 'top' | 'bottom' = 'top') => {
     e.preventDefault();
@@ -435,7 +436,9 @@ export default function StudioPage() {
     dragTargetRef.current = target;
     setIsDraggingText(target);
     dragStartYRef.current = e.clientY;
-    startOffsetRef.current = target === 'top' ? textOffset : bottomTextOffset;
+    const initialOffset = target === 'top' ? textOffset : bottomTextOffset;
+    startOffsetRef.current = initialOffset;
+    currentDragOffsetRef.current = initialOffset;
     document.body.style.cursor = 'ns-resize';
     document.body.style.userSelect = 'none';
 
@@ -443,6 +446,7 @@ export default function StudioPage() {
       moveEvent.preventDefault();
       const deltaY = moveEvent.clientY - dragStartYRef.current;
       const newOffset = Math.max(-200, Math.min(200, Math.round(startOffsetRef.current + deltaY * 1.5)));
+      currentDragOffsetRef.current = newOffset;
       if (dragTargetRef.current === 'top') {
         setTextOffset(newOffset);
       } else {
@@ -451,12 +455,18 @@ export default function StudioPage() {
     };
 
     const handleMouseUp = () => {
+      const finalOffset = currentDragOffsetRef.current;
+      const targetType = dragTargetRef.current;
       setIsDraggingText(null);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
-      refreshPreview();
+      
+      // Explicitly pass the final computed offset to avoid React closure staleness
+      refreshPreview(undefined, {
+        [targetType === 'top' ? 'textOffset' : 'bottomTextOffset']: finalOffset,
+      });
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -2692,7 +2702,7 @@ export default function StudioPage() {
                       e.stopPropagation();
                       setBottomTextOffset(0);
                     }}
-                    className="absolute bottom-0 inset-x-0 h-[30%] z-20 cursor-ns-resize group/drag flex flex-col items-center justify-end pb-3 transition-all select-none rounded-b-xl hover:bg-cyan-500/[0.04]"
+                    className="absolute bottom-0 inset-x-0 h-[28%] z-20 cursor-ns-resize group/drag flex flex-col items-center justify-start pt-2 transition-all select-none rounded-b-xl hover:bg-cyan-500/[0.04]"
                     title="Click and drag up/down to reposition callout text. Double-click to reset."
                   >
                     <div className="opacity-0 group-hover/drag:opacity-100 transition-opacity duration-150 px-3 py-1 rounded-full bg-slate-900/90 text-cyan-300 text-[11px] font-medium border border-cyan-500/50 shadow-2xl flex items-center gap-1.5 select-none pointer-events-none">
@@ -2721,39 +2731,22 @@ export default function StudioPage() {
 
                 {/* Subtle Non-Blocking Updating Badge */}
                 {isRendering && (
-                  <div className="absolute top-3 right-3 z-30 px-2.5 py-1 rounded-full bg-slate-900/85 backdrop-blur border border-cyan-500/40 text-cyan-300 text-[10px] font-medium flex items-center gap-1.5 shadow-lg pointer-events-none animate-in fade-in duration-100">
+                  <div className="absolute top-3 left-3 z-30 px-2.5 py-1 rounded-full bg-slate-900/85 backdrop-blur border border-cyan-500/40 text-cyan-300 text-[10px] font-medium flex items-center gap-1.5 shadow-lg pointer-events-none animate-in fade-in duration-100">
                     <RefreshCw className="w-3 h-3 animate-spin text-cyan-400" />
                     <span>Updating...</span>
                   </div>
                 )}
 
-                {/* Floating Quick Action Buttons on Canvas Hover */}
-                <div className="absolute bottom-3 right-3 z-30 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200">
-                  {themeId !== 'none' && (
-                    <button
-                      type="button"
-                      onMouseDown={handleTextDragStart}
-                      onDoubleClick={() => setTextOffset(0)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border shadow-xl backdrop-blur flex items-center gap-1.5 cursor-ns-resize select-none transition cursor-pointer ${
-                        isDraggingText
-                          ? 'bg-cyan-500 text-slate-950 font-bold border-cyan-400 shadow-cyan-500/30'
-                          : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-white/15'
-                      }`}
-                      title="Click & drag vertically to reposition text. Double-click to reset."
-                    >
-                      <MoveVertical className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>
-                        {textOffset !== 0
-                          ? `Nudge (${textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`})`
-                          : 'Drag Nudge'}
-                      </span>
-                    </button>
-                  )}
-
+                {/* Floating Quick Action Buttons at Top-Right (never covers bottom text) */}
+                <div
+                  className={`absolute top-3 right-3 z-30 flex items-center gap-2 transition-all duration-200 ${
+                    isDraggingText ? 'opacity-0 pointer-events-none' : 'opacity-0 group-hover:opacity-100'
+                  }`}
+                >
                   <button
                     onClick={handleCopyImage}
                     disabled={isCopying}
-                    className="px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-medium border border-white/15 shadow-xl backdrop-blur flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    className="px-2.5 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-medium border border-white/15 shadow-xl backdrop-blur flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                     title="Copy framed mockup directly to clipboard"
                   >
                     <Copy className="w-3 h-3 text-cyan-400" />
@@ -2763,7 +2756,7 @@ export default function StudioPage() {
                   <button
                     onClick={() => handleSnap(false)}
                     disabled={isCapturing}
-                    className="px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-medium border border-white/15 shadow-xl backdrop-blur flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="px-2.5 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-medium border border-white/15 shadow-xl backdrop-blur flex items-center gap-2 cursor-pointer disabled:opacity-50"
                     title="Sync current phone screen (Space)"
                   >
                     <RefreshCw className={`w-3 h-3 ${isCapturing ? 'animate-spin' : ''}`} />
