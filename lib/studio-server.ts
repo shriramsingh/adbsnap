@@ -252,7 +252,12 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
                   subtitleWeight: scr.subtitleWeight || body.subtitleWeight,
                   isItalic: scr.isItalic !== undefined ? Boolean(scr.isItalic) : (body.isItalic !== undefined ? Boolean(body.isItalic) : undefined),
                   textYOffset: scr.textOffset !== undefined ? Number(scr.textOffset) : (body.textYOffset !== undefined ? Number(body.textYOffset) : undefined),
-                  customColors: scr.customColors || (scr.useCustomColors && scr.customColor1 && scr.customColor2 ? [scr.customColor1, scr.customColor2] : body.customColors),
+                  useCustomColors: scr.useCustomColors !== undefined
+                    ? Boolean(scr.useCustomColors)
+                    : (body.useCustomColors !== undefined ? Boolean(body.useCustomColors) : false),
+                  customColors: (scr.useCustomColors !== undefined ? scr.useCustomColors : body.useCustomColors)
+                    ? (scr.customColors || (scr.customColor1 && scr.customColor2 ? [scr.customColor1, scr.customColor2] : body.customColors))
+                    : undefined,
                   phoneScaleMultiplier: scr.phoneScale !== undefined ? Number(scr.phoneScale) : (body.phoneScaleMultiplier !== undefined ? Number(body.phoneScaleMultiplier) : undefined),
                   phoneTopOffset: scr.phoneOffset !== undefined ? Number(scr.phoneOffset) : (body.phoneTopOffset !== undefined ? Number(body.phoneTopOffset) : undefined),
                   enableAmbientGlow: scr.ambientGlow !== undefined ? Boolean(scr.ambientGlow) : (body.enableAmbientGlow !== undefined ? Boolean(body.enableAmbientGlow) : undefined),
@@ -296,7 +301,8 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
               subtitleWeight: body.subtitleWeight,
               isItalic: body.isItalic !== undefined ? Boolean(body.isItalic) : undefined,
               textYOffset: body.textYOffset !== undefined ? Number(body.textYOffset) : undefined,
-              customColors: body.customColors,
+              useCustomColors: Boolean(body.useCustomColors),
+              customColors: body.useCustomColors ? body.customColors : undefined,
               phoneScaleMultiplier: body.phoneScaleMultiplier !== undefined ? Number(body.phoneScaleMultiplier) : undefined,
               phoneTopOffset: body.phoneTopOffset !== undefined ? Number(body.phoneTopOffset) : undefined,
               enableAmbientGlow: body.enableAmbientGlow !== undefined ? Boolean(body.enableAmbientGlow) : undefined,
@@ -341,7 +347,8 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
             subtitleWeight: body.subtitleWeight,
             isItalic: body.isItalic !== undefined ? Boolean(body.isItalic) : undefined,
             textYOffset: body.textYOffset !== undefined ? Number(body.textYOffset) : undefined,
-            customColors: body.customColors,
+            useCustomColors: Boolean(body.useCustomColors),
+            customColors: body.useCustomColors ? body.customColors : undefined,
             phoneScaleMultiplier: body.phoneScaleMultiplier !== undefined ? Number(body.phoneScaleMultiplier) : undefined,
             phoneTopOffset: body.phoneTopOffset !== undefined ? Number(body.phoneTopOffset) : undefined,
             enableAmbientGlow: body.enableAmbientGlow !== undefined ? Boolean(body.enableAmbientGlow) : undefined,
@@ -383,15 +390,26 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
 
           const framedBuffers: Buffer[] = [];
           for (let i = 0; i < screens.length; i++) {
+            const scr = screens[i];
+            const useScreenCustom = scr.useCustomColors !== undefined
+              ? Boolean(scr.useCustomColors)
+              : (body.useCustomColors !== undefined ? Boolean(body.useCustomColors) : false);
+
+            const screenColors = useScreenCustom
+              ? (scr.customColors || (scr.customColor1 && scr.customColor2 ? [scr.customColor1, scr.customColor2] : body.customColors))
+              : undefined;
+
             const framed = await compositeFrame({
-              screenshotBuffer: Buffer.from(screens[i].base64, 'base64'),
-              bezelId: body.bezelId,
-              gradientPreset: body.gradientPreset,
-              layout: body.layout,
-              font: body.font,
-              title: screens[i].customTitle || body.title || `Feature #${i + 1}`,
-              subtitle: body.subtitle,
-              showStarBadge: body.showStarBadge,
+              screenshotBuffer: Buffer.from(scr.base64, 'base64'),
+              bezelId: scr.bezelId || body.bezelId,
+              gradientPreset: scr.themeId || body.gradientPreset,
+              layout: scr.layout || body.layout,
+              font: scr.font || body.font,
+              title: scr.customTitle || body.title || `Feature #${i + 1}`,
+              subtitle: scr.subtitle !== undefined ? scr.subtitle : body.subtitle,
+              showStarBadge: scr.showStars !== undefined ? scr.showStars : body.showStarBadge,
+              useCustomColors: useScreenCustom,
+              customColors: screenColors,
               canvasWidth: 1080,
               canvasHeight: 1920,
             });

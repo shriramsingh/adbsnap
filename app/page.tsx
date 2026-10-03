@@ -288,6 +288,7 @@ export default function StudioPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const syncScreensTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isSelectingScreenRef = useRef(false);
 
   // Interactive on-canvas text dragging state & refs
   const [isDraggingText, setIsDraggingText] = useState(false);
@@ -377,7 +378,7 @@ export default function StudioPage() {
 
   // 2. Trigger compositing preview
   const refreshPreview = useCallback(
-    async (rawScreenshot?: string) => {
+    async (rawScreenshot?: string, overrides?: Partial<SessionScreen>) => {
       // Cancel previous pending render request if still running
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -387,33 +388,56 @@ export default function StudioPage() {
 
       setIsRendering(true);
       try {
+        const effThemeId = overrides?.themeId !== undefined ? overrides.themeId : themeId;
+        const effUseCustom = overrides?.useCustomColors !== undefined ? overrides.useCustomColors : useCustomColors;
+        const effCustom1 = overrides?.customColor1 !== undefined ? overrides.customColor1 : customColor1;
+        const effCustom2 = overrides?.customColor2 !== undefined ? overrides.customColor2 : customColor2;
+        const effBezelId = overrides?.bezelId !== undefined ? overrides.bezelId : bezelId;
+        const effLayout = overrides?.layout !== undefined ? overrides.layout : layout;
+        const effHeadlineFont = overrides?.headlineFont !== undefined ? overrides.headlineFont : headlineFont;
+        const effSubtitleFont = overrides?.subtitleFont !== undefined ? overrides.subtitleFont : subtitleFont;
+        const effTextAlign = overrides?.textAlign !== undefined ? overrides.textAlign : textAlign;
+        const effTitleScale = overrides?.titleScale !== undefined ? overrides.titleScale : titleScale;
+        const effSubtitleScale = overrides?.subtitleScale !== undefined ? overrides.subtitleScale : subtitleScale;
+        const effTitleWeight = overrides?.titleWeight !== undefined ? overrides.titleWeight : titleWeight;
+        const effIsItalic = overrides?.isItalic !== undefined ? overrides.isItalic : isItalic;
+        const effTextOffset = overrides?.textOffset !== undefined ? overrides.textOffset : textOffset;
+        const effTitle = overrides?.customTitle !== undefined ? overrides.customTitle : title;
+        const effSubtitle = overrides?.subtitle !== undefined ? overrides.subtitle : subtitle;
+        const effShowStars = overrides?.showStars !== undefined ? overrides.showStars : showStars;
+        const effTypoPos = overrides?.typographyPosition !== undefined ? overrides.typographyPosition : typographyPosition;
+        const effPhoneScale = overrides?.phoneScale !== undefined ? overrides.phoneScale : phoneScale;
+        const effPhoneOffset = overrides?.phoneOffset !== undefined ? overrides.phoneOffset : phoneOffset;
+        const effAmbientGlow = overrides?.ambientGlow !== undefined ? overrides.ambientGlow : ambientGlow;
+
         const res = await fetch('/api/export', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
           body: JSON.stringify({
-            screenshotBase64: rawScreenshot || screenshotBase64,
+            screenshotBase64: rawScreenshot || overrides?.base64 || screenshotBase64,
             deviceId: selectedDevice || undefined,
-            bezelId,
-            gradientPreset: themeId,
-            layout,
-            font: headlineFont,
-            headlineFont,
-            subtitleFont: subtitleFont === 'match' ? headlineFont : subtitleFont,
-            textAlign,
-            titleScaleMultiplier: titleScale,
-            subtitleScaleMultiplier: subtitleScale,
-            titleWeight,
-            isItalic,
-            textYOffset: textOffset,
-            customColors: useCustomColors ? [customColor1, customColor2] : undefined,
-            title,
-            subtitle,
-            showStarBadge: showStars,
-            typographyPosition,
-            phoneScaleMultiplier: phoneScale,
-            phoneTopOffset: phoneOffset,
-            enableAmbientGlow: ambientGlow,
+            bezelId: effBezelId,
+            gradientPreset: effThemeId,
+            layout: effLayout,
+            font: effHeadlineFont,
+            headlineFont: effHeadlineFont,
+            subtitleFont: effSubtitleFont === 'match' ? effHeadlineFont : effSubtitleFont,
+            textAlign: effTextAlign,
+            titleScaleMultiplier: effTitleScale,
+            subtitleScaleMultiplier: effSubtitleScale,
+            titleWeight: effTitleWeight,
+            isItalic: effIsItalic,
+            textYOffset: effTextOffset,
+            useCustomColors: effUseCustom,
+            customColors: effUseCustom ? [effCustom1, effCustom2] : undefined,
+            title: effTitle,
+            subtitle: effSubtitle,
+            showStarBadge: effShowStars,
+            typographyPosition: effTypoPos,
+            phoneScaleMultiplier: effPhoneScale,
+            phoneTopOffset: effPhoneOffset,
+            enableAmbientGlow: effAmbientGlow,
             format: 'preview',
           }),
         });
@@ -496,6 +520,10 @@ export default function StudioPage() {
 
   // Automatically persist current styling into the active screen in filmstrip (debounced)
   useEffect(() => {
+    if (isSelectingScreenRef.current) {
+      isSelectingScreenRef.current = false;
+      return;
+    }
     if (screens.length === 0 || activeScreenIndex < 0 || activeScreenIndex >= screens.length) return;
     if (syncScreensTimeoutRef.current) clearTimeout(syncScreensTimeoutRef.current);
     syncScreensTimeoutRef.current = setTimeout(() => {
@@ -510,7 +538,7 @@ export default function StudioPage() {
           themeId,
           bezelId,
           layout,
-          font,
+          font: headlineFont,
           headlineFont,
           subtitleFont,
           textAlign,
@@ -526,6 +554,7 @@ export default function StudioPage() {
           customColor1,
           customColor2,
           useCustomColors,
+          customColors: useCustomColors ? [customColor1, customColor2] : undefined,
           typographyPosition,
         };
         return next;
@@ -811,6 +840,7 @@ export default function StudioPage() {
 
   const selectScreen = async (index: number) => {
     if (index < 0 || index >= screens.length) return;
+    isSelectingScreenRef.current = true;
     setActiveScreenIndex(index);
     const target = screens[index];
     if (target.customTitle !== undefined) setTitle(target.customTitle);
@@ -833,11 +863,11 @@ export default function StudioPage() {
     if (target.phoneOffset !== undefined) setPhoneOffset(target.phoneOffset);
     if (target.customColor1) setCustomColor1(target.customColor1);
     if (target.customColor2) setCustomColor2(target.customColor2);
-    if (target.useCustomColors !== undefined) setUseCustomColors(target.useCustomColors);
+    setUseCustomColors(target.useCustomColors ?? false);
     if (target.typographyPosition) setTypographyPosition(target.typographyPosition);
 
     setScreenshotBase64(target.base64);
-    await refreshPreview(target.base64);
+    await refreshPreview(target.base64, target);
   };
 
   const deleteScreen = (e: React.MouseEvent, index: number) => {
@@ -1019,6 +1049,8 @@ export default function StudioPage() {
           title,
           subtitle,
           showStarBadge: showStars,
+          useCustomColors,
+          customColors: useCustomColors ? [customColor1, customColor2] : undefined,
         }),
       });
       const data = await res.json();
@@ -1060,6 +1092,8 @@ export default function StudioPage() {
           title,
           subtitle,
           showStarBadge: showStars,
+          useCustomColors,
+          customColors: useCustomColors ? [customColor1, customColor2] : undefined,
         }),
       });
 
@@ -1125,6 +1159,7 @@ export default function StudioPage() {
           titleWeight,
           isItalic,
           textYOffset: textOffset,
+          useCustomColors,
           customColors: useCustomColors ? [customColor1, customColor2] : undefined,
           title,
           subtitle,
@@ -1168,7 +1203,7 @@ export default function StudioPage() {
 
   // Sync styling across all screens in the filmstrip
   const handleSyncStyleToAll = () => {
-    if (screens.length <= 1) return;
+    if (screens.length === 0) return;
     setScreens((prev) =>
       prev.map((s) => ({
         ...s,
@@ -1191,12 +1226,15 @@ export default function StudioPage() {
         customColor1,
         customColor2,
         useCustomColors,
+        customColors: useCustomColors ? [customColor1, customColor2] : undefined,
         typographyPosition,
       }))
     );
 
+    refreshPreview();
+
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-    setToastMessage(`✨ Applied current style & layout across all ${screens.length} screens!`);
+    setToastMessage(`✨ Applied current style & layout across all ${screens.length} screen${screens.length > 1 ? 's' : ''}!`);
     toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 3000);
     setStatusMessage(`Style synchronized across all ${screens.length} screens.`);
   };

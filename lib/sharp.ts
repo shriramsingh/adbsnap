@@ -30,6 +30,7 @@ export interface CompositeFrameOptions {
   subtitleWeight?: '400' | '500' | '600' | '700';
   isItalic?: boolean;
   textYOffset?: number;
+  useCustomColors?: boolean;
   customColors?: [string, string];
   enableAmbientGlow?: boolean;
   ambientGlowColor?: string;
@@ -132,7 +133,8 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
   let angle = options.gradientAngle ?? 135;
   let isDarkTheme = true;
 
-  if (options.customColors && options.customColors.length >= 2) {
+  const shouldUseCustom = Boolean(options.useCustomColors || options.gradientPreset === 'custom');
+  if (shouldUseCustom && options.customColors && options.customColors.length >= 2) {
     colors = options.customColors;
   } else if (options.gradientPreset && GRADIENT_PRESETS[options.gradientPreset]) {
     const preset = GRADIENT_PRESETS[options.gradientPreset];
