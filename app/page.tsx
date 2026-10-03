@@ -31,6 +31,12 @@ import {
   Cable,
   Globe,
   WifiOff,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Italic,
+  Palette,
+  Wand2,
 } from 'lucide-react';
 
 interface ConnectedDevice {
@@ -59,6 +65,14 @@ const THEMES = [
   { id: 'midnight', name: 'Midnight Obsidian', colors: ['#090d16', '#111827', '#030712'], darkText: false },
   { id: 'royal', name: 'Royal Indigo', colors: ['#172554', '#1e1b4b', '#0f172a'], darkText: false },
   { id: 'cleanDark', name: 'Clean Dark', colors: ['#18181b', '#09090b'], darkText: false },
+  { id: 'fintech', name: 'Fintech Emerald', colors: ['#022c22', '#064e3b', '#047857'], darkText: false },
+  { id: 'lavender', name: 'Lavender Mist', colors: ['#1e1b4b', '#4c1d95', '#7c3aed'], darkText: false },
+  { id: 'cyberpunk', name: 'Cyberpunk Neon', colors: ['#09090b', '#701a75', '#a21caf'], darkText: false },
+  { id: 'crimsonVoid', name: 'Crimson Void', colors: ['#18181b', '#7f1d1d', '#450a0a'], darkText: false },
+  { id: 'cobalt', name: 'Cobalt Indigo', colors: ['#030712', '#1e3a8a', '#1e40af'], darkText: false },
+  { id: 'terracotta', name: 'Warm Terracotta', colors: ['#1c1917', '#78350f', '#9a3412'], darkText: false },
+  { id: 'slateCarbon', name: 'Carbon Matte', colors: ['#090d16', '#1e293b', '#334155'], darkText: false },
+  { id: 'pureWhite', name: 'Studio Minimal White', colors: ['#ffffff', '#f8fafc', '#f1f5f9'], darkText: true },
 ];
 
 interface BezelOption {
@@ -85,10 +99,42 @@ const BEZELS: BezelOption[] = [
 ];
 
 const FONTS = [
-  { id: 'modern', name: 'Modern Sans (SF / Inter)' },
-  { id: 'rounded', name: 'Rounded Casual' },
-  { id: 'editorial', name: 'Editorial Serif (Georgia)' },
-  { id: 'mono', name: 'Technical Monospace' },
+  { id: 'modern', name: 'Modern Sans (SF / Inter / Roboto)' },
+  { id: 'geometric', name: 'Geometric Tech (Poppins / Outfit)' },
+  { id: 'rounded', name: 'Friendly Rounded (Nunito / Quicksand)' },
+  { id: 'impact', name: 'Bold Impact (Bebas Neue / Oswald)' },
+  { id: 'editorial', name: 'Luxury Serif (Playfair / Georgia)' },
+  { id: 'mono', name: 'Developer Monospace (JetBrains / Fira)' },
+  { id: 'playful', name: 'Casual & Playful (Fredoka)' },
+  { id: 'humanist', name: 'Humanist Elegance (Optima / Candara)' },
+];
+
+const MAGIC_COPY_TEMPLATES = [
+  {
+    name: 'Feature Spotlight',
+    title: 'Supercharged **Performance**',
+    subtitle: 'Engineered from the ground up for blazing speed and fluid responsiveness.',
+  },
+  {
+    name: 'Social Proof / Trust',
+    title: 'Loved by **100,000+** Creators',
+    subtitle: 'Top-rated developer utility trusted by engineering teams worldwide.',
+  },
+  {
+    name: 'Problem / Solution',
+    title: 'Never Waste Time on **Mockups** Again',
+    subtitle: 'Automate chassis framing and App Store exports in seconds.',
+  },
+  {
+    name: 'Launch / V2',
+    title: 'Introducing **Studio 2.0**',
+    subtitle: 'Precision typography, 16 curated themes, and instant batch sync.',
+  },
+  {
+    name: 'Security & Privacy',
+    title: '100% Local & **Private**',
+    subtitle: 'Zero cloud uploads required. Everything runs locally on your machine.',
+  },
 ];
 
 /**
@@ -183,6 +229,17 @@ export default function StudioPage() {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [layout, setLayout] = useState<'appstore' | 'social'>('appstore');
   const [font, setFont] = useState('modern');
+  const [headlineFont, setHeadlineFont] = useState('modern');
+  const [subtitleFont, setSubtitleFont] = useState('match');
+  const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right'>('center');
+  const [titleScale, setTitleScale] = useState<number>(1.0);
+  const [subtitleScale, setSubtitleScale] = useState<number>(1.0);
+  const [titleWeight, setTitleWeight] = useState<'400' | '600' | '700' | '800' | '900'>('800');
+  const [isItalic, setIsItalic] = useState(false);
+  const [textOffset, setTextOffset] = useState<number>(0);
+  const [customColor1, setCustomColor1] = useState('#4f46e5');
+  const [customColor2, setCustomColor2] = useState('#06b6d4');
+  const [useCustomColors, setUseCustomColors] = useState(false);
   const [title, setTitle] = useState('Transform Your Workflow');
   const [subtitle, setSubtitle] = useState('Effortless automated mobile screenshot studio.');
   const [showStars, setShowStars] = useState(true);
@@ -273,7 +330,16 @@ export default function StudioPage() {
             bezelId,
             gradientPreset: themeId,
             layout,
-            font,
+            font: headlineFont,
+            headlineFont,
+            subtitleFont: subtitleFont === 'match' ? headlineFont : subtitleFont,
+            textAlign,
+            titleScaleMultiplier: titleScale,
+            subtitleScaleMultiplier: subtitleScale,
+            titleWeight,
+            isItalic,
+            textYOffset: textOffset,
+            customColors: useCustomColors ? [customColor1, customColor2] : undefined,
             title,
             subtitle,
             showStarBadge: showStars,
@@ -295,7 +361,31 @@ export default function StudioPage() {
         setIsRendering(false);
       }
     },
-    [screenshotBase64, selectedDevice, bezelId, themeId, layout, font, title, subtitle, showStars, typographyPosition, phoneScale, phoneOffset, ambientGlow]
+    [
+      screenshotBase64,
+      selectedDevice,
+      bezelId,
+      themeId,
+      layout,
+      headlineFont,
+      subtitleFont,
+      textAlign,
+      titleScale,
+      subtitleScale,
+      titleWeight,
+      isItalic,
+      textOffset,
+      customColor1,
+      customColor2,
+      useCustomColors,
+      title,
+      subtitle,
+      showStars,
+      typographyPosition,
+      phoneScale,
+      phoneOffset,
+      ambientGlow,
+    ]
   );
 
   // Debounced auto-preview when styling knobs change
@@ -308,7 +398,30 @@ export default function StudioPage() {
     return () => {
       if (renderTimeoutRef.current) clearTimeout(renderTimeoutRef.current);
     };
-  }, [themeId, bezelId, layout, font, title, subtitle, showStars, typographyPosition, phoneScale, phoneOffset, ambientGlow, refreshPreview]);
+  }, [
+    themeId,
+    bezelId,
+    layout,
+    headlineFont,
+    subtitleFont,
+    textAlign,
+    titleScale,
+    subtitleScale,
+    titleWeight,
+    isItalic,
+    textOffset,
+    customColor1,
+    customColor2,
+    useCustomColors,
+    title,
+    subtitle,
+    showStars,
+    typographyPosition,
+    phoneScale,
+    phoneOffset,
+    ambientGlow,
+    refreshPreview,
+  ]);
 
   // 3. 1-Click Capture from Mobile Phone
   const handleSnap = useCallback(
@@ -805,7 +918,16 @@ export default function StudioPage() {
           bezelId,
           gradientPreset: themeId,
           layout,
-          font,
+          font: headlineFont,
+          headlineFont,
+          subtitleFont: subtitleFont === 'match' ? headlineFont : subtitleFont,
+          textAlign,
+          titleScaleMultiplier: titleScale,
+          subtitleScaleMultiplier: subtitleScale,
+          titleWeight,
+          isItalic,
+          textYOffset: textOffset,
+          customColors: useCustomColors ? [customColor1, customColor2] : undefined,
           title,
           subtitle,
           showStarBadge: showStars,
@@ -844,6 +966,15 @@ export default function StudioPage() {
     } finally {
       setIsExporting(false);
     }
+  };
+
+  // Sync styling across all screens in the filmstrip
+  const handleSyncStyleToAll = () => {
+    if (screens.length <= 1) return;
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setToastMessage(`✨ Applied current style & layout across all ${screens.length} screens!`);
+    toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 3000);
+    setStatusMessage('Style synchronized across all screens.');
   };
 
   // 5. Autonomous Tab Crawler
@@ -1139,30 +1270,85 @@ export default function StudioPage() {
           <div className="p-4 space-y-6">
             {/* Theme Presets */}
             <div>
-              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 mb-2.5">
-                <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                Curated Design Themes
-              </label>
-              <div className="grid grid-cols-1 gap-1.5">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                  Curated Themes ({THEMES.length})
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setUseCustomColors(!useCustomColors)}
+                  className={`text-[10px] px-2 py-0.5 rounded transition cursor-pointer flex items-center gap-1 ${
+                    useCustomColors
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-semibold'
+                      : 'text-slate-400 hover:text-slate-200 bg-slate-800/60'
+                  }`}
+                  title="Pick your own custom brand gradient colors"
+                >
+                  <Palette className="w-3 h-3 text-cyan-400" />
+                  Custom Brand
+                </button>
+              </div>
+
+              {useCustomColors && (
+                <div className="mb-2.5 p-2 rounded-lg bg-[#161922] border border-cyan-500/30 space-y-2">
+                  <span className="text-[10px] text-slate-300 font-semibold uppercase tracking-wider block">Custom Dual Gradient</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-[9px] text-slate-400 block mb-1">Color 1 (Start)</span>
+                      <div className="flex items-center gap-1.5 bg-[#0f1117] p-1 rounded border border-[#232733]">
+                        <input
+                          type="color"
+                          value={customColor1}
+                          onChange={(e) => setCustomColor1(e.target.value)}
+                          className="w-5 h-5 rounded cursor-pointer border-0 bg-transparent p-0"
+                        />
+                        <span className="text-[10px] font-mono text-slate-300 uppercase">{customColor1}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-slate-400 block mb-1">Color 2 (End)</span>
+                      <div className="flex items-center gap-1.5 bg-[#0f1117] p-1 rounded border border-[#232733]">
+                        <input
+                          type="color"
+                          value={customColor2}
+                          onChange={(e) => setCustomColor2(e.target.value)}
+                          className="w-5 h-5 rounded cursor-pointer border-0 bg-transparent p-0"
+                        />
+                        <span className="text-[10px] font-mono text-slate-300 uppercase">{customColor2}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    className="h-3.5 rounded border border-white/20 shadow-inner w-full"
+                    style={{ background: `linear-gradient(135deg, ${customColor1}, ${customColor2})` }}
+                  />
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-1.5 max-h-52 overflow-y-auto pr-1 scrollbar-thin">
                 {THEMES.map((theme) => (
                   <button
                     key={theme.id}
-                    onClick={() => setThemeId(theme.id)}
-                    className={`flex items-center justify-between p-2 rounded-lg border text-left text-xs transition cursor-pointer ${
-                      themeId === theme.id
+                    onClick={() => {
+                      setUseCustomColors(false);
+                      setThemeId(theme.id);
+                    }}
+                    className={`flex items-center justify-between p-1.5 rounded-lg border text-left text-xs transition cursor-pointer ${
+                      !useCustomColors && themeId === theme.id
                         ? 'border-cyan-500 bg-cyan-500/10 text-white font-medium'
                         : 'border-[#232733] hover:border-slate-700 bg-[#161922] text-slate-300'
                     }`}
                   >
-                    <span className={theme.isNone ? 'text-amber-300 font-semibold' : ''}>{theme.name}</span>
-                    <div className="flex items-center gap-1.5">
+                    <span className={`truncate text-[11px] ${theme.isNone ? 'text-amber-300 font-semibold' : ''}`}>{theme.name}</span>
+                    <div className="flex items-center gap-1 shrink-0">
                       {theme.isNone ? (
-                        <span className="text-[9px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-400/15 border border-amber-400/30 text-amber-300">
+                        <span className="text-[8px] font-mono font-bold tracking-wider px-1 py-0.2 rounded bg-amber-400/15 border border-amber-400/30 text-amber-300">
                           RAW
                         </span>
                       ) : (
                         <div
-                          className="w-4 h-4 rounded-full border border-white/20 shadow-inner"
+                          className="w-3.5 h-3.5 rounded-full border border-white/20 shadow-inner"
                           style={{
                             background: `linear-gradient(135deg, ${theme.colors.join(', ')})`,
                           }}
@@ -1338,7 +1524,27 @@ export default function StudioPage() {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[11px] text-slate-400">Headline</span>
-                    <span className="text-[10px] text-slate-500 font-mono">Multi-line (Enter ↵)</span>
+                    <div className="flex items-center gap-1">
+                      <Wand2 className="w-3 h-3 text-cyan-400" />
+                      <select
+                        onChange={(e) => {
+                          const t = MAGIC_COPY_TEMPLATES.find((tpl) => tpl.name === e.target.value);
+                          if (t) {
+                            setTitle(t.title);
+                            setSubtitle(t.subtitle);
+                          }
+                        }}
+                        defaultValue=""
+                        className="text-[10px] bg-[#161922] border border-[#232733] text-cyan-300 rounded px-1.5 py-0.5 cursor-pointer focus:outline-none"
+                      >
+                        <option value="" disabled>Magic Copy...</option>
+                        {MAGIC_COPY_TEMPLATES.map((tpl) => (
+                          <option key={tpl.name} value={tpl.name}>
+                            {tpl.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                   <textarea
                     rows={2}
@@ -1348,7 +1554,7 @@ export default function StudioPage() {
                     className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 resize-none font-sans leading-relaxed"
                   />
                   <p className="text-[10px] text-slate-500 mt-1">
-                    Tip: Wrap words in <span className="text-cyan-400 font-mono font-bold">**word**</span> to render glowing radiant gradient accents.
+                    Tip: Use <span className="text-cyan-400 font-mono font-bold">**bold radiant**</span> and <span className="text-cyan-300 font-mono italic">*italic*</span> for accents.
                   </p>
                 </div>
 
@@ -1368,19 +1574,183 @@ export default function StudioPage() {
                   />
                 </div>
 
-                <div>
-                  <span className="text-[11px] text-slate-400 block mb-1">Font Preset</span>
-                  <select
-                    value={font}
-                    onChange={(e) => setFont(e.target.value)}
-                    className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
-                  >
-                    {FONTS.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.name}
-                      </option>
+                {/* Alignment, Weight & Italic Bar */}
+                <div className="grid grid-cols-3 gap-1.5 p-1 bg-[#161922] border border-[#232733] rounded-lg items-center">
+                  {/* Alignment Buttons */}
+                  <div className="flex items-center justify-around bg-[#0f1117] p-0.5 rounded border border-[#232733]">
+                    {(['left', 'center', 'right'] as const).map((align) => (
+                      <button
+                        key={align}
+                        type="button"
+                        onClick={() => setTextAlign(align)}
+                        className={`p-1 rounded transition cursor-pointer ${
+                          textAlign === align ? 'bg-cyan-500/25 text-cyan-400' : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                        title={`Align text ${align}`}
+                      >
+                        {align === 'left' && <AlignLeft className="w-3.5 h-3.5" />}
+                        {align === 'center' && <AlignCenter className="w-3.5 h-3.5" />}
+                        {align === 'right' && <AlignRight className="w-3.5 h-3.5" />}
+                      </button>
                     ))}
+                  </div>
+
+                  {/* Weight Selector */}
+                  <select
+                    value={titleWeight}
+                    onChange={(e) => setTitleWeight(e.target.value)}
+                    className="bg-[#0f1117] border border-[#232733] text-slate-300 rounded px-1.5 py-1 text-[11px] focus:outline-none cursor-pointer"
+                    title="Headline Font Weight"
+                  >
+                    <option value="400">Regular (400)</option>
+                    <option value="600">Semi (600)</option>
+                    <option value="700">Bold (700)</option>
+                    <option value="800">Extra (800)</option>
+                    <option value="900">Black (900)</option>
                   </select>
+
+                  {/* Italic Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => setIsItalic(!isItalic)}
+                    className={`flex items-center justify-center gap-1 rounded border text-[11px] py-1 font-medium transition cursor-pointer ${
+                      isItalic
+                        ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40'
+                        : 'bg-[#0f1117] border-[#232733] text-slate-400 hover:text-slate-200'
+                    }`}
+                    title="Toggle Italic typography"
+                  >
+                    <Italic className="w-3 h-3" />
+                    <span>Italic</span>
+                  </button>
+                </div>
+
+                {/* Font Pairing Selection */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block mb-1">Headline Font</span>
+                    <select
+                      value={headlineFont}
+                      onChange={(e) => {
+                        setHeadlineFont(e.target.value);
+                        setFont(e.target.value);
+                      }}
+                      className="w-full bg-[#161922] border border-[#232733] rounded-lg p-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
+                    >
+                      {FONTS.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.name.split(' ')[0]} {f.name.includes('Serif') ? 'Serif' : f.name.includes('Mono') ? 'Mono' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block mb-1">Subtitle Font</span>
+                    <select
+                      value={subtitleFont}
+                      onChange={(e) => setSubtitleFont(e.target.value)}
+                      className="w-full bg-[#161922] border border-[#232733] rounded-lg p-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
+                    >
+                      <option value="match">Match Headline</option>
+                      {FONTS.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.name.split(' ')[0]} {f.name.includes('Serif') ? 'Serif' : f.name.includes('Mono') ? 'Mono' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Precision Sliders */}
+                <div className="p-2.5 rounded-lg bg-[#161922] border border-[#232733] space-y-2">
+                  {/* Headline Scale */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[11px] text-slate-400">Headline Scale</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-cyan-400 text-[11px] font-semibold">{Math.round(titleScale * 100)}%</span>
+                        {titleScale !== 1.0 && (
+                          <button
+                            type="button"
+                            onClick={() => setTitleScale(1.0)}
+                            className="text-[9px] text-slate-400 hover:text-slate-200 underline cursor-pointer"
+                          >
+                            Reset
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.7"
+                      max="1.5"
+                      step="0.05"
+                      value={titleScale}
+                      onChange={(e) => setTitleScale(parseFloat(e.target.value))}
+                      className="w-full accent-cyan-500 cursor-pointer h-1 bg-[#232733] rounded-lg appearance-none"
+                    />
+                  </div>
+
+                  {/* Subtitle Scale */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[11px] text-slate-400">Subtitle Scale</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-cyan-400 text-[11px] font-semibold">{Math.round(subtitleScale * 100)}%</span>
+                        {subtitleScale !== 1.0 && (
+                          <button
+                            type="button"
+                            onClick={() => setSubtitleScale(1.0)}
+                            className="text-[9px] text-slate-400 hover:text-slate-200 underline cursor-pointer"
+                          >
+                            Reset
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.7"
+                      max="1.3"
+                      step="0.05"
+                      value={subtitleScale}
+                      onChange={(e) => setSubtitleScale(parseFloat(e.target.value))}
+                      className="w-full accent-cyan-500 cursor-pointer h-1 bg-[#232733] rounded-lg appearance-none"
+                    />
+                  </div>
+
+                  {/* Vertical Offset (Nudge) */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[11px] text-slate-400">Vertical Nudge</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-cyan-400 text-[11px] font-semibold">{textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`}</span>
+                        {textOffset !== 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setTextOffset(0)}
+                            className="text-[9px] text-slate-400 hover:text-slate-200 underline cursor-pointer"
+                          >
+                            Reset
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <input
+                      type="range"
+                      min="-200"
+                      max="200"
+                      step="10"
+                      value={textOffset}
+                      onChange={(e) => setTextOffset(parseInt(e.target.value, 10))}
+                      className="w-full accent-cyan-500 cursor-pointer h-1 bg-[#232733] rounded-lg appearance-none"
+                    />
+                    <div className="flex justify-between text-[8px] text-slate-500">
+                      <span>-200px (Higher)</span>
+                      <span>0px (Safe)</span>
+                      <span>+200px (Lower)</span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Star Badge Toggle */}
@@ -1735,6 +2105,17 @@ export default function StudioPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
+                  {screens.length > 1 && (
+                    <button
+                      onClick={handleSyncStyleToAll}
+                      className="text-[11px] px-2.5 py-1.5 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/60 border border-cyan-500/40 text-cyan-300 font-medium flex items-center gap-1 cursor-pointer transition shadow-sm"
+                      title="Apply current theme, typography, font scales, and offset to all screens in filmstrip"
+                    >
+                      <Sparkles className="w-3 h-3 text-cyan-400" />
+                      <span>Sync Style to All</span>
+                    </button>
+                  )}
+
                   <button
                     onClick={openStoryModal}
                     className="text-[11px] px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/25 transition"

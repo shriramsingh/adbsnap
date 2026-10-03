@@ -21,6 +21,16 @@ export interface CompositeFrameOptions {
   canvasHeight?: number;
   phoneTopOffset?: number;
   phoneScaleMultiplier?: number;
+  headlineFont?: string;
+  subtitleFont?: string;
+  textAlign?: 'left' | 'center' | 'right';
+  titleScaleMultiplier?: number;
+  subtitleScaleMultiplier?: number;
+  titleWeight?: '400' | '500' | '600' | '700' | '800' | '900';
+  subtitleWeight?: '400' | '500' | '600' | '700';
+  isItalic?: boolean;
+  textYOffset?: number;
+  customColors?: [string, string];
   enableAmbientGlow?: boolean;
   ambientGlowColor?: string;
   accentColors?: [string, string];
@@ -216,14 +226,13 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
   const gradientBaseBuffer = Buffer.from(gradientSvg);
 
   // 8. Resolve Font Family & Generate Typography Overlay SVG (if requested)
-  let fontFamily = FONT_PRESETS.modern.family;
-  if (options.font) {
-    if (FONT_PRESETS[options.font]) {
-      fontFamily = FONT_PRESETS[options.font].family;
-    } else {
-      fontFamily = options.font;
-    }
-  }
+  const resolveFont = (fontKey?: string): string => {
+    if (!fontKey) return FONT_PRESETS.modern.family;
+    if (FONT_PRESETS[fontKey]) return FONT_PRESETS[fontKey].family;
+    return fontKey;
+  };
+  const headlineFontFamily = resolveFont(options.headlineFont || options.font);
+  const subtitleFontFamily = resolveFont(options.subtitleFont || options.font || options.headlineFont);
 
   const typographySvg = generateTypographySvg({
     canvasWidth,
@@ -235,7 +244,17 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
     showStarBadge: options.showStarBadge,
     position: typographyPosition,
     isDarkTheme,
-    fontFamily,
+    fontFamily: headlineFontFamily,
+    headlineFontFamily,
+    subtitleFontFamily,
+    textAlign: options.textAlign,
+    titleScaleMultiplier: options.titleScaleMultiplier,
+    subtitleScaleMultiplier: options.subtitleScaleMultiplier,
+    titleWeight: options.titleWeight,
+    subtitleWeight: options.subtitleWeight,
+    isItalic: options.isItalic,
+    textYOffset: options.textYOffset,
+    phoneTop,
     accentColors: options.accentColors,
   });
 

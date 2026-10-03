@@ -39,6 +39,15 @@ async function main() {
       out: { type: 'string' },
       port: { type: 'string', default: '3000' },
       'text-pos': { type: 'string', default: 'top' },
+      align: { type: 'string', default: 'center' },
+      'font-h': { type: 'string' },
+      'font-s': { type: 'string' },
+      'title-scale': { type: 'string' },
+      'sub-scale': { type: 'string' },
+      weight: { type: 'string' },
+      italic: { type: 'boolean', default: false },
+      'text-offset': { type: 'string' },
+      colors: { type: 'string' },
       tag: { type: 'string' },
       'phone-scale': { type: 'string' },
       'phone-offset': { type: 'string' },
@@ -268,6 +277,15 @@ async function handleSnap(options: {
   const format = (options.format as 'png' | 'webp' | 'avif' | 'jpeg') || 'png';
   const quality = options.quality ? Number(options.quality) : undefined;
   const textPos = (options['text-pos'] as 'top' | 'bottom' | 'both') || 'top';
+  const textAlign = (options.align as 'left' | 'center' | 'right') || 'center';
+  const headlineFont = options['font-h'] || font;
+  const subtitleFont = options['font-s'] || font;
+  const titleScaleMultiplier = options['title-scale'] ? Number(options['title-scale']) : undefined;
+  const subtitleScaleMultiplier = options['sub-scale'] ? Number(options['sub-scale']) : undefined;
+  const titleWeight = (options.weight as any) || undefined;
+  const isItalic = options.italic || false;
+  const textYOffset = options['text-offset'] ? Number(options['text-offset']) : undefined;
+  const customColors = options.colors ? (options.colors.split(',') as [string, string]) : undefined;
   const eyebrowTag = options.tag;
   const phoneScaleMultiplier = options['phone-scale'] ? Number(options['phone-scale']) : undefined;
   const phoneTopOffset = options['phone-offset'] ? Number(options['phone-offset']) : undefined;
@@ -290,6 +308,15 @@ async function handleSnap(options: {
     gradientPreset: theme,
     layout,
     font,
+    headlineFont,
+    subtitleFont,
+    textAlign,
+    titleScaleMultiplier,
+    subtitleScaleMultiplier,
+    titleWeight,
+    isItalic,
+    textYOffset,
+    customColors,
     fit,
     format,
     quality,
@@ -333,6 +360,15 @@ async function handleExport(options: {
   'phone-offset'?: string;
   'no-glow'?: boolean;
   'text-pos'?: string;
+  align?: string;
+  'font-h'?: string;
+  'font-s'?: string;
+  'title-scale'?: string;
+  'sub-scale'?: string;
+  weight?: string;
+  italic?: boolean;
+  'text-offset'?: string;
+  colors?: string;
   stars?: boolean;
   zip?: boolean;
   config?: string;
@@ -346,6 +382,15 @@ async function handleExport(options: {
   let theme = options.theme || 'aurora';
   let layout = (options.layout as LayoutMode) || 'appstore';
   let font = options.font || 'modern';
+  let headlineFont = options['font-h'] || font;
+  let subtitleFont = options['font-s'] || font;
+  let textAlign = (options.align as 'left' | 'center' | 'right') || 'center';
+  let titleScaleMultiplier = options['title-scale'] ? Number(options['title-scale']) : undefined;
+  let subtitleScaleMultiplier = options['sub-scale'] ? Number(options['sub-scale']) : undefined;
+  let titleWeight = (options.weight as any) || undefined;
+  let isItalic = options.italic || false;
+  let textYOffset = options['text-offset'] ? Number(options['text-offset']) : undefined;
+  let customColors = options.colors ? (options.colors.split(',') as [string, string]) : undefined;
   let title = options.title;
   let subtitle = options.subtitle;
   let footer = options.footer;
@@ -363,6 +408,15 @@ async function handleExport(options: {
       if (cfg.frame) frame = cfg.frame;
       if (cfg.layout) layout = cfg.layout;
       if (cfg.font) font = cfg.font;
+      if (cfg.headlineFont) headlineFont = cfg.headlineFont;
+      if (cfg.subtitleFont) subtitleFont = cfg.subtitleFont;
+      if (cfg.textAlign) textAlign = cfg.textAlign;
+      if (cfg.titleScale !== undefined) titleScaleMultiplier = Number(cfg.titleScale);
+      if (cfg.subtitleScale !== undefined) subtitleScaleMultiplier = Number(cfg.subtitleScale);
+      if (cfg.weight) titleWeight = cfg.weight;
+      if (cfg.italic !== undefined) isItalic = Boolean(cfg.italic);
+      if (cfg.textOffset !== undefined) textYOffset = Number(cfg.textOffset);
+      if (cfg.customColors) customColors = cfg.customColors;
       if (cfg.stars !== undefined) stars = cfg.stars;
       if (cfg.textPos) textPos = cfg.textPos;
       if (cfg.tag) tag = cfg.tag;
@@ -412,6 +466,15 @@ async function handleExport(options: {
     gradientPreset: theme,
     layout,
     font,
+    headlineFont,
+    subtitleFont,
+    textAlign,
+    titleScaleMultiplier,
+    subtitleScaleMultiplier,
+    titleWeight,
+    isItalic,
+    textYOffset,
+    customColors,
     title,
     subtitle,
     footer,
