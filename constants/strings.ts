@@ -1,6 +1,6 @@
 export const APP_INFO = {
   NAME: 'ADBSnap',
-  VERSION: '1.2.1',
+  VERSION: '1.3.0',
   TAGLINE: 'Automated Mobile Showcase & App Store Asset Studio',
   DESCRIPTION: 'CLI tool to capture, frame, and export mobile screenshots directly via ADB.',
 } as const;
@@ -17,21 +17,25 @@ COMMANDS:
   explore [package]    Autonomous hands-free screen discovery & tab crawler
   crawl [package]      Tab crawler (auto-detects & captures all bottom tabs)
   run [config]         Execute automated scripted journey from JSON (launch, type, tap, snap)
-  export               Auto-export across App Store & Google Play resolutions
+  export               Auto-export across App Store & Google Play resolutions (parallelized)
   journey              Interactive multi-screen capture wizard (guided carousel)
-  devices              List all connected USB, Wi-Fi, and emulator devices
+  devices              List all connected USB, Wi-Fi, emulator, and iOS simulator devices
   wifi [ip|off]        Switch device to wireless ADB mode or turn off (adbsnap wifi off)
   usb                  Reset ADB connection back to USB mode (turn off wireless)
   doctor               Verify ADB installation, device health, and permissions
-  studio               Launch the desktop interactive web dashboard (http://adbsnap.localhost:3000)
+  studio               Launch the desktop interactive web dashboard (http://localhost:3000)
   help                 Display this guide
 
 
 SNAP & EXPORT OPTIONS:
   --frame <bezel>      Phone bezel chassis (default: iphone-16-pro)
-                       Available: iphone-16-pro, pixel-9-pro, minimal
+                       Available: iphone-16-pro, iphone-16-pro-max, pixel-9-pro,
+                       pixel-9-pro-fold, galaxy-s25-ultra, ipad-pro-13,
+                       android-tablet-11, frameless, minimal
+  --format <ext>       Output image format (default: png)
+                       Available: png, webp, avif, jpeg
   --theme <preset>     Backdrop color gradient (default: aurora)
-                       Available: aurora, studioLight, freshMint, sunset, midnight, royal, cleanDark
+                       Available: aurora, studioLight, freshMint, sunset, midnight, royal, cleanDark, none
   --layout <mode>      Layout positioning mode (default: appstore)
                        Available: appstore (bottom bleed), social (floating centered)
   --fit <mode>         Screenshot aspect ratio scaling (default: cover)
@@ -49,9 +53,11 @@ SNAP & EXPORT OPTIONS:
 
 EXAMPLES:
   adbsnap snap
+  adbsnap snap --frame iphone-16-pro-max --theme sunset --format webp
+  adbsnap snap --frame pixel-9-pro-fold --title "Unfold Possibilities"
   adbsnap snap --theme studioLight --title "Minimal Productivity"
   adbsnap explore com.example.app --theme aurora --zip
-  adbsnap export --theme studioLight --zip
+  adbsnap export --theme studioLight --zip --format avif
   adbsnap doctor
   adbsnap devices
   adbsnap wifi 192.168.1.100

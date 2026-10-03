@@ -56,7 +56,7 @@
       "description": "Automated mobile screenshot capture, 4K vector device framing (iPhone 16 Pro, Pixel 9 Pro), and App Store / Google Play asset studio for Android developers via ADB and VS Code.",
       "url": "https://shriramsingh.github.io/adbsnap/",
       "downloadUrl": "https://www.npmjs.com/package/adbsnap",
-      "softwareVersion": "1.2.1",
+      "softwareVersion": "1.3.0",
       "author": {
         "@type": "Person",
         "name": "Shriram Singh",
@@ -78,7 +78,7 @@
       rel="stylesheet"
     />
 
-    <link rel="stylesheet" href="styles.css?v=1.2.1" />
+    <link rel="stylesheet" href="styles.css?v=1.3.0" />
   </head>
   <body>
     <!-- Navbar -->
@@ -97,7 +97,7 @@
         </ul>
         <div class="nav-cta">
           <a class="btn btn-secondary btn-pill" href="https://www.npmjs.com/package/adbsnap" target="_blank" rel="noreferrer">
-            <span>npm v1.2.1</span>
+            <span>npm v1.3.0</span>
           </a>
           <a class="btn btn-primary btn-pill" href="https://github.com/shriramsingh/adbsnap" target="_blank" rel="noreferrer">
             <span>GitHub ↗</span>
@@ -111,7 +111,7 @@
       <div class="shell hero-content">
         <div class="badge">
           <span class="badge-dot"></span>
-          <span>v1.2.1: Zero-Dependency Native Engine (< 15ms Boot)</span>
+          <span>v1.3.0: 3x Faster Parallel Compositing &amp; Next-Gen Formats (AVIF/WebP)</span>
         </div>
         <h1 class="hero-title">
           Automated Mobile Screenshots &amp;<br />
@@ -162,57 +162,57 @@
           <!-- Card 1 -->
           <div class="bento-card span-2">
             <div class="bento-icon">⚡</div>
-            <h3>Direct RAM Streaming via ADB</h3>
+            <h3>Direct RAM Streaming &amp; Raw Framebuffer Screencap</h3>
             <p>
-              Bypasses device filesystem storage entirely. ADBSnap streams frame buffers directly from <code>screencap -p</code> into Node.js memory buffers via native ADB, leaving zero temporary files or junk on your physical test devices.
+              Bypasses slow on-device PNG encoding and filesystem I/O. Streams uncompressed RGBA framebuffers directly from <code>adb exec-out screencap</code> into host RAM, converting to pristine graphics via Sharp in <strong>~52ms</strong> with zero disk artifacts.
             </p>
-            <div class="code-snippet">adbsnap snap --theme=aurora --device=iphone16pro</div>
+            <div class="code-snippet">adbsnap snap --format=webp --frame=galaxy-s25-ultra</div>
           </div>
 
           <!-- Card 2 -->
           <div class="bento-card">
             <div class="bento-icon">📱</div>
-            <h3>4K Vector Bezels</h3>
+            <h3>2026 Flagship Bezels</h3>
             <p>
-              Pixel-crisp iPhone 16 Pro (with Dynamic Island), Google Pixel 9 Pro, Android Tablets, and frameless floating canvas styles composite at high DPI with realistic shadows and screen reflections.
+              Pixel-crisp <strong>iPhone 16 Pro Max</strong> (6.9" Dynamic Island), <strong>Pixel 9 Pro Fold</strong> (8" inner foldable OLED), <strong>Galaxy S25 Ultra</strong>, Android Tablets, and floating frameless styles with realistic shadows.
             </p>
           </div>
 
           <!-- Card 3 -->
           <div class="bento-card">
             <div class="bento-icon">📦</div>
-            <h3>1-Click Store Asset Bundler</h3>
+            <h3>3x Faster Parallel Store Bundler</h3>
             <p>
-              One command generates all required App Store (6.9", 6.7", 6.5") and Google Play Store resolutions, bundled into a clean, ready-to-upload ZIP archive.
+              Single-pass phone chassis assembly cached in RAM. Renders Google Play &amp; App Store (6.9", 6.7", 6.5") asset packs concurrently via <code>Promise.all</code>, cutting export time from <strong>>8.1s to ~2.5s</strong>.
             </p>
           </div>
 
           <!-- Card 4 -->
           <div class="bento-card">
-            <div class="bento-icon">🤖</div>
-            <h3>Autonomous Tab Crawler</h3>
+            <div class="bento-icon">🎨</div>
+            <h3>Next-Gen AVIF &amp; WebP Formats</h3>
             <p>
-              Hands-free screen capture: ADBSnap automatically inspects your app's view hierarchy, identifies bottom navigation tabs, traverses each view, and exports framed showcases.
+              Export ultra-compact assets: AVIF files are <strong>95% smaller</strong> (7.3 KB) with superior chroma fidelity; WebP files are <strong>42% smaller</strong> (~86 KB) for lightning-fast loading.
             </p>
           </div>
 
           <!-- Card 5 -->
           <div class="bento-card">
             <div class="bento-icon">📶</div>
-            <h3>Wireless ADB Suite (Android 11+)</h3>
+            <h3>Wireless ADB &amp; iOS Simulator</h3>
             <p>
-              Untether from USB cables effortlessly. Includes 6-digit wireless pairing code support, automatic IP discovery, and 1-click seamless toggle between USB and Wi-Fi modes.
+              Untether from cables with Android 11+ 6-digit wireless pairing. Plus cross-platform iOS Simulator discovery via macOS <code>xcrun simctl</code> with an instant <code>iOS 🍎</code> badge.
             </p>
           </div>
 
           <!-- Card 6: Studio App Mode -->
           <div class="bento-card span-3">
             <div class="bento-icon">🪟</div>
-            <h3>Dedicated Desktop App Window Mode</h3>
+            <h3>Dedicated Desktop Studio (60fps Preview)</h3>
             <p>
-              Run <code>npx adbsnap studio</code> to launch an ultra-responsive visual workspace that boots in under 15ms. Operates in frameless desktop application mode without browser address bars, tabs, or Webpack reload delays.
+              Run <code>npx adbsnap studio</code> to launch an ultra-responsive visual workspace. Features 83% lighter loopback fast previews, 120ms debounce, and multi-screen filmstrip management without browser tabs or Webpack delays.
             </p>
-            <div class="code-snippet">npx adbsnap studio # Boots instantly at http://adbsnap.localhost:3000</div>
+            <div class="code-snippet">npx adbsnap studio # Boots instantly at http://localhost:3000</div>
           </div>
         </div>
       </div>
@@ -270,22 +270,27 @@
             <tbody>
               <tr style="border-bottom: 1px solid var(--border-subtle);">
                 <td style="padding: 14px 20px; font-family: var(--font-mono); color: #38bdf8;">adbsnap snap</td>
-                <td style="padding: 14px 20px; color: var(--text-secondary);">Capture screen, apply vector bezel, and export framed image.</td>
-                <td style="padding: 14px 20px; font-family: var(--font-mono); font-size: 13px;">--title, --sub, --theme, --device</td>
+                <td style="padding: 14px 20px; color: var(--text-secondary);">Capture screen, apply 4K vector bezel, and export framed showcase image.</td>
+                <td style="padding: 14px 20px; font-family: var(--font-mono); font-size: 13px;">--title, --frame, --format=webp|avif, --theme, --device</td>
               </tr>
               <tr style="border-bottom: 1px solid var(--border-subtle);">
                 <td style="padding: 14px 20px; font-family: var(--font-mono); color: #38bdf8;">adbsnap studio</td>
-                <td style="padding: 14px 20px; color: var(--text-secondary);">Launch interactive visual studio in dedicated app window.</td>
+                <td style="padding: 14px 20px; color: var(--text-secondary);">Launch interactive visual studio with 60fps fast-preview.</td>
                 <td style="padding: 14px 20px; font-family: var(--font-mono); font-size: 13px;">--port=3000</td>
               </tr>
               <tr style="border-bottom: 1px solid var(--border-subtle);">
                 <td style="padding: 14px 20px; font-family: var(--font-mono); color: #38bdf8;">adbsnap export</td>
-                <td style="padding: 14px 20px; color: var(--text-secondary);">Bundle framed screens into multi-size App Store &amp; Play Store ZIP.</td>
-                <td style="padding: 14px 20px; font-family: var(--font-mono); font-size: 13px;">--output=store-assets.zip</td>
+                <td style="padding: 14px 20px; color: var(--text-secondary);">Parallel multi-store asset pack export (App Store &amp; Play Store ZIP).</td>
+                <td style="padding: 14px 20px; font-family: var(--font-mono); font-size: 13px;">--format=webp|avif|png, --zip</td>
               </tr>
               <tr style="border-bottom: 1px solid var(--border-subtle);">
                 <td style="padding: 14px 20px; font-family: var(--font-mono); color: #38bdf8;">adbsnap doctor</td>
                 <td style="padding: 14px 20px; color: var(--text-secondary);">Diagnose ADB path, permissions, USB authorization, and dependencies.</td>
+                <td style="padding: 14px 20px; font-family: var(--font-mono); font-size: 13px;">—</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-subtle);">
+                <td style="padding: 14px 20px; font-family: var(--font-mono); color: #38bdf8;">adbsnap devices</td>
+                <td style="padding: 14px 20px; color: var(--text-secondary);">List attached USB, Wi-Fi, emulator, and iOS simulator devices.</td>
                 <td style="padding: 14px 20px; font-family: var(--font-mono); font-size: 13px;">—</td>
               </tr>
               <tr>
@@ -322,7 +327,7 @@
               <img src="assets/icon.png" width="36" height="36" alt="VS Code Extension Icon" style="border-radius: 6px;" />
               <div>
                 <div style="font-weight: 700; font-size: 15px;">ADBSnap for VS Code</div>
-                <div style="color: var(--text-muted); font-size: 12px;">Version 1.2.1 &bull; MIT License</div>
+                <div style="color: var(--text-muted); font-size: 12px;">Version 1.3.0 &bull; MIT License</div>
               </div>
             </div>
             <div style="font-family: var(--font-mono); font-size: 12px; color: #94a3b8; line-height: 1.8;">

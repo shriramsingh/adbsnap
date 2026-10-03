@@ -9,7 +9,34 @@
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg?style=flat-square)](https://github.com/shriramsingh/adbsnap)
 
-Stop wrestling with manual Figma templates or low-res screenshot scripts. **ADBSnap** is the all-in-one Android ADB screenshot and 4K device mockup tool available as an [NPM package](https://www.npmjs.com/package/adbsnap) and official [VS Code Marketplace extension](https://marketplace.visualstudio.com/items?itemName=shriramsingh.adbsnap). It captures your live Android device or emulator directly into memory, wraps it into vector-sharp device bezels (iPhone 16 Pro, Pixel 9 Pro), lays down studio-grade gradient backdrops with auto-wrapped typography, and exports ready-to-upload store graphics in **under a second**.
+Stop wrestling with manual Figma templates or low-res screenshot scripts. **ADBSnap** is the all-in-one Android & iOS screenshot and 4K device mockup tool available as an [NPM package](https://www.npmjs.com/package/adbsnap) and official [VS Code Marketplace extension](https://marketplace.visualstudio.com/items?itemName=shriramsingh.adbsnap). It captures your live device or emulator directly into memory, wraps it into vector-sharp device bezels (iPhone 16 Pro Max, Pixel 9 Pro Fold, Galaxy S25 Ultra), lays down studio-grade gradient backdrops with auto-wrapped typography, and exports ready-to-upload store graphics in **under a second**.
+
+---
+
+## 🚀 What's New in v1.3.0
+
+- ⚡ **High-Speed Parallel Compositing & Chassis Caching**:
+  - Pre-assembles phone chassis (screenshot + 4K bezel + drop shadow) once in host RAM and caches the composited buffer.
+  - Multi-store export is fully parallelized across all store targets (`Promise.all`), slashing export duration from **>8.1s to ~2.5s** (over **3x speedup**).
+  - Fixed aspect ratio crop calculations for non-standard banners (e.g. Google Play Feature Graphic 1024×500).
+- 🚀 **Ultra-Fast Raw Framebuffer Screencap**:
+  - Direct uncompressed RGBA capture stream via `adb exec-out screencap`, bypassing slow on-device PNG encoding.
+  - Binary header parsing with Sharp in-memory conversion completes in **~52ms** with transparent fallback to `screencap -p`.
+- ⚡ **Studio Fast-Preview & 60fps Responsiveness**:
+  - Dedicated half-resolution preview endpoint (`format: 'preview'`, 645×1398), shrinking loopback Base64 payload by **83%** (~85 KB).
+  - Tightened UI slider debounce to 120ms for smooth, instantaneous 60fps canvas feedback.
+  - Fixed Studio directory resolution to serve pre-compiled assets from `dist/studio/` with clean universal `http://localhost:${port}` fallback.
+- 🎨 **Next-Gen Image Formats (`--format=webp|avif|png|jpeg`)**:
+  - Added support for cutting-edge formats across CLI and export pipelines.
+  - **AVIF** delivers stunning quality at **7.3 KB (95% smaller than PNG)**; **WebP** produces **~86 KB (42% smaller)** assets ready for high-speed web distribution.
+- 📱 **2026 Flagship Vector Bezels**:
+  - Added **iPhone 16 Pro Max** (`iphone-16-pro-max`, 6.9" Super Retina XDR with Dynamic Island).
+  - Added **Pixel 9 Pro Fold** (`pixel-9-pro-fold`, Inner 8" Foldable OLED display).
+  - Added **Galaxy S25 Ultra** (`galaxy-s25-ultra`, 6.8" Dynamic AMOLED 2X titanium chassis with punch-hole).
+- 🍎 **Pluggable iOS Simulator Driver**:
+  - Auto-detects booted iOS simulators via macOS `xcrun simctl` with unified device routing and an `iOS 🍎` indicator.
+- 🐛 **Studio Filmstrip Bug Fixes**:
+  - Resolved event propagation blocking on filmstrip thumbnails (`pointer-events-none`), restoring instant single-screen deletion (`Trash2`) and reordering.
 
 ---
 
@@ -133,18 +160,21 @@ adbsnap snap
 # Custom title and subtitle
 adbsnap snap --title "Track Your Daily Habits" --subtitle "Simple. Fast. Beautiful."
 
-# Use Pixel 9 Pro bezel on sunset gradient
-adbsnap snap --frame pixel-9-pro --theme sunset --title "Explore Destinations"
+# Use Pixel 9 Pro Fold bezel with WebP compression
+adbsnap snap --frame pixel-9-pro-fold --theme midnight --title "Unfold Productivity" --format webp
+
+# 2026 Galaxy S25 Ultra on sunset gradient with ultra-compressed AVIF
+adbsnap snap --frame galaxy-s25-ultra --theme sunset --format avif
 
 # Save unedited raw screenshot buffer
 adbsnap snap --raw
 ```
 
 ### 2. `adbsnap export`
-Batch-generates complete asset packs across Apple App Store and Google Play dimensions, packaged into a ready-to-upload ZIP file.
+Batch-generates complete asset packs across Apple App Store and Google Play dimensions in parallel, packaged into a ready-to-upload ZIP file.
 
 ```bash
-adbsnap export --theme studioLight --title "Workout Companion" --zip
+adbsnap export --theme studioLight --title "Workout Companion" --zip --format webp
 ```
 
 ### 3. `adbsnap crawl [package]`
@@ -216,7 +246,8 @@ Use ADBSnap directly inside Visual Studio Code without leaving your editor:
 
 | Option | Description | Available Values | Default |
 | :--- | :--- | :--- | :--- |
-| `--frame` | Device bezel chassis | `iphone-16-pro`, `pixel-9-pro`, `ipad-pro-13`, `android-tablet-11`, `frameless`, `minimal` | `iphone-16-pro` |
+| `--frame` | Device bezel chassis | `iphone-16-pro`, `iphone-16-pro-max`, `pixel-9-pro`, `pixel-9-pro-fold`, `galaxy-s25-ultra`, `ipad-pro-13`, `android-tablet-11`, `frameless`, `minimal` | `iphone-16-pro` |
+| `--format`| Output image compression | `png`, `webp`, `avif`, `jpeg` | `png` |
 | `--theme` | Canvas gradient preset | `aurora`, `studioLight`, `freshMint`, `sunset`, `midnight`, `royal`, `cleanDark`, `none` | `aurora` |
 | `--layout` | Positioning layout | `appstore` (bottom bleed), `social` (floating centered) | `appstore` |
 | `--fit` | Screenshot scaling | `cover` (safe aspect), `contain`, `fill` | `cover` |
@@ -225,7 +256,7 @@ Use ADBSnap directly inside Visual Studio Code without leaving your editor:
 | `--subtitle`| Supporting subtitle | Any text | None |
 | `--no-stars`| Hide 5-star rating badge | Flag | Stars enabled |
 | `--raw` | Save raw unadorned screenshot | Flag | False |
-| `--device` | Target specific ADB device ID | Device serial / IP / mDNS | Auto-detect |
+| `--device` | Target specific ADB device ID | Device serial / IP / mDNS / iOS sim ID | Auto-detect |
 | `--out` | Custom output file or directory | File/directory path | `./output` |
 | `--zip` | Create ZIP bundle | Flag | True |
 
