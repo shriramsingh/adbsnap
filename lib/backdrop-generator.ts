@@ -22,9 +22,11 @@ export interface TypographyOptions {
   titleScaleMultiplier?: number;
   subtitleScaleMultiplier?: number;
   titleWeight?: '400' | '500' | '600' | '700' | '800' | '900';
-  subtitleWeight?: '400' | '500' | '600' | '700';
+  subtitleWeight?: string;
   isItalic?: boolean;
+  subtitleItalic?: boolean;
   textYOffset?: number;
+  bottomTextOffset?: number;
   phoneTop?: number;
   accentColors?: [string, string];
 }
@@ -114,7 +116,9 @@ export function generateTypographySvg(options: TypographyOptions): string {
     titleWeight = '800',
     subtitleWeight = '500',
     isItalic = false,
+    subtitleItalic = false,
     textYOffset = 0,
+    bottomTextOffset,
     phoneTop,
     accentColors = ['#38bdf8', '#c084fc'],
   } = options;
@@ -123,7 +127,7 @@ export function generateTypographySvg(options: TypographyOptions): string {
 
   const defaultFont = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, sans-serif";
   const hFont = headlineFontFamily || fontFamily || defaultFont;
-  const sFont = subtitleFontFamily || fontFamily || defaultFont;
+  const sFont = (!subtitleFontFamily || subtitleFontFamily === 'match') ? hFont : (subtitleFontFamily || fontFamily || defaultFont);
   const scale = Math.min(canvasWidth / 1290, canvasHeight / 2796);
 
   // Alignment coordinates
@@ -261,6 +265,7 @@ export function generateTypographySvg(options: TypographyOptions): string {
   };
 
   const titleFontStyle = isItalic ? 'italic' : 'normal';
+  const subFontStyle = subtitleItalic ? 'italic' : 'normal';
 
   // Compute total top content height for collision calculation
   const titleBlockHeight = titleLines.length > 0 ? titleSize + (titleLines.length - 1) * titleLineHeight : 0;
@@ -303,7 +308,7 @@ export function generateTypographySvg(options: TypographyOptions): string {
     }
 
     if (subtitleLines.length > 0) {
-      const subBlock = renderText(subtitleLines, subtitleSize, subtitleLineHeight, subtitleWeight, subtitleColor, currentY, sFont);
+      const subBlock = renderText(subtitleLines, subtitleSize, subtitleLineHeight, subtitleWeight, subtitleColor, currentY, sFont, subFontStyle);
       content += subBlock.svg;
     }
   }
@@ -311,7 +316,11 @@ export function generateTypographySvg(options: TypographyOptions): string {
   // POSITION: BOTTOM (Store copy under phone chassis)
   else if (position === 'bottom') {
     const bottomPadding = Math.round(85 * scale);
-    let currentY = canvasHeight - totalTopBlockHeight - bottomPadding + textYOffset;
+    const effBottomOffset = bottomTextOffset !== undefined ? bottomTextOffset : textYOffset;
+    const scaledBottomOffset = Math.round(effBottomOffset * scale);
+    const maxBottomY = canvasHeight - totalTopBlockHeight - Math.round(24 * scale);
+    const minBottomY = Math.round(100 * scale);
+    let currentY = Math.max(minBottomY, Math.min(maxBottomY, canvasHeight - totalTopBlockHeight - bottomPadding + scaledBottomOffset));
 
     if (eyebrowTag) {
       const tag = renderEyebrow(currentY);
@@ -332,7 +341,7 @@ export function generateTypographySvg(options: TypographyOptions): string {
     }
 
     if (subtitleLines.length > 0) {
-      const subBlock = renderText(subtitleLines, subtitleSize, subtitleLineHeight, subtitleWeight, subtitleColor, currentY, sFont);
+      const subBlock = renderText(subtitleLines, subtitleSize, subtitleLineHeight, subtitleWeight, subtitleColor, currentY, sFont, subFontStyle);
       content += subBlock.svg;
     }
   }
@@ -351,7 +360,8 @@ export function generateTypographySvg(options: TypographyOptions): string {
       }
     }
 
-    let topY = baseTopY + textYOffset;
+    const scaledTopOffset = Math.round(textYOffset * scale);
+    let topY = Math.max(Math.round(20 * scale), baseTopY + scaledTopOffset);
 
     if (eyebrowTag) {
       const tag = renderEyebrow(topY);
@@ -375,8 +385,13 @@ export function generateTypographySvg(options: TypographyOptions): string {
     const bottomLines = bottomText ? wrapText(bottomText, maxSubChars) : [];
     if (bottomLines.length > 0) {
       const bottomBlockHeight = subtitleSize + (bottomLines.length - 1) * subtitleLineHeight;
-      const bottomY = canvasHeight - Math.round(110 * scale) - bottomBlockHeight + textYOffset;
-      const subBlock = renderText(bottomLines, subtitleSize, subtitleLineHeight, subtitleWeight, subtitleColor, bottomY, sFont);
+      const effBottomOffset = bottomTextOffset !== undefined ? bottomTextOffset : textYOffset;
+      const scaledBottomOffset = Math.round(effBottomOffset * scale);
+      const defaultBottomY = canvasHeight - Math.round(110 * scale) - bottomBlockHeight;
+      const maxBottomY = canvasHeight - bottomBlockHeight - Math.round(24 * scale);
+      const minBottomY = Math.round(canvasHeight * 0.55);
+      const bottomY = Math.max(minBottomY, Math.min(maxBottomY, defaultBottomY + scaledBottomOffset));
+      const subBlock = renderText(bottomLines, subtitleSize, subtitleLineHeight, subtitleWeight, subtitleColor, bottomY, sFont, subFontStyle);
       content += subBlock.svg;
     }
   }

@@ -27,9 +27,11 @@ export interface CompositeFrameOptions {
   titleScaleMultiplier?: number;
   subtitleScaleMultiplier?: number;
   titleWeight?: '400' | '500' | '600' | '700' | '800' | '900';
-  subtitleWeight?: '400' | '500' | '600' | '700';
+  subtitleWeight?: string;
   isItalic?: boolean;
+  subtitleItalic?: boolean;
   textYOffset?: number;
+  bottomTextOffset?: number;
   useCustomColors?: boolean;
   customColors?: [string, string];
   enableAmbientGlow?: boolean;
@@ -234,7 +236,10 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
     return fontKey;
   };
   const headlineFontFamily = resolveFont(options.headlineFont || options.font);
-  const subtitleFontFamily = resolveFont(options.subtitleFont || options.font || options.headlineFont);
+  const subtitleFontFamily =
+    !options.subtitleFont || options.subtitleFont === 'match'
+      ? headlineFontFamily
+      : resolveFont(options.subtitleFont);
 
   const typographySvg = generateTypographySvg({
     canvasWidth,
@@ -255,7 +260,9 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
     titleWeight: options.titleWeight,
     subtitleWeight: options.subtitleWeight,
     isItalic: options.isItalic,
+    subtitleItalic: options.subtitleItalic,
     textYOffset: options.textYOffset,
+    bottomTextOffset: options.bottomTextOffset,
     phoneTop,
     accentColors: options.accentColors,
   });

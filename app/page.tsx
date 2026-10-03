@@ -39,6 +39,7 @@ import {
   Wand2,
   MoveVertical,
   RotateCcw,
+  Sliders,
 } from 'lucide-react';
 
 interface ConnectedDevice {
@@ -69,7 +70,9 @@ interface SessionScreen {
   titleWeight?: string;
   subtitleWeight?: string;
   isItalic?: boolean;
+  subtitleItalic?: boolean;
   textOffset?: number;
+  bottomTextOffset?: number;
   showStars?: boolean;
   ambientGlow?: boolean;
   phoneScale?: number;
@@ -388,9 +391,13 @@ export default function StudioPage() {
   const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right'>('center');
   const [titleScale, setTitleScale] = useState<number>(1.0);
   const [subtitleScale, setSubtitleScale] = useState<number>(1.0);
+  const [activeTextLayer, setActiveTextLayer] = useState<'headline' | 'callout'>('headline');
   const [titleWeight, setTitleWeight] = useState<'400' | '600' | '700' | '800' | '900'>('800');
+  const [subtitleWeight, setSubtitleWeight] = useState<string>('500');
   const [isItalic, setIsItalic] = useState(false);
+  const [subtitleItalic, setSubtitleItalic] = useState(false);
   const [textOffset, setTextOffset] = useState<number>(0);
+  const [bottomTextOffset, setBottomTextOffset] = useState<number>(0);
   const [customColor1, setCustomColor1] = useState('#4f46e5');
   const [customColor2, setCustomColor2] = useState('#06b6d4');
   const [useCustomColors, setUseCustomColors] = useState(false);
@@ -422,33 +429,59 @@ export default function StudioPage() {
   const isSelectingScreenRef = useRef(false);
 
   // Interactive on-canvas text dragging state & refs
-  const [isDraggingText, setIsDraggingText] = useState(false);
+  const [isDraggingText, setIsDraggingText] = useState<'top' | 'bottom' | null>(null);
+  const dragTargetRef = useRef<'top' | 'bottom'>('top');
   const dragStartYRef = useRef(0);
   const startOffsetRef = useRef(0);
+  const currentDragOffsetRef = useRef(0);
+  const dragGhostRef = useRef<HTMLDivElement | null>(null);
 
-  const handleTextDragStart = (e: React.MouseEvent) => {
+  const handleTextDragStart = (e: React.MouseEvent, target: 'top' | 'bottom' = 'top') => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDraggingText(true);
+    setActiveTextLayer(target === 'top' ? 'headline' : 'callout');
+    dragTargetRef.current = target;
+    setIsDraggingText(target);
     dragStartYRef.current = e.clientY;
-    startOffsetRef.current = textOffset;
-    document.body.style.cursor = 'ns-resize';
+    const initialOffset = target === 'top' ? textOffset : bottomTextOffset;
+    startOffsetRef.current = initialOffset;
+    currentDragOffsetRef.current = initialOffset;
+    document.body.style.cursor = 'grabbing';
     document.body.style.userSelect = 'none';
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
       moveEvent.preventDefault();
       const deltaY = moveEvent.clientY - dragStartYRef.current;
       const newOffset = Math.max(-200, Math.min(200, Math.round(startOffsetRef.current + deltaY * 1.5)));
-      setTextOffset(newOffset);
+      currentDragOffsetRef.current = newOffset;
+      if (dragGhostRef.current) {
+        dragGhostRef.current.style.transform = `translate3d(0, ${deltaY}px, 0)`;
+      }
     };
 
-    const handleMouseUp = () => {
-      setIsDraggingText(false);
+    const handleMouseUp = async () => {
+      const finalOffset = currentDragOffsetRef.current;
+      const targetType = dragTargetRef.current;
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
-      refreshPreview();
+      
+      // Update state immediately
+      if (targetType === 'top') {
+        setTextOffset(finalOffset);
+      } else {
+        setBottomTextOffset(finalOffset);
+      }
+
+      // Optimistically hold ghost at final location until server composite completes
+      try {
+        await refreshPreview(undefined, {
+          [targetType === 'top' ? 'textOffset' : 'bottomTextOffset']: finalOffset,
+        });
+      } finally {
+        setIsDraggingText(null);
+      }
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -531,8 +564,11 @@ export default function StudioPage() {
         const effTitleScale = overrides?.titleScale !== undefined ? overrides.titleScale : titleScale;
         const effSubtitleScale = overrides?.subtitleScale !== undefined ? overrides.subtitleScale : subtitleScale;
         const effTitleWeight = overrides?.titleWeight !== undefined ? overrides.titleWeight : titleWeight;
+        const effSubtitleWeight = overrides?.subtitleWeight !== undefined ? overrides.subtitleWeight : subtitleWeight;
         const effIsItalic = overrides?.isItalic !== undefined ? overrides.isItalic : isItalic;
+        const effSubtitleItalic = overrides?.subtitleItalic !== undefined ? overrides.subtitleItalic : subtitleItalic;
         const effTextOffset = overrides?.textOffset !== undefined ? overrides.textOffset : textOffset;
+        const effBottomTextOffset = overrides?.bottomTextOffset !== undefined ? overrides.bottomTextOffset : bottomTextOffset;
         const effTitle = overrides?.customTitle !== undefined ? overrides.customTitle : title;
         const effSubtitle = overrides?.subtitle !== undefined ? overrides.subtitle : subtitle;
         const effShowStars = overrides?.showStars !== undefined ? overrides.showStars : showStars;
@@ -558,8 +594,11 @@ export default function StudioPage() {
             titleScaleMultiplier: effTitleScale,
             subtitleScaleMultiplier: effSubtitleScale,
             titleWeight: effTitleWeight,
+            subtitleWeight: effSubtitleWeight,
             isItalic: effIsItalic,
+            subtitleItalic: effSubtitleItalic,
             textYOffset: effTextOffset,
+            bottomTextOffset: effBottomTextOffset,
             useCustomColors: effUseCustom,
             customColors: effUseCustom ? [effCustom1, effCustom2] : undefined,
             title: effTitle,
@@ -599,8 +638,11 @@ export default function StudioPage() {
       titleScale,
       subtitleScale,
       titleWeight,
+      subtitleWeight,
       isItalic,
+      subtitleItalic,
       textOffset,
+      bottomTextOffset,
       customColor1,
       customColor2,
       useCustomColors,
@@ -634,8 +676,11 @@ export default function StudioPage() {
     titleScale,
     subtitleScale,
     titleWeight,
+    subtitleWeight,
     isItalic,
+    subtitleItalic,
     textOffset,
+    bottomTextOffset,
     customColor1,
     customColor2,
     useCustomColors,
@@ -676,8 +721,11 @@ export default function StudioPage() {
           titleScale,
           subtitleScale,
           titleWeight,
+          subtitleWeight,
           isItalic,
+          subtitleItalic,
           textOffset,
+          bottomTextOffset,
           showStars,
           ambientGlow,
           phoneScale,
@@ -709,8 +757,11 @@ export default function StudioPage() {
     titleScale,
     subtitleScale,
     titleWeight,
+    subtitleWeight,
     isItalic,
+    subtitleItalic,
     textOffset,
+    bottomTextOffset,
     showStars,
     ambientGlow,
     phoneScale,
@@ -986,8 +1037,11 @@ export default function StudioPage() {
     if (target.titleScale !== undefined) setTitleScale(target.titleScale);
     if (target.subtitleScale !== undefined) setSubtitleScale(target.subtitleScale);
     if (target.titleWeight) setTitleWeight(target.titleWeight);
+    if (target.subtitleWeight) setSubtitleWeight(target.subtitleWeight);
     if (target.isItalic !== undefined) setIsItalic(target.isItalic);
+    if (target.subtitleItalic !== undefined) setSubtitleItalic(target.subtitleItalic);
     if (target.textOffset !== undefined) setTextOffset(target.textOffset);
+    setBottomTextOffset(target.bottomTextOffset ?? 0);
     if (target.showStars !== undefined) setShowStars(target.showStars);
     if (target.ambientGlow !== undefined) setAmbientGlow(target.ambientGlow);
     if (target.phoneScale !== undefined) setPhoneScale(target.phoneScale);
@@ -1290,6 +1344,7 @@ export default function StudioPage() {
           titleWeight,
           isItalic,
           textYOffset: textOffset,
+          bottomTextOffset,
           useCustomColors,
           customColors: useCustomColors ? [customColor1, customColor2] : undefined,
           title,
@@ -1348,8 +1403,11 @@ export default function StudioPage() {
         titleScale,
         subtitleScale,
         titleWeight,
+        subtitleWeight,
         isItalic,
+        subtitleItalic,
         textOffset,
+        bottomTextOffset,
         showStars,
         ambientGlow,
         phoneScale,
@@ -1988,7 +2046,10 @@ export default function StudioPage() {
                   <div className="grid grid-cols-3 gap-1.5 p-1 bg-[#161922] border border-[#232733] rounded-lg text-xs">
                     <button
                       type="button"
-                      onClick={() => setTypographyPosition('top')}
+                      onClick={() => {
+                        setTypographyPosition('top');
+                        setActiveTextLayer('headline');
+                      }}
                       className={`py-1.5 px-2 rounded font-medium transition cursor-pointer ${
                         typographyPosition === 'top'
                           ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm'
@@ -2000,7 +2061,10 @@ export default function StudioPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setTypographyPosition('bottom')}
+                      onClick={() => {
+                        setTypographyPosition('bottom');
+                        setActiveTextLayer('callout');
+                      }}
                       className={`py-1.5 px-2 rounded font-medium transition cursor-pointer ${
                         typographyPosition === 'bottom'
                           ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm'
@@ -2025,11 +2089,23 @@ export default function StudioPage() {
                   </div>
                 </div>
 
+                {/* 1. Headline Text Box */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11px] text-slate-400">Headline</span>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTextLayer('headline')}
+                      className="text-[11px] font-semibold text-slate-300 flex items-center gap-1.5 cursor-pointer text-left"
+                    >
+                      <span>🔤 Headline Text</span>
+                      {activeTextLayer === 'headline' && (
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-normal">
+                          Active Styling
+                        </span>
+                      )}
+                    </button>
                     <div className="flex items-center gap-1.5">
-                      <div className="flex items-center gap-1 bg-[#161922] border border-[#232733] rounded px-1.5 py-0.5">
+                      <div className="flex items-center gap-1 bg-[#0f1117] border border-cyan-500/30 rounded px-1.5 py-0.5">
                         <Wand2 className="w-3 h-3 text-cyan-400 shrink-0" />
                         <select
                           value=""
@@ -2039,7 +2115,7 @@ export default function StudioPage() {
                               setTitle('');
                               setSubtitle('');
                               if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-                              setToastMessage('✕ Cleared headline and subtitle');
+                              setToastMessage('✕ Cleared copy');
                               toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2000);
                             } else if (val === '__reset__') {
                               setTitle('Transform Your Workflow');
@@ -2058,67 +2134,173 @@ export default function StudioPage() {
                               }
                             }
                           }}
-                          className="text-[10px] bg-transparent text-cyan-300 cursor-pointer focus:outline-none"
+                          style={{ backgroundColor: '#0f1117', color: '#67e8f9' }}
+                          className="text-[10px] bg-[#0f1117] text-cyan-300 cursor-pointer focus:outline-none border-0"
+                          title="Magic Copy Templates & Presets"
                         >
-                          <option value="" disabled>Magic Copy...</option>
-                          <option value="__clear__" className="text-rose-400 font-medium">✕ Clear All Copy</option>
-                          <option value="__reset__" className="text-amber-300 font-medium">↺ Reset Default Copy</option>
-                          <option disabled className="text-slate-600">──────────</option>
+                          <option value="" disabled style={{ backgroundColor: '#0f1117', color: '#94a3b8' }}>
+                            Magic Copy...
+                          </option>
+                          <option value="__clear__" style={{ backgroundColor: '#0f1117', color: '#fb7185' }} className="font-medium">
+                            ✕ Clear All Copy
+                          </option>
+                          <option value="__reset__" style={{ backgroundColor: '#0f1117', color: '#fcd34d' }} className="font-medium">
+                            ↺ Reset Default Copy
+                          </option>
+                          <option disabled style={{ backgroundColor: '#0f1117', color: '#475569' }}>
+                            ───────────────────────────
+                          </option>
                           {MAGIC_COPY_TEMPLATES.map((tpl) => (
-                            <option key={tpl.name} value={tpl.name} className="text-slate-200">
-                              {tpl.name}
+                            <option
+                              key={tpl.name}
+                              value={tpl.name}
+                              style={{ backgroundColor: '#0f1117', color: '#f1f5f9' }}
+                            >
+                              {tpl.name}: &quot;{tpl.title.replace(/\*\*/g, '')}&quot;
                             </option>
                           ))}
                         </select>
                       </div>
 
-                      {(title || subtitle) && (
+                      {title && (
                         <button
                           type="button"
                           onClick={() => {
                             setTitle('');
-                            setSubtitle('');
                             if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-                            setToastMessage('✕ Cleared copy');
+                            setToastMessage('✕ Cleared headline');
                             toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 1800);
                           }}
                           className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 transition cursor-pointer"
-                          title="Clear headline & subtitle"
+                          title="Clear headline"
                         >
                           <X className="w-3 h-3" />
                         </button>
                       )}
                     </div>
                   </div>
+
                   <textarea
                     rows={2}
                     value={title}
+                    onFocus={() => setActiveTextLayer('headline')}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Enter punchy headline (press Enter for new line)..."
-                    className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 resize-none font-sans leading-relaxed"
+                    className={`w-full bg-[#161922] border rounded-lg p-2 text-xs text-white focus:outline-none resize-none font-sans leading-relaxed transition ${
+                      activeTextLayer === 'headline'
+                        ? 'border-cyan-500/80 ring-1 ring-cyan-500/30'
+                        : 'border-[#232733] hover:border-slate-700'
+                    }`}
                   />
+
+                  {/* Quick Magic Copy Chips */}
+                  <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                    <span className="text-[9px] text-slate-500 font-medium mr-0.5">Presets:</span>
+                    {MAGIC_COPY_TEMPLATES.map((tpl) => (
+                      <button
+                        key={tpl.name}
+                        type="button"
+                        onClick={() => {
+                          setTitle(tpl.title);
+                          setSubtitle(tpl.subtitle);
+                          if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+                          setToastMessage(`✨ Applied "${tpl.name}"`);
+                          toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2000);
+                        }}
+                        className="text-[9px] px-1.5 py-0.5 rounded bg-[#161922] hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 border border-[#232733] hover:border-cyan-500/40 transition cursor-pointer"
+                        title={`${tpl.title.replace(/\*\*/g, '')} — ${tpl.subtitle}`}
+                      >
+                        {tpl.name.split('/')[0].trim()}
+                      </button>
+                    ))}
+                  </div>
+
                   <p className="text-[10px] text-slate-500 mt-1">
                     Tip: Use <span className="text-cyan-400 font-mono font-bold">**bold radiant**</span> and <span className="text-cyan-300 font-mono italic">*italic*</span> for accents.
                   </p>
                 </div>
 
+                {/* 2. Subtitle Text Box */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11px] text-slate-400">
-                      {typographyPosition === 'both' ? 'Bottom Callout / Footer' : 'Subtitle'}
-                    </span>
-                    <span className="text-[10px] text-slate-500 font-mono">Multi-line (Enter ↵)</span>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTextLayer('callout')}
+                      className="text-[11px] font-semibold text-slate-300 flex items-center gap-1.5 cursor-pointer text-left"
+                    >
+                      <span>💬 Subtitle {typographyPosition === 'both' ? '(Bottom Callout)' : ''}</span>
+                      {activeTextLayer === 'callout' && (
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-normal">
+                          Active Styling
+                        </span>
+                      )}
+                    </button>
+                    {subtitle && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSubtitle('');
+                          if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+                          setToastMessage('✕ Cleared subtitle');
+                          toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 1800);
+                        }}
+                        className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 transition cursor-pointer"
+                        title="Clear subtitle"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
+
                   <textarea
                     rows={2}
                     value={subtitle}
+                    onFocus={() => setActiveTextLayer('callout')}
                     onChange={(e) => setSubtitle(e.target.value)}
-                    placeholder={typographyPosition === 'both' ? 'Enter bottom callout or feature copy...' : 'Enter explanatory copy...'}
-                    className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 resize-none font-sans leading-relaxed"
+                    placeholder={typographyPosition === 'both' ? 'Enter bottom callout or feature copy...' : 'Enter explanatory subtitle copy...'}
+                    className={`w-full bg-[#161922] border rounded-lg p-2 text-xs text-white focus:outline-none resize-none font-sans leading-relaxed transition ${
+                      activeTextLayer === 'callout'
+                        ? 'border-cyan-500/80 ring-1 ring-cyan-500/30'
+                        : 'border-[#232733] hover:border-slate-700'
+                    }`}
                   />
                 </div>
 
-                {/* Alignment, Weight & Italic Bar */}
+                {/* Contextual Typography Styling Bar Header */}
+                <div className="pt-1.5 border-t border-[#232733]/60">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-semibold text-slate-300 flex items-center gap-1.5">
+                      <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+                      Typography Styling
+                    </span>
+                    <div className="flex items-center gap-1 bg-[#0f1117] p-0.5 rounded-lg border border-[#232733]">
+                      <button
+                        type="button"
+                        onClick={() => setActiveTextLayer('headline')}
+                        className={`px-2 py-0.5 rounded text-[10px] font-medium transition cursor-pointer ${
+                          activeTextLayer === 'headline'
+                            ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        🔤 Headline
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTextLayer('callout')}
+                        className={`px-2 py-0.5 rounded text-[10px] font-medium transition cursor-pointer ${
+                          activeTextLayer === 'callout'
+                            ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        💬 Subtitle
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Universal Alignment, Weight & Italic Bar for Active Layer */}
                 <div className="grid grid-cols-3 gap-1.5 p-1 bg-[#161922] border border-[#232733] rounded-lg items-center">
                   {/* Alignment Buttons */}
                   <div className="flex items-center justify-around bg-[#0f1117] p-0.5 rounded border border-[#232733]">
@@ -2139,26 +2321,39 @@ export default function StudioPage() {
                     ))}
                   </div>
 
-                  {/* Weight Selector */}
+                  {/* Weight Selector for Active Layer */}
                   <select
-                    value={titleWeight}
-                    onChange={(e) => setTitleWeight(e.target.value)}
+                    value={activeTextLayer === 'headline' ? titleWeight : subtitleWeight}
+                    onChange={(e) => {
+                      if (activeTextLayer === 'headline') {
+                        setTitleWeight(e.target.value as any);
+                      } else {
+                        setSubtitleWeight(e.target.value);
+                      }
+                    }}
                     className="bg-[#0f1117] border border-[#232733] text-slate-300 rounded px-1.5 py-1 text-[11px] focus:outline-none cursor-pointer"
-                    title="Headline Font Weight"
+                    title={`${activeTextLayer === 'headline' ? 'Headline' : 'Subtitle'} Font Weight`}
                   >
                     <option value="400">Regular (400)</option>
+                    <option value="500">Medium (500)</option>
                     <option value="600">Semi (600)</option>
                     <option value="700">Bold (700)</option>
                     <option value="800">Extra (800)</option>
                     <option value="900">Black (900)</option>
                   </select>
 
-                  {/* Italic Toggle */}
+                  {/* Italic Toggle for Active Layer */}
                   <button
                     type="button"
-                    onClick={() => setIsItalic(!isItalic)}
+                    onClick={() => {
+                      if (activeTextLayer === 'headline') {
+                        setIsItalic(!isItalic);
+                      } else {
+                        setSubtitleItalic(!subtitleItalic);
+                      }
+                    }}
                     className={`flex items-center justify-center gap-1 rounded border text-[11px] py-1 font-medium transition cursor-pointer ${
-                      isItalic
+                      (activeTextLayer === 'headline' ? isItalic : subtitleItalic)
                         ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40'
                         : 'bg-[#0f1117] border-[#232733] text-slate-400 hover:text-slate-200'
                     }`}
@@ -2169,58 +2364,53 @@ export default function StudioPage() {
                   </button>
                 </div>
 
-                {/* Font Pairing Selection */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <span className="text-[10px] text-slate-400 block mb-1">
-                      {typographyPosition === 'both' ? 'Top Font (Headline)' : 'Headline Font'}
-                    </span>
-                    <select
-                      value={headlineFont}
-                      onChange={(e) => {
+                {/* Universal Font Selector for Active Layer */}
+                <div>
+                  <span className="text-[10px] text-slate-400 block mb-1">
+                    {activeTextLayer === 'headline' ? 'Headline Font' : 'Subtitle Font'}
+                  </span>
+                  <select
+                    value={activeTextLayer === 'headline' ? headlineFont : subtitleFont}
+                    onChange={(e) => {
+                      if (activeTextLayer === 'headline') {
                         setHeadlineFont(e.target.value);
                         setFont(e.target.value);
-                      }}
-                      className="w-full bg-[#161922] border border-[#232733] rounded-lg p-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
-                    >
-                      {FONTS.map((f) => (
-                        <option key={f.id} value={f.id}>
-                          {f.name.split(' ')[0]} {f.name.includes('Serif') ? 'Serif' : f.name.includes('Mono') ? 'Mono' : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-400 block mb-1">
-                      {typographyPosition === 'both' ? 'Bottom Font (Callout)' : 'Subtitle Font'}
-                    </span>
-                    <select
-                      value={subtitleFont}
-                      onChange={(e) => setSubtitleFont(e.target.value)}
-                      className="w-full bg-[#161922] border border-[#232733] rounded-lg p-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
-                    >
-                      <option value="match">Match Headline</option>
-                      {FONTS.map((f) => (
-                        <option key={f.id} value={f.id}>
-                          {f.name.split(' ')[0]} {f.name.includes('Serif') ? 'Serif' : f.name.includes('Mono') ? 'Mono' : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                      } else {
+                        setSubtitleFont(e.target.value);
+                      }
+                    }}
+                    className="w-full bg-[#161922] border border-[#232733] rounded-lg p-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 cursor-pointer"
+                  >
+                    {activeTextLayer === 'callout' && (
+                      <option value="match">Match Headline Font ({FONTS.find((f) => f.id === headlineFont)?.name || 'Default'})</option>
+                    )}
+                    {FONTS.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
-                {/* Precision Sliders */}
-                <div className="p-2.5 rounded-lg bg-[#161922] border border-[#232733] space-y-2">
-                  {/* Headline Scale */}
+                {/* Universal Precision Sliders for Active Layer */}
+                <div className="p-2.5 rounded-lg bg-[#161922] border border-[#232733] space-y-3">
+                  {/* Scale Slider */}
                   <div className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-[11px] text-slate-400">Headline Scale</span>
+                      <span className="text-[11px] text-slate-400">
+                        {activeTextLayer === 'headline' ? 'Headline Scale' : 'Subtitle Scale'}
+                      </span>
                       <div className="flex items-center gap-1.5">
-                        <span className="font-mono text-cyan-400 text-[11px] font-semibold">{Math.round(titleScale * 100)}%</span>
-                        {titleScale !== 1.0 && (
+                        <span className="font-mono text-cyan-400 text-[11px] font-semibold">
+                          {Math.round((activeTextLayer === 'headline' ? titleScale : subtitleScale) * 100)}%
+                        </span>
+                        {(activeTextLayer === 'headline' ? titleScale : subtitleScale) !== 1.0 && (
                           <button
                             type="button"
-                            onClick={() => setTitleScale(1.0)}
+                            onClick={() => {
+                              if (activeTextLayer === 'headline') setTitleScale(1.0);
+                              else setSubtitleScale(1.0);
+                            }}
                             className="text-[9px] text-slate-400 hover:text-slate-200 underline cursor-pointer"
                           >
                             Reset
@@ -2230,53 +2420,40 @@ export default function StudioPage() {
                     </div>
                     <input
                       type="range"
-                      min="0.7"
-                      max="1.5"
+                      min={activeTextLayer === 'headline' ? "0.6" : "0.5"}
+                      max={activeTextLayer === 'headline' ? "1.8" : "1.5"}
                       step="0.01"
-                      value={titleScale}
-                      onChange={(e) => setTitleScale(parseFloat(e.target.value))}
+                      value={activeTextLayer === 'headline' ? titleScale : subtitleScale}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        if (activeTextLayer === 'headline') setTitleScale(val);
+                        else setSubtitleScale(val);
+                      }}
                       className="w-full accent-cyan-500 cursor-pointer h-1 bg-[#232733] rounded-lg appearance-none"
                     />
                   </div>
 
-                  {/* Subtitle Scale */}
+                  {/* Vertical Nudge Slider */}
                   <div className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-[11px] text-slate-400">Subtitle Scale</span>
+                      <span className="text-[11px] text-slate-400">
+                        {activeTextLayer === 'headline'
+                          ? (typographyPosition === 'both' ? 'Top Headline Nudge' : 'Vertical Nudge')
+                          : (typographyPosition === 'both' ? 'Bottom Callout Nudge' : 'Subtitle Nudge')}
+                      </span>
                       <div className="flex items-center gap-1.5">
-                        <span className="font-mono text-cyan-400 text-[11px] font-semibold">{Math.round(subtitleScale * 100)}%</span>
-                        {subtitleScale !== 1.0 && (
+                        <span className="font-mono text-cyan-400 text-[11px] font-semibold">
+                          {(activeTextLayer === 'headline' ? textOffset : bottomTextOffset) > 0
+                            ? `+${activeTextLayer === 'headline' ? textOffset : bottomTextOffset}px`
+                            : `${activeTextLayer === 'headline' ? textOffset : bottomTextOffset}px`}
+                        </span>
+                        {(activeTextLayer === 'headline' ? textOffset : bottomTextOffset) !== 0 && (
                           <button
                             type="button"
-                            onClick={() => setSubtitleScale(1.0)}
-                            className="text-[9px] text-slate-400 hover:text-slate-200 underline cursor-pointer"
-                          >
-                            Reset
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <input
-                      type="range"
-                      min="0.7"
-                      max="1.3"
-                      step="0.01"
-                      value={subtitleScale}
-                      onChange={(e) => setSubtitleScale(parseFloat(e.target.value))}
-                      className="w-full accent-cyan-500 cursor-pointer h-1 bg-[#232733] rounded-lg appearance-none"
-                    />
-                  </div>
-
-                  {/* Vertical Offset (Nudge) */}
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-[11px] text-slate-400">Vertical Nudge</span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-mono text-cyan-400 text-[11px] font-semibold">{textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`}</span>
-                        {textOffset !== 0 && (
-                          <button
-                            type="button"
-                            onClick={() => setTextOffset(0)}
+                            onClick={() => {
+                              if (activeTextLayer === 'headline') setTextOffset(0);
+                              else setBottomTextOffset(0);
+                            }}
                             className="text-[9px] text-slate-400 hover:text-slate-200 underline cursor-pointer"
                           >
                             Reset
@@ -2289,13 +2466,17 @@ export default function StudioPage() {
                       min="-200"
                       max="200"
                       step="1"
-                      value={textOffset}
-                      onChange={(e) => setTextOffset(parseInt(e.target.value, 10))}
+                      value={activeTextLayer === 'headline' ? textOffset : bottomTextOffset}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        if (activeTextLayer === 'headline') setTextOffset(val);
+                        else setBottomTextOffset(val);
+                      }}
                       className="w-full accent-cyan-500 cursor-pointer h-1 bg-[#232733] rounded-lg appearance-none"
                     />
                     <div className="flex justify-between text-[8px] text-slate-500">
                       <span>-200px (Higher)</span>
-                      <span>0px (Safe)</span>
+                      <span>0px (Default)</span>
                       <span>+200px (Lower)</span>
                     </div>
                   </div>
@@ -2553,128 +2734,143 @@ export default function StudioPage() {
           )}
 
           {/* Canvas Wrapper */}
-          <div className="relative max-h-[72vh] max-w-[85vw] flex items-center justify-center">
+          <div className="relative max-h-[72vh] max-w-[85vw] flex flex-col items-center justify-center">
             {previewBase64 ? (
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-black/80 border border-white/10 group transition duration-300">
-                {/* Camera Shutter Flash Animation */}
-                {isFlashing && (
-                  <div className="absolute inset-0 bg-white/70 z-30 pointer-events-none transition-opacity duration-150 rounded-xl" />
-                )}
-
-                <img
-                  src={`data:image/png;base64,${previewBase64}`}
-                  alt="ADBSnap Canvas Preview"
-                  draggable={false}
-                  className="max-h-[66vh] w-auto object-contain rounded-xl select-none pointer-events-none"
-                />
-
-                {/* Direct On-Canvas Draggable Text Zone (Top Headline Area) */}
-                {themeId !== 'none' && (typographyPosition === 'top' || typographyPosition === 'both') && (
-                  <div
-                    onMouseDown={handleTextDragStart}
-                    onDoubleClick={(e) => {
-                      e.stopPropagation();
-                      setTextOffset(0);
-                    }}
-                    className="absolute top-0 inset-x-0 h-[32%] z-20 cursor-ns-resize group/drag flex flex-col items-center justify-start pt-3 transition-all select-none rounded-t-xl hover:bg-cyan-500/[0.04]"
-                    title="Click and drag up/down to reposition text. Double-click to reset."
-                  >
-                    <div className="opacity-0 group-hover/drag:opacity-100 transition-opacity duration-150 px-3 py-1 rounded-full bg-slate-900/90 text-cyan-300 text-[11px] font-medium border border-cyan-500/50 shadow-2xl flex items-center gap-1.5 select-none pointer-events-none">
-                      <MoveVertical className="w-3 h-3 text-cyan-400" />
-                      <span>Drag to Reposition Text</span>
-                      {textOffset !== 0 && (
-                        <span className="font-mono text-[10px] text-cyan-400 font-bold ml-1">
-                          ({textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`})
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Direct On-Canvas Draggable Text Zone (Bottom Callout Area) */}
-                {themeId !== 'none' && (typographyPosition === 'bottom' || typographyPosition === 'both') && (
-                  <div
-                    onMouseDown={handleTextDragStart}
-                    onDoubleClick={(e) => {
-                      e.stopPropagation();
-                      setTextOffset(0);
-                    }}
-                    className="absolute bottom-0 inset-x-0 h-[30%] z-20 cursor-ns-resize group/drag flex flex-col items-center justify-end pb-3 transition-all select-none rounded-b-xl hover:bg-cyan-500/[0.04]"
-                    title="Click and drag up/down to reposition text. Double-click to reset."
-                  >
-                    <div className="opacity-0 group-hover/drag:opacity-100 transition-opacity duration-150 px-3 py-1 rounded-full bg-slate-900/90 text-cyan-300 text-[11px] font-medium border border-cyan-500/50 shadow-2xl flex items-center gap-1.5 select-none pointer-events-none">
-                      <MoveVertical className="w-3 h-3 text-cyan-400" />
-                      <span>Drag to Reposition Text</span>
-                      {textOffset !== 0 && (
-                        <span className="font-mono text-[10px] text-cyan-400 font-bold ml-1">
-                          ({textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`})
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Dynamic Live HUD Badge only when dragging */}
-                {isDraggingText && (
-                  <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 px-3.5 py-1.5 rounded-full bg-slate-900/95 border border-cyan-400 text-cyan-300 text-xs font-mono font-semibold shadow-2xl backdrop-blur flex items-center gap-2 pointer-events-none animate-in fade-in duration-100">
-                    <MoveVertical className="w-3.5 h-3.5 text-cyan-400 animate-bounce" />
-                    <span>Nudge: {textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`}</span>
-                  </div>
-                )}
-
-                {/* Subtle Non-Blocking Updating Badge */}
-                {isRendering && (
-                  <div className="absolute top-3 right-3 z-30 px-2.5 py-1 rounded-full bg-slate-900/85 backdrop-blur border border-cyan-500/40 text-cyan-300 text-[10px] font-medium flex items-center gap-1.5 shadow-lg pointer-events-none animate-in fade-in duration-100">
-                    <RefreshCw className="w-3 h-3 animate-spin text-cyan-400" />
-                    <span>Updating...</span>
-                  </div>
-                )}
-
-                {/* Floating Quick Action Buttons on Canvas Hover */}
-                <div className="absolute bottom-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200">
-                  {themeId !== 'none' && (
-                    <button
-                      type="button"
-                      onMouseDown={handleTextDragStart}
-                      onDoubleClick={() => setTextOffset(0)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border shadow-xl backdrop-blur flex items-center gap-1.5 cursor-ns-resize select-none transition cursor-pointer ${
-                        isDraggingText
-                          ? 'bg-cyan-500 text-slate-950 font-bold border-cyan-400 shadow-cyan-500/30'
-                          : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-white/15'
-                      }`}
-                      title="Click & drag vertically to reposition text. Double-click to reset."
-                    >
-                      <MoveVertical className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>
-                        {textOffset !== 0
-                          ? `Nudge (${textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`})`
-                          : 'Drag Nudge'}
-                      </span>
-                    </button>
+              <>
+                <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-black/80 border border-white/10 group transition duration-300">
+                  {/* Camera Shutter Flash Animation */}
+                  {isFlashing && (
+                    <div className="absolute inset-0 bg-white/70 z-30 pointer-events-none transition-opacity duration-150 rounded-xl" />
                   )}
 
+                  <img
+                    src={`data:image/png;base64,${previewBase64}`}
+                    alt="ADBSnap Canvas Preview"
+                    draggable={false}
+                    className="max-h-[64vh] w-auto object-contain rounded-xl select-none pointer-events-none"
+                  />
+
+                  {/* Direct On-Canvas Draggable Text Zone (Top Headline Area) */}
+                  {themeId !== 'none' && (typographyPosition === 'top' || typographyPosition === 'both') && (
+                    <div
+                      onClick={() => setActiveTextLayer('headline')}
+                      onMouseDown={(e) => handleTextDragStart(e, 'top')}
+                      onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        setTextOffset(0);
+                        refreshPreview(undefined, { textOffset: 0 });
+                      }}
+                      className={`absolute top-0 inset-x-0 ${typographyPosition === 'top' && subtitle ? 'h-[20%]' : 'h-[32%]'} z-20 cursor-grab active:cursor-grabbing select-none transition-all rounded-t-xl ${
+                        activeTextLayer === 'headline'
+                          ? 'border border-cyan-400/30 bg-cyan-500/[0.03]'
+                          : 'hover:border hover:border-cyan-400/20 hover:bg-cyan-500/[0.01]'
+                      }`}
+                      title="Click to select headline, or drag up/down to reposition. Double-click to reset."
+                    />
+                  )}
+
+                  {/* Direct On-Canvas Draggable Text Zone (Top Subtitle Area in Top mode) */}
+                  {themeId !== 'none' && typographyPosition === 'top' && subtitle && (
+                    <div
+                      onClick={() => setActiveTextLayer('callout')}
+                      onMouseDown={(e) => handleTextDragStart(e, 'top')}
+                      onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        setTextOffset(0);
+                        refreshPreview(undefined, { textOffset: 0 });
+                      }}
+                      className={`absolute top-[20%] inset-x-0 h-[12%] z-20 cursor-grab active:cursor-grabbing select-none transition-all ${
+                        activeTextLayer === 'callout'
+                          ? 'border border-cyan-400/30 bg-cyan-500/[0.03]'
+                          : 'hover:border hover:border-cyan-400/20 hover:bg-cyan-500/[0.01]'
+                      }`}
+                      title="Click to select subtitle, or drag up/down to reposition. Double-click to reset."
+                    />
+                  )}
+
+                  {/* Direct On-Canvas Draggable Text Zone (Bottom Subtitle/Callout Area) */}
+                  {themeId !== 'none' && (typographyPosition === 'bottom' || typographyPosition === 'both') && (
+                    <div
+                      onClick={() => setActiveTextLayer('callout')}
+                      onMouseDown={(e) => handleTextDragStart(e, 'bottom')}
+                      onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        setBottomTextOffset(0);
+                        refreshPreview(undefined, { bottomTextOffset: 0 });
+                      }}
+                      className={`absolute bottom-0 inset-x-0 h-[28%] z-20 cursor-grab active:cursor-grabbing select-none transition-all rounded-b-xl ${
+                        activeTextLayer === 'callout'
+                          ? 'border border-cyan-400/30 bg-cyan-500/[0.03]'
+                          : 'hover:border hover:border-cyan-400/20 hover:bg-cyan-500/[0.01]'
+                      }`}
+                      title="Click to select subtitle/callout, or drag up/down to reposition. Double-click to reset."
+                    />
+                  )}
+
+                  {/* Instant 120 FPS Drag Preview Ghost (Follows cursor with zero latency) */}
+                  {isDraggingText === 'top' && (
+                    <div
+                      ref={dragGhostRef}
+                      className="absolute top-5 inset-x-6 z-30 pointer-events-none flex flex-col items-center justify-center py-2 px-3 rounded-xl border border-cyan-400/60 bg-slate-950/80 backdrop-blur-md shadow-2xl shadow-cyan-500/25 text-center animate-in fade-in duration-100"
+                      style={{ willChange: 'transform' }}
+                    >
+                      <span className="text-white text-xs font-bold tracking-tight line-clamp-1">
+                        {title ? title.replace(/\*\*/g, '') : 'Headline Position'}
+                      </span>
+                    </div>
+                  )}
+
+                  {isDraggingText === 'bottom' && (
+                    <div
+                      ref={dragGhostRef}
+                      className="absolute bottom-5 inset-x-6 z-30 pointer-events-none flex flex-col items-center justify-center py-2 px-3 rounded-xl border border-cyan-400/60 bg-slate-950/80 backdrop-blur-md shadow-2xl shadow-cyan-500/25 text-center animate-in fade-in duration-100"
+                      style={{ willChange: 'transform' }}
+                    >
+                      <span className="text-slate-200 text-[11px] font-medium line-clamp-1">
+                        {subtitle || 'Callout Position'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Clean Canvas Stage Actions Dock (outside artboard) */}
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#161922]/90 backdrop-blur-md border border-[#232733] shadow-xl mt-3 select-none">
                   <button
+                    type="button"
                     onClick={handleCopyImage}
                     disabled={isCopying}
-                    className="px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-medium border border-white/15 shadow-xl backdrop-blur flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white px-2 py-0.5 rounded transition cursor-pointer disabled:opacity-50"
                     title="Copy framed mockup directly to clipboard"
                   >
-                    <Copy className="w-3 h-3 text-cyan-400" />
+                    <Copy className="w-3.5 h-3.5 text-cyan-400" />
                     <span>{isCopying ? 'Copied!' : 'Copy Image'}</span>
                   </button>
 
+                  <div className="w-px h-3.5 bg-slate-700/60" />
+
                   <button
+                    type="button"
                     onClick={() => handleSnap(false)}
                     disabled={isCapturing}
-                    className="px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-medium border border-white/15 shadow-xl backdrop-blur flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white px-2 py-0.5 rounded transition cursor-pointer disabled:opacity-50"
                     title="Sync current phone screen (Space)"
                   >
-                    <RefreshCw className={`w-3 h-3 ${isCapturing ? 'animate-spin' : ''}`} />
+                    <RefreshCw className={`w-3.5 h-3.5 ${isCapturing ? 'animate-spin text-cyan-400' : 'text-cyan-400'}`} />
                     <span>Sync Screen</span>
-                    <kbd className="text-[10px] font-mono text-cyan-400">Space</kbd>
+                    <kbd className="text-[10px] px-1 py-0.2 rounded bg-slate-800 text-cyan-300 font-mono">Space</kbd>
                   </button>
+
+                  {isRendering && (
+                    <>
+                      <div className="w-px h-3.5 bg-slate-700/60" />
+                      <div className="flex items-center gap-1.5 text-[11px] text-cyan-400 pl-1">
+                        <RefreshCw className="w-3 h-3 animate-spin" />
+                        <span>Updating...</span>
+                      </div>
+                    </>
+                  )}
                 </div>
-              </div>
+              </>
             ) : (
               <div
                 onClick={() => fileInputRef.current?.click()}
