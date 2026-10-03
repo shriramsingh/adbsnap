@@ -296,11 +296,15 @@ export default function StudioPage() {
 
   const handleTextDragStart = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDraggingText(true);
     dragStartYRef.current = e.clientY;
     startOffsetRef.current = textOffset;
+    document.body.style.cursor = 'ns-resize';
+    document.body.style.userSelect = 'none';
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
+      moveEvent.preventDefault();
       const deltaY = moveEvent.clientY - dragStartYRef.current;
       const newOffset = Math.max(-200, Math.min(200, Math.round(startOffsetRef.current + deltaY * 1.5)));
       setTextOffset(newOffset);
@@ -308,8 +312,11 @@ export default function StudioPage() {
 
     const handleMouseUp = () => {
       setIsDraggingText(false);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+      refreshPreview();
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -2237,22 +2244,26 @@ export default function StudioPage() {
                 <img
                   src={`data:image/png;base64,${previewBase64}`}
                   alt="ADBSnap Canvas Preview"
-                  className="max-h-[66vh] w-auto object-contain rounded-xl select-none"
+                  draggable={false}
+                  className="max-h-[66vh] w-auto object-contain rounded-xl select-none pointer-events-none"
                 />
 
                 {/* Direct On-Canvas Draggable Text Zone (Top Headline Area) */}
                 {themeId !== 'none' && (typographyPosition === 'top' || typographyPosition === 'both') && (
                   <div
                     onMouseDown={handleTextDragStart}
-                    onDoubleClick={() => setTextOffset(0)}
-                    className="absolute top-2 inset-x-2 h-[26%] z-20 cursor-ns-resize group/drag flex flex-col items-center justify-start pt-1.5 transition-all select-none rounded-xl border border-transparent hover:border-cyan-500/40 hover:bg-cyan-500/[0.04]"
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      setTextOffset(0);
+                    }}
+                    className="absolute top-0 inset-x-0 h-[32%] z-20 cursor-ns-resize group/drag flex flex-col items-center justify-start pt-3 transition-all select-none rounded-t-xl hover:bg-cyan-500/[0.04]"
                     title="Click and drag up/down to reposition text. Double-click to reset."
                   >
-                    <div className="opacity-0 group-hover/drag:opacity-100 transition-opacity duration-150 px-2.5 py-0.5 rounded-full bg-slate-900/90 text-cyan-300 text-[10px] font-medium border border-cyan-500/50 shadow-xl flex items-center gap-1 select-none pointer-events-none">
-                      <MoveVertical className="w-2.5 h-2.5 text-cyan-400" />
+                    <div className="opacity-0 group-hover/drag:opacity-100 transition-opacity duration-150 px-3 py-1 rounded-full bg-slate-900/90 text-cyan-300 text-[11px] font-medium border border-cyan-500/50 shadow-2xl flex items-center gap-1.5 select-none pointer-events-none">
+                      <MoveVertical className="w-3 h-3 text-cyan-400" />
                       <span>Drag to Reposition Text</span>
                       {textOffset !== 0 && (
-                        <span className="font-mono text-[9px] text-cyan-400 font-bold ml-1">
+                        <span className="font-mono text-[10px] text-cyan-400 font-bold ml-1">
                           ({textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`})
                         </span>
                       )}
@@ -2264,15 +2275,18 @@ export default function StudioPage() {
                 {themeId !== 'none' && (typographyPosition === 'bottom' || typographyPosition === 'both') && (
                   <div
                     onMouseDown={handleTextDragStart}
-                    onDoubleClick={() => setTextOffset(0)}
-                    className="absolute bottom-2 inset-x-2 h-[26%] z-20 cursor-ns-resize group/drag flex flex-col items-center justify-end pb-1.5 transition-all select-none rounded-xl border border-transparent hover:border-cyan-500/40 hover:bg-cyan-500/[0.04]"
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      setTextOffset(0);
+                    }}
+                    className="absolute bottom-0 inset-x-0 h-[30%] z-20 cursor-ns-resize group/drag flex flex-col items-center justify-end pb-3 transition-all select-none rounded-b-xl hover:bg-cyan-500/[0.04]"
                     title="Click and drag up/down to reposition text. Double-click to reset."
                   >
-                    <div className="opacity-0 group-hover/drag:opacity-100 transition-opacity duration-150 px-2.5 py-0.5 rounded-full bg-slate-900/90 text-cyan-300 text-[10px] font-medium border border-cyan-500/50 shadow-xl flex items-center gap-1 select-none pointer-events-none">
-                      <MoveVertical className="w-2.5 h-2.5 text-cyan-400" />
+                    <div className="opacity-0 group-hover/drag:opacity-100 transition-opacity duration-150 px-3 py-1 rounded-full bg-slate-900/90 text-cyan-300 text-[11px] font-medium border border-cyan-500/50 shadow-2xl flex items-center gap-1.5 select-none pointer-events-none">
+                      <MoveVertical className="w-3 h-3 text-cyan-400" />
                       <span>Drag to Reposition Text</span>
                       {textOffset !== 0 && (
-                        <span className="font-mono text-[9px] text-cyan-400 font-bold ml-1">
+                        <span className="font-mono text-[10px] text-cyan-400 font-bold ml-1">
                           ({textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`})
                         </span>
                       )}

@@ -271,15 +271,18 @@ export function generateTypographySvg(options: TypographyOptions): string {
 
   // POSITION: TOP (Default)
   if (position === 'top') {
-    let currentY = Math.round(110 * scale) + textYOffset;
+    const defaultTopY = Math.round(110 * scale);
+    let baseTopY = defaultTopY;
 
-    // Smart Collision Protection against phoneTop
+    // Smart Collision Protection sets safe base default against phoneTop
     if (phoneTop && phoneTop > 200) {
       const maxAllowedTopY = phoneTop - totalTopBlockHeight - Math.round(24 * scale);
-      if (currentY > maxAllowedTopY) {
-        currentY = Math.max(Math.round(40 * scale), maxAllowedTopY);
+      if (defaultTopY > maxAllowedTopY) {
+        baseTopY = Math.max(Math.round(40 * scale), maxAllowedTopY);
       }
     }
+
+    let currentY = baseTopY + textYOffset;
 
     if (eyebrowTag) {
       const tag = renderEyebrow(currentY);
@@ -337,14 +340,18 @@ export function generateTypographySvg(options: TypographyOptions): string {
   // POSITION: BOTH (Top Headline/Badge + Bottom Subtitle/Callout)
   else if (position === 'both') {
     // TOP ZONE: Eyebrow + Star Badge + Headline
-    let topY = Math.round(110 * scale) + textYOffset;
+    const defaultTopY = Math.round(110 * scale);
+    let baseTopY = defaultTopY;
+
     if (phoneTop && phoneTop > 200) {
       const topContentHeight = badgeBlockHeight + titleBlockHeight;
       const maxAllowedTopY = phoneTop - topContentHeight - Math.round(24 * scale);
-      if (topY > maxAllowedTopY) {
-        topY = Math.max(Math.round(40 * scale), maxAllowedTopY);
+      if (defaultTopY > maxAllowedTopY) {
+        baseTopY = Math.max(Math.round(40 * scale), maxAllowedTopY);
       }
     }
+
+    let topY = baseTopY + textYOffset;
 
     if (eyebrowTag) {
       const tag = renderEyebrow(topY);
