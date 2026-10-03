@@ -1,4 +1,4 @@
-﻿import chalk from 'chalk';
+import chalk from 'chalk';
 
 export const STYLES = {
   banner: (text: string) => chalk.bold.cyan(text),
@@ -11,4 +11,5 @@ export const STYLES = {
   badgeUsb: () => chalk.bgBlue.white.bold(' USB 🔌 '),
   badgeWifi: () => chalk.bgGreen.black.bold(' WI-FI 📶 '),
   badgeEmulator: () => chalk.bgMagenta.white.bold(' EMULATOR 💻 '),
+  badgeIos: () => chalk.bgWhite.black.bold(' iOS 🍎 '),
 };

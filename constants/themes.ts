@@ -41,9 +41,18 @@ export const BEZEL_PRESETS: Record<string, BezelSpec> = {
     isFrameless: true,
     screen: { x: 0, y: 0, width: 864, height: 1844, radius: 28 },
   },
+  'iphone-16-pro-max': {
+    id: 'iphone-16-pro-max',
+    name: 'iPhone 16 Pro Max (6.9")',
+    category: 'apple',
+    width: 930,
+    height: 2000,
+    screen: { x: 26, y: 26, width: 878, height: 1948, radius: 54 },
+    island: { x: 365, y: 44, width: 200, height: 48, radius: 24 },
+  },
   'iphone-16-pro': {
     id: 'iphone-16-pro',
-    name: 'iPhone 16 Pro Max',
+    name: 'iPhone 16 Pro',
     category: 'apple',
     width: 920,
     height: 1950,
@@ -77,6 +86,15 @@ export const BEZEL_PRESETS: Record<string, BezelSpec> = {
     screen: { x: 26, y: 26, width: 848, height: 1818, radius: 44 },
     notch: { width: 230, height: 40, radius: 18 },
   },
+  'pixel-9-pro-fold': {
+    id: 'pixel-9-pro-fold',
+    name: 'Google Pixel 9 Pro Fold (Inner 8")',
+    category: 'android',
+    width: 1420,
+    height: 1480,
+    screen: { x: 24, y: 24, width: 1372, height: 1432, radius: 32 },
+    punchHole: { cx: 710, cy: 46, r: 13 },
+  },
   'pixel-9-pro': {
     id: 'pixel-9-pro',
     name: 'Google Pixel 9 Pro',
@@ -94,6 +112,15 @@ export const BEZEL_PRESETS: Record<string, BezelSpec> = {
     height: 1870,
     screen: { x: 25, y: 25, width: 850, height: 1820, radius: 42 },
     punchHole: { cx: 450, cy: 52, r: 15 },
+  },
+  'galaxy-s25-ultra': {
+    id: 'galaxy-s25-ultra',
+    name: 'Samsung Galaxy S25 Ultra',
+    category: 'android',
+    width: 924,
+    height: 1924,
+    screen: { x: 18, y: 18, width: 888, height: 1888, radius: 18 },
+    punchHole: { cx: 462, cy: 44, r: 13 },
   },
   'galaxy-s24-ultra': {
     id: 'galaxy-s24-ultra',
@@ -197,6 +224,54 @@ export const GRADIENT_PRESETS: Record<string, GradientPreset> = {
     angle: 180,
     isDark: true,
   },
+  fintech: {
+    name: 'Fintech Emerald',
+    colors: ['#022c22', '#064e3b', '#047857'],
+    angle: 135,
+    isDark: true,
+  },
+  lavender: {
+    name: 'Lavender Mist',
+    colors: ['#1e1b4b', '#4c1d95', '#7c3aed'],
+    angle: 135,
+    isDark: true,
+  },
+  cyberpunk: {
+    name: 'Cyberpunk Neon',
+    colors: ['#09090b', '#701a75', '#a21caf'],
+    angle: 145,
+    isDark: true,
+  },
+  crimsonVoid: {
+    name: 'Crimson Void',
+    colors: ['#18181b', '#7f1d1d', '#450a0a'],
+    angle: 160,
+    isDark: true,
+  },
+  cobalt: {
+    name: 'Cobalt Indigo',
+    colors: ['#030712', '#1e3a8a', '#1e40af'],
+    angle: 150,
+    isDark: true,
+  },
+  terracotta: {
+    name: 'Warm Terracotta',
+    colors: ['#1c1917', '#78350f', '#9a3412'],
+    angle: 135,
+    isDark: true,
+  },
+  slateCarbon: {
+    name: 'Carbon Matte',
+    colors: ['#090d16', '#1e293b', '#334155'],
+    angle: 180,
+    isDark: true,
+  },
+  pureWhite: {
+    name: 'Studio Minimal White',
+    colors: ['#ffffff', '#f8fafc', '#f1f5f9'],
+    angle: 180,
+    isDark: false,
+  },
 };
 
 export type LayoutMode = 'appstore' | 'social';
@@ -214,20 +289,36 @@ export const LAYOUT_PRESETS: Record<LayoutMode, { name: string; phoneTop: (canva
 
 export const FONT_PRESETS: Record<string, { name: string; family: string }> = {
   modern: {
-    name: 'Modern Sans (Clean Tech)',
+    name: 'Modern Sans (SF / Inter / Roboto)',
     family: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, sans-serif",
   },
+  geometric: {
+    name: 'Geometric Tech (Poppins / Outfit)',
+    family: "'Poppins', 'Outfit', 'Plus Jakarta Sans', -apple-system, sans-serif",
+  },
   rounded: {
-    name: 'Friendly Rounded',
-    family: "'Segoe UI Variable Display', 'SF Pro Rounded', 'Arial Rounded MT Bold', sans-serif",
+    name: 'Friendly Rounded (Nunito / Quicksand)',
+    family: "'Nunito', 'Quicksand', 'SF Pro Rounded', 'Arial Rounded MT Bold', sans-serif",
+  },
+  impact: {
+    name: 'Bold Impact (Bebas Neue / Oswald)',
+    family: "'Impact', 'Oswald', 'Bebas Neue', 'Arial Black', sans-serif",
   },
   editorial: {
-    name: 'Editorial Serif (Luxury & Elegance)',
-    family: "'Georgia', 'Times New Roman', serif",
+    name: 'Luxury Serif (Playfair / Georgia)',
+    family: "'Playfair Display', 'Georgia', 'Times New Roman', serif",
   },
   mono: {
-    name: 'Developer Monospace',
-    family: "'Consolas', 'Fira Code', 'SF Mono', monospace",
+    name: 'Developer Monospace (JetBrains / Fira)',
+    family: "'JetBrains Mono', 'Fira Code', 'Consolas', 'SF Mono', monospace",
+  },
+  playful: {
+    name: 'Casual & Playful (Fredoka)',
+    family: "'Fredoka', 'Chalkboard SE', 'Comic Sans MS', sans-serif",
+  },
+  humanist: {
+    name: 'Humanist Elegance (Optima / Candara)',
+    family: "'Optima', 'Candara', 'Segoe UI Variable', sans-serif",
   },
 };
 

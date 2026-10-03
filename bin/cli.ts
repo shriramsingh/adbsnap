@@ -5,6 +5,7 @@ import readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import { parseArgs } from 'node:util';
 import { androidDriver } from '../lib/adb';
+import { listAllDevices, captureDeviceScreenshot } from '../lib/devices';
 import { compositeFrame, exportMultiStore } from '../lib/sharp';
 import { saveStoreZip, type ZipFileInput } from '../lib/zip';
 import { uiCrawler } from '../lib/crawler';
@@ -25,6 +26,8 @@ async function main() {
       layout: { type: 'string', default: 'appstore' },
       font: { type: 'string', default: 'modern' },
       fit: { type: 'string', default: 'cover' },
+      format: { type: 'string', default: 'png' },
+      quality: { type: 'string' },
       store: { type: 'string', default: 'all' },
       title: { type: 'string' },
       subtitle: { type: 'string' },
@@ -35,6 +38,21 @@ async function main() {
       device: { type: 'string' },
       out: { type: 'string' },
       port: { type: 'string', default: '3000' },
+      'text-pos': { type: 'string', default: 'top' },
+      align: { type: 'string', default: 'center' },
+      'font-h': { type: 'string' },
+      'font-s': { type: 'string' },
+      'title-scale': { type: 'string' },
+      'sub-scale': { type: 'string' },
+      weight: { type: 'string' },
+      italic: { type: 'boolean', default: false },
+      'text-offset': { type: 'string' },
+      colors: { type: 'string' },
+      tag: { type: 'string' },
+      'phone-scale': { type: 'string' },
+      'phone-offset': { type: 'string' },
+      'no-glow': { type: 'boolean', default: false },
+      footer: { type: 'string' },
       browser: { type: 'boolean', default: false },
       'no-open': { type: 'boolean', default: false },
       raw: { type: 'boolean', default: false },
@@ -101,7 +119,7 @@ async function handleDevices() {
   logger.banner(APP_INFO.NAME, 'Connected Device Discovery');
   logger.info(MESSAGES.SCANNING_DEVICES);
 
-  const devices = await androidDriver.listDevices();
+  const devices = await listAllDevices();
   if (devices.length === 0) {
     logger.warn(MESSAGES.NO_DEVICES_FOUND);
     return;
@@ -111,15 +129,16 @@ async function handleDevices() {
 
   for (const d of devices) {
     let badge = STYLES.badgeUsb();
-    if (d.type === 'wifi') badge = STYLES.badgeWifi();
-    if (d.type === 'emulator') badge = STYLES.badgeEmulator();
+    if (d.platform === 'ios') badge = STYLES.badgeIos();
+    else if (d.type === 'wifi') badge = STYLES.badgeWifi();
+    else if (d.type === 'emulator') badge = STYLES.badgeEmulator();
 
     const authStatus = d.isAuthorized
       ? STYLES.success('READY')
       : STYLES.error('UNAUTHORIZED');
 
     console.log(`  ${badge} ${STYLES.bold(d.model)} (${STYLES.dim(d.id)})`);
-    console.log(`     └─ Status: ${authStatus} | Product: ${d.product || 'generic'}\n`);
+    console.log(`     └─ Status: ${authStatus} | Platform: ${d.platform.toUpperCase()} | Product: ${d.product || 'generic'}\n`);
   }
 }
 
@@ -205,6 +224,8 @@ async function handleSnap(options: {
   fit?: string;
   title?: string;
   subtitle?: string;
+  footer?: string;
+  'text-pos'?: string;
   stars?: boolean;
   device?: string;
   out?: string;
@@ -212,7 +233,7 @@ async function handleSnap(options: {
 }) {
   logger.banner(APP_INFO.NAME, 'Automated Mobile Capture & Showcase');
 
-  const devices = await androidDriver.listDevices();
+  const devices = await listAllDevices();
   const ready = devices.filter((d) => d.isAuthorized);
 
   if (ready.length === 0) {
@@ -224,11 +245,11 @@ async function handleSnap(options: {
     ? ready.find((d) => d.id === options.device) || ready[0]
     : ready[0];
 
-  logger.info(`Target: ${STYLES.bold(targetDevice.model)} (${targetDevice.id}) [${targetDevice.type.toUpperCase()}]`);
+  logger.info(`Target: ${STYLES.bold(targetDevice.model)} (${targetDevice.id}) [${targetDevice.platform.toUpperCase()} ${targetDevice.type.toUpperCase()}]`);
   logger.info(MESSAGES.CAPTURE_START);
 
   const captureStart = performance.now();
-  const rawBuffer = await androidDriver.captureScreenshot(targetDevice.id);
+  const rawBuffer = await captureDeviceScreenshot(targetDevice.id);
   const captureMs = Math.round(performance.now() - captureStart);
   logger.success(`Screen captured in ${captureMs}ms (RAM stream)`);
 
@@ -253,6 +274,22 @@ async function handleSnap(options: {
   const layout = (options.layout as LayoutMode) || 'appstore';
   const font = options.font || 'modern';
   const fit = (options.fit as 'cover' | 'contain' | 'fill') || 'cover';
+  const format = (options.format as 'png' | 'webp' | 'avif' | 'jpeg') || 'png';
+  const quality = options.quality ? Number(options.quality) : undefined;
+  const textPos = (options['text-pos'] as 'top' | 'bottom' | 'both') || 'top';
+  const textAlign = (options.align as 'left' | 'center' | 'right') || 'center';
+  const headlineFont = options['font-h'] || font;
+  const subtitleFont = options['font-s'] || font;
+  const titleScaleMultiplier = options['title-scale'] ? Number(options['title-scale']) : undefined;
+  const subtitleScaleMultiplier = options['sub-scale'] ? Number(options['sub-scale']) : undefined;
+  const titleWeight = (options.weight as any) || undefined;
+  const isItalic = options.italic || false;
+  const textYOffset = options['text-offset'] ? Number(options['text-offset']) : undefined;
+  const customColors = options.colors ? (options.colors.split(',') as [string, string]) : undefined;
+  const eyebrowTag = options.tag;
+  const phoneScaleMultiplier = options['phone-scale'] ? Number(options['phone-scale']) : undefined;
+  const phoneTopOffset = options['phone-offset'] ? Number(options['phone-offset']) : undefined;
+  const enableAmbientGlow = !options['no-glow'];
 
   if (!BEZEL_PRESETS[frame]) {
     logger.warn(`Unknown frame "${frame}", falling back to "iphone-16-pro". Available: ${Object.keys(BEZEL_PRESETS).join(', ')}`);
@@ -271,21 +308,38 @@ async function handleSnap(options: {
     gradientPreset: theme,
     layout,
     font,
+    headlineFont,
+    subtitleFont,
+    textAlign,
+    titleScaleMultiplier,
+    subtitleScaleMultiplier,
+    titleWeight,
+    isItalic,
+    textYOffset,
+    customColors,
     fit,
+    format,
+    quality,
     title: options.title,
     subtitle: options.subtitle,
+    footer: options.footer,
+    eyebrowTag,
     showStarBadge: options.stars,
-    typographyPosition: 'top',
+    typographyPosition: textPos,
+    phoneScaleMultiplier,
+    phoneTopOffset,
+    enableAmbientGlow,
   });
 
   logger.success(MESSAGES.COMPOSITE_SUCCESS(result.elapsedMs, result.width, result.height));
 
-  const finalPath = options.out || path.join(outDir, `snap-${theme}-${timestamp}.png`);
+  const ext = format === 'webp' ? 'webp' : format === 'avif' ? 'avif' : format === 'jpeg' ? 'jpg' : 'png';
+  const finalPath = options.out || path.join(outDir, `snap-${theme}-${timestamp}.${ext}`);
   fs.writeFileSync(finalPath, result.buffer);
 
   console.log('\n' + '─'.repeat(50));
   logger.success(`Showcase Asset Ready: ${STYLES.bold(finalPath)}`);
-  logger.info(`Specs: ${result.width}x${result.height} px | Frame: ${frame} | Theme: ${theme} | Layout: ${layout} | Fit: ${fit} | Font: ${font}`);
+  logger.info(`Specs: ${result.width}x${result.height} px | Format: ${format.toUpperCase()} | Frame: ${frame} | Theme: ${theme} | Layout: ${layout} | Fit: ${fit}`);
   if (!process.env.CI) {
     console.log(STYLES.dim('⭐ Enjoying ADBSnap? Star on GitHub: ') + STYLES.info('https://github.com/shriramsingh/adbsnap'));
   }
@@ -300,6 +354,21 @@ async function handleExport(options: {
   store?: string;
   title?: string;
   subtitle?: string;
+  footer?: string;
+  tag?: string;
+  'phone-scale'?: string;
+  'phone-offset'?: string;
+  'no-glow'?: boolean;
+  'text-pos'?: string;
+  align?: string;
+  'font-h'?: string;
+  'font-s'?: string;
+  'title-scale'?: string;
+  'sub-scale'?: string;
+  weight?: string;
+  italic?: boolean;
+  'text-offset'?: string;
+  colors?: string;
   stars?: boolean;
   zip?: boolean;
   config?: string;
@@ -313,8 +382,23 @@ async function handleExport(options: {
   let theme = options.theme || 'aurora';
   let layout = (options.layout as LayoutMode) || 'appstore';
   let font = options.font || 'modern';
+  let headlineFont = options['font-h'] || font;
+  let subtitleFont = options['font-s'] || font;
+  let textAlign = (options.align as 'left' | 'center' | 'right') || 'center';
+  let titleScaleMultiplier = options['title-scale'] ? Number(options['title-scale']) : undefined;
+  let subtitleScaleMultiplier = options['sub-scale'] ? Number(options['sub-scale']) : undefined;
+  let titleWeight = (options.weight as any) || undefined;
+  let isItalic = options.italic || false;
+  let textYOffset = options['text-offset'] ? Number(options['text-offset']) : undefined;
+  let customColors = options.colors ? (options.colors.split(',') as [string, string]) : undefined;
   let title = options.title;
   let subtitle = options.subtitle;
+  let footer = options.footer;
+  let tag = options.tag;
+  let phoneScaleMultiplier = options['phone-scale'] ? Number(options['phone-scale']) : undefined;
+  let phoneTopOffset = options['phone-offset'] ? Number(options['phone-offset']) : undefined;
+  let enableAmbientGlow = !options['no-glow'];
+  let textPos = (options['text-pos'] as 'top' | 'bottom' | 'both') || 'top';
   let stars = options.stars ?? false;
 
   if (options.config && fs.existsSync(options.config)) {
@@ -324,7 +408,21 @@ async function handleExport(options: {
       if (cfg.frame) frame = cfg.frame;
       if (cfg.layout) layout = cfg.layout;
       if (cfg.font) font = cfg.font;
+      if (cfg.headlineFont) headlineFont = cfg.headlineFont;
+      if (cfg.subtitleFont) subtitleFont = cfg.subtitleFont;
+      if (cfg.textAlign) textAlign = cfg.textAlign;
+      if (cfg.titleScale !== undefined) titleScaleMultiplier = Number(cfg.titleScale);
+      if (cfg.subtitleScale !== undefined) subtitleScaleMultiplier = Number(cfg.subtitleScale);
+      if (cfg.weight) titleWeight = cfg.weight;
+      if (cfg.italic !== undefined) isItalic = Boolean(cfg.italic);
+      if (cfg.textOffset !== undefined) textYOffset = Number(cfg.textOffset);
+      if (cfg.customColors) customColors = cfg.customColors;
       if (cfg.stars !== undefined) stars = cfg.stars;
+      if (cfg.textPos) textPos = cfg.textPos;
+      if (cfg.tag) tag = cfg.tag;
+      if (cfg.phoneScale !== undefined) phoneScaleMultiplier = Number(cfg.phoneScale);
+      if (cfg.phoneOffset !== undefined) phoneTopOffset = Number(cfg.phoneOffset);
+      if (cfg.glow !== undefined) enableAmbientGlow = Boolean(cfg.glow);
       if (cfg.screens && cfg.screens[0]) {
         if (!title) title = cfg.screens[0].title;
         if (!subtitle) subtitle = cfg.screens[0].subtitle;
@@ -335,7 +433,7 @@ async function handleExport(options: {
     }
   }
 
-  const devices = await androidDriver.listDevices();
+  const devices = await listAllDevices();
   const ready = devices.filter((d) => d.isAuthorized);
 
   if (ready.length === 0) {
@@ -347,11 +445,11 @@ async function handleExport(options: {
     ? ready.find((d) => d.id === options.device) || ready[0]
     : ready[0];
 
-  logger.info(`Target: ${STYLES.bold(targetDevice.model)} (${targetDevice.id})`);
+  logger.info(`Target: ${STYLES.bold(targetDevice.model)} (${targetDevice.id}) [${targetDevice.platform.toUpperCase()} ${targetDevice.type.toUpperCase()}]`);
   logger.info(MESSAGES.CAPTURE_START);
 
   const captureStart = performance.now();
-  const rawBuffer = await androidDriver.captureScreenshot(targetDevice.id);
+  const rawBuffer = await captureDeviceScreenshot(targetDevice.id);
   const captureMs = Math.round(performance.now() - captureStart);
   logger.success(`Screen captured in ${captureMs}ms (RAM stream)`);
 
@@ -368,10 +466,24 @@ async function handleExport(options: {
     gradientPreset: theme,
     layout,
     font,
+    headlineFont,
+    subtitleFont,
+    textAlign,
+    titleScaleMultiplier,
+    subtitleScaleMultiplier,
+    titleWeight,
+    isItalic,
+    textYOffset,
+    customColors,
     title,
     subtitle,
+    footer,
+    eyebrowTag: tag,
+    phoneScaleMultiplier,
+    phoneTopOffset,
+    enableAmbientGlow,
     showStarBadge: stars,
-    typographyPosition: 'top',
+    typographyPosition: textPos,
     storeFilter,
   });
   const totalExportMs = Math.round(performance.now() - exportStart);
@@ -805,7 +917,7 @@ async function handleStudio(options: Record<string, unknown>) {
     const { startStudioServer } = await import('../lib/studio-server');
     await startStudioServer({ port });
 
-    const url = `http://adbsnap.localhost:${port}`;
+    const url = `http://localhost:${port}`;
     logger.success(`🚀 Server active! Running at ${STYLES.info(url)}`);
 
     if (!noOpen) {

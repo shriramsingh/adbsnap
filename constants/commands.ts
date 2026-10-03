@@ -1,6 +1,7 @@
 export const ADB_COMMANDS = {
   DEVICES: ['devices', '-l'],
   SCREENCAP: ['exec-out', 'screencap', '-p'],
+  SCREENCAP_RAW: ['exec-out', 'screencap'],
   TCP_IP: (port: number) => ['tcpip', port.toString()],
   CONNECT: (ip: string, port: number) => ['connect', `${ip}:${port}`],
   PAIR: (ip: string, port: number, code: string) => ['pair', `${ip}:${port}`, code],

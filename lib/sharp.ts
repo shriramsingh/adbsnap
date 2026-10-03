@@ -1,7 +1,7 @@
 import sharp, { type OverlayOptions } from 'sharp';
 import { BEZEL_PRESETS, GRADIENT_PRESETS, LAYOUT_PRESETS, FONT_PRESETS, STORE_TARGETS, type BezelSpec, type LayoutMode, type StoreTarget } from '../constants/themes';
 import { generateBezelSvg, generateScreenCornerMask, generateStudioShadowSvg } from './bezel-generator';
-import { generateGradientSvg, generateTypographySvg } from './backdrop-generator';
+import { generateGradientSvg, generateTypographySvg, generateAmbientGlowSvg } from './backdrop-generator';
 
 export interface CompositeFrameOptions {
   screenshotBuffer: Buffer;
@@ -13,21 +13,104 @@ export interface CompositeFrameOptions {
   font?: string;
   title?: string;
   subtitle?: string;
+  footer?: string;
+  eyebrowTag?: string;
   showStarBadge?: boolean;
-  typographyPosition?: 'top' | 'bottom';
+  typographyPosition?: 'top' | 'bottom' | 'both';
   canvasWidth?: number;
   canvasHeight?: number;
   phoneTopOffset?: number;
+  phoneScaleMultiplier?: number;
+  headlineFont?: string;
+  subtitleFont?: string;
+  textAlign?: 'left' | 'center' | 'right';
+  titleScaleMultiplier?: number;
+  subtitleScaleMultiplier?: number;
+  titleWeight?: '400' | '500' | '600' | '700' | '800' | '900';
+  subtitleWeight?: '400' | '500' | '600' | '700';
+  isItalic?: boolean;
+  textYOffset?: number;
+  useCustomColors?: boolean;
+  customColors?: [string, string];
+  enableAmbientGlow?: boolean;
+  ambientGlowColor?: string;
+  accentColors?: [string, string];
   fit?: 'cover' | 'contain' | 'fill';
+  precomputedPhoneDeviceBuffer?: Buffer;
+  format?: 'png' | 'webp' | 'avif' | 'jpeg';
+  quality?: number;
 }
-
-
 
 export interface CompositeResult {
   buffer: Buffer;
   width: number;
   height: number;
   elapsedMs: number;
+}
+
+/**
+ * Assembles a raw screenshot into the full vector device frame at native hardware resolution.
+ * Cached and reused across multi-target store exports for extreme performance.
+ */
+export async function assemblePhoneDevice(
+  screenshotBuffer: Buffer,
+  spec: BezelSpec,
+  fit: 'cover' | 'contain' | 'fill' = 'cover'
+): Promise<Buffer> {
+  const cornerMaskSvg = generateScreenCornerMask(spec.screen.width, spec.screen.height, spec.screen.radius);
+  const cornerMaskBuffer = Buffer.from(cornerMaskSvg);
+
+  const roundedScreen = await sharp(screenshotBuffer)
+    .resize(spec.screen.width, spec.screen.height, {
+      fit,
+      position: 'top',
+      background: { r: 0, g: 0, b: 0, alpha: 1 },
+    })
+    .composite([{ input: cornerMaskBuffer, blend: 'dest-in' }])
+    .png()
+    .toBuffer();
+
+  const isFramelessMode = Boolean(spec.isFrameless || spec.id === 'none');
+  if (isFramelessMode) {
+    const shadowPad = 60;
+    const deviceWidth = spec.screen.width + shadowPad * 2;
+    const deviceHeight = spec.screen.height + shadowPad * 2;
+    const shadowSvg = generateStudioShadowSvg(spec.screen.width, spec.screen.height, spec.screen.radius);
+    const shadowBuffer = Buffer.from(shadowSvg);
+
+    return sharp({
+      create: {
+        width: deviceWidth,
+        height: deviceHeight,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      },
+    })
+      .composite([
+        { input: shadowBuffer, left: 0, top: 0 },
+        { input: roundedScreen, left: shadowPad, top: shadowPad - 4 },
+      ])
+      .png()
+      .toBuffer();
+  }
+
+  const bezelSvg = generateBezelSvg({ spec });
+  const bezelBuffer = Buffer.from(bezelSvg);
+
+  return sharp({
+    create: {
+      width: spec.width,
+      height: spec.height,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  })
+    .composite([
+      { input: roundedScreen, left: spec.screen.x, top: spec.screen.y },
+      { input: bezelBuffer, left: 0, top: 0 },
+    ])
+    .png()
+    .toBuffer();
 }
 
 /**
@@ -50,7 +133,8 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
   let angle = options.gradientAngle ?? 135;
   let isDarkTheme = true;
 
-  if (options.customColors && options.customColors.length >= 2) {
+  const shouldUseCustom = Boolean(options.useCustomColors || options.gradientPreset === 'custom');
+  if (shouldUseCustom && options.customColors && options.customColors.length >= 2) {
     colors = options.customColors;
   } else if (options.gradientPreset && GRADIENT_PRESETS[options.gradientPreset]) {
     const preset = GRADIENT_PRESETS[options.gradientPreset];
@@ -59,77 +143,44 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
     isDarkTheme = preset.isDark ?? true;
   }
 
-  // 3. Resize and corner-mask raw screenshot to fit bezel screen cutout
+  // 3. Resolve Device Dimensions & Assemble Chassis Frame (or reuse precomputed)
   const fitMode = options.fit || 'cover';
-  const resizedScreen = await sharp(options.screenshotBuffer)
-    .resize(spec.screen.width, spec.screen.height, {
-      fit: fitMode,
-      position: 'top',
-      background: { r: 0, g: 0, b: 0, alpha: 1 },
-    })
-    .png()
-    .toBuffer();
-
-  const cornerMaskSvg = generateScreenCornerMask(spec.screen.width, spec.screen.height, spec.screen.radius);
-  const cornerMaskBuffer = Buffer.from(cornerMaskSvg);
-
-  const roundedScreen = await sharp(resizedScreen)
-    .composite([{ input: cornerMaskBuffer, blend: 'dest-in' }])
-    .png()
-    .toBuffer();
-
-  // 4 & 5. Assemble Phone Device (Masked Screen + Optional Bezel Hardware or Studio Shadow)
-  let phoneDeviceBuffer: Buffer;
+  const isFramelessMode = Boolean(spec.isFrameless || spec.id === 'none');
   let deviceCanvasWidth = spec.width;
   let deviceCanvasHeight = spec.height;
 
-  if (spec.isFrameless || spec.id === 'none') {
-    // Pure Floating Screen: no hardware chassis, realistic studio drop shadow
+  if (isFramelessMode) {
     const shadowPad = 60;
     deviceCanvasWidth = spec.screen.width + shadowPad * 2;
     deviceCanvasHeight = spec.screen.height + shadowPad * 2;
-    const shadowSvg = generateStudioShadowSvg(spec.screen.width, spec.screen.height, spec.screen.radius);
-    const shadowBuffer = Buffer.from(shadowSvg);
-
-    phoneDeviceBuffer = await sharp({
-      create: {
-        width: deviceCanvasWidth,
-        height: deviceCanvasHeight,
-        channels: 4,
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
-      },
-    })
-      .composite([
-        { input: shadowBuffer, left: 0, top: 0 },
-        { input: roundedScreen, left: shadowPad, top: shadowPad - 4 },
-      ])
-      .png()
-      .toBuffer();
-  } else {
-    // Hardware Chassis Frame
-    const bezelSvg = generateBezelSvg({ spec });
-    const bezelBuffer = Buffer.from(bezelSvg);
-
-    phoneDeviceBuffer = await sharp({
-      create: {
-        width: spec.width,
-        height: spec.height,
-        channels: 4,
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
-      },
-    })
-      .composite([
-        { input: roundedScreen, left: spec.screen.x, top: spec.screen.y },
-        { input: bezelBuffer, left: 0, top: 0 },
-      ])
-      .png()
-      .toBuffer();
   }
 
+  const phoneDeviceBuffer = options.precomputedPhoneDeviceBuffer || await assemblePhoneDevice(options.screenshotBuffer, spec, fitMode);
+
+  // 4. Responsive Phone Sizing to guarantee title headroom on all screen ratios
+  const layout = options.layout || 'appstore';
+  const baseRatio = layout === 'appstore' ? 0.74 : 0.66;
+  const scaleMult = options.phoneScaleMultiplier ? Math.max(0.4, Math.min(1.35, options.phoneScaleMultiplier)) : 1.0;
+  const targetRatio = baseRatio * scaleMult;
+  let targetPhoneHeight = Math.round(canvasHeight * targetRatio);
+  const maxAllowedWidth = Math.round(canvasWidth * 0.94);
+
+  if ((targetPhoneHeight / deviceCanvasHeight) * deviceCanvasWidth > maxAllowedWidth) {
+    targetPhoneHeight = Math.round((maxAllowedWidth / deviceCanvasWidth) * deviceCanvasHeight);
+  }
+
+  const phoneScale = targetPhoneHeight / deviceCanvasHeight;
+  const targetPhoneWidth = Math.round(deviceCanvasWidth * phoneScale);
+
+  // 5. Scale Chassis to Canvas Dimensions
+  const scaledPhoneBuffer = await sharp(phoneDeviceBuffer)
+    .resize(targetPhoneWidth, targetPhoneHeight)
+    .png()
+    .toBuffer();
+
   // If "None (Raw Screenshot)" theme preset is active:
-  // Bypass gradient canvas, marketing headers, subheaders, and layout padding.
   if (options.gradientPreset === 'none') {
-    if (spec.isFrameless || spec.id === 'none') {
+    if (isFramelessMode) {
       const rawPng = await sharp(options.screenshotBuffer).png().toBuffer();
       const meta = await sharp(rawPng).metadata();
       return {
@@ -140,40 +191,34 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
       };
     }
 
-    const meta = await sharp(phoneDeviceBuffer).metadata();
+    const meta = await sharp(scaledPhoneBuffer).metadata();
     return {
-      buffer: phoneDeviceBuffer,
-      width: meta.width || spec.width,
-      height: meta.height || spec.height,
+      buffer: scaledPhoneBuffer,
+      width: meta.width || targetPhoneWidth,
+      height: meta.height || targetPhoneHeight,
       elapsedMs: Math.round(performance.now() - startTime),
     };
   }
 
-  // 6. Responsive Phone Sizing to guarantee title headroom on all screen ratios (16:9, 19.5:9, 4:3, etc.)
-  const layout = options.layout || 'appstore';
-  const targetRatio = layout === 'appstore' ? 0.74 : 0.66;
-  let targetPhoneHeight = Math.round(canvasHeight * targetRatio);
-  const maxAllowedWidth = Math.round(canvasWidth * 0.88);
+  // 6. Calculate Placement
+  const phoneLeft = Math.round((canvasWidth - targetPhoneWidth) / 2);
+  let defaultPhoneTop: number;
 
-  if ((targetPhoneHeight / deviceCanvasHeight) * deviceCanvasWidth > maxAllowedWidth) {
-    targetPhoneHeight = Math.round((maxAllowedWidth / deviceCanvasWidth) * deviceCanvasHeight);
+  if (typographyPosition === 'bottom') {
+    // Phone placed near top, bleeding top or high center, leaving generous headroom at bottom
+    defaultPhoneTop = layout === 'appstore' ? Math.round(-80 * phoneScale) : Math.round(canvasHeight * 0.05);
+  } else if (typographyPosition === 'both') {
+    // Phone centered vertically between top headline and bottom footer
+    defaultPhoneTop = Math.round((canvasHeight - targetPhoneHeight) / 2);
+  } else {
+    // Top typography (default)
+    const layoutPreset = LAYOUT_PRESETS[layout] || LAYOUT_PRESETS.appstore;
+    defaultPhoneTop = layoutPreset.phoneTop(canvasHeight, targetPhoneHeight);
   }
 
-  const phoneScale = targetPhoneHeight / deviceCanvasHeight;
-  const targetPhoneWidth = Math.round(deviceCanvasWidth * phoneScale);
+  const phoneTop = Math.round(defaultPhoneTop + (options.phoneTopOffset ?? 0));
 
-  const scaledPhoneBuffer = await sharp(phoneDeviceBuffer)
-    .resize(targetPhoneWidth, targetPhoneHeight)
-    .png()
-    .toBuffer();
-
-  // 7. Calculate Placement
-  const phoneLeft = Math.round((canvasWidth - targetPhoneWidth) / 2);
-  const layoutPreset = LAYOUT_PRESETS[layout] || LAYOUT_PRESETS.appstore;
-  const defaultPhoneTop = layoutPreset.phoneTop(canvasHeight, targetPhoneHeight);
-  const phoneTop = options.phoneTopOffset ?? defaultPhoneTop;
-
-  // 8. Generate Gradient Backdrop SVG
+  // 7. Generate Gradient Backdrop SVG
   const gradientSvg = generateGradientSvg({
     canvasWidth,
     canvasHeight,
@@ -182,31 +227,65 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
   });
   const gradientBaseBuffer = Buffer.from(gradientSvg);
 
-  // 9. Resolve Font Family & Generate Typography Overlay SVG (if requested)
-  let fontFamily = FONT_PRESETS.modern.family;
-  if (options.font) {
-    if (FONT_PRESETS[options.font]) {
-      fontFamily = FONT_PRESETS[options.font].family;
-    } else {
-      fontFamily = options.font;
-    }
-  }
+  // 8. Resolve Font Family & Generate Typography Overlay SVG (if requested)
+  const resolveFont = (fontKey?: string): string => {
+    if (!fontKey) return FONT_PRESETS.modern.family;
+    if (FONT_PRESETS[fontKey]) return FONT_PRESETS[fontKey].family;
+    return fontKey;
+  };
+  const headlineFontFamily = resolveFont(options.headlineFont || options.font);
+  const subtitleFontFamily = resolveFont(options.subtitleFont || options.font || options.headlineFont);
 
   const typographySvg = generateTypographySvg({
     canvasWidth,
     canvasHeight,
     title: options.title,
     subtitle: options.subtitle,
+    footer: options.footer,
+    eyebrowTag: options.eyebrowTag,
     showStarBadge: options.showStarBadge,
     position: typographyPosition,
     isDarkTheme,
-    fontFamily,
+    fontFamily: headlineFontFamily,
+    headlineFontFamily,
+    subtitleFontFamily,
+    textAlign: options.textAlign,
+    titleScaleMultiplier: options.titleScaleMultiplier,
+    subtitleScaleMultiplier: options.subtitleScaleMultiplier,
+    titleWeight: options.titleWeight,
+    subtitleWeight: options.subtitleWeight,
+    isItalic: options.isItalic,
+    textYOffset: options.textYOffset,
+    phoneTop,
+    accentColors: options.accentColors,
   });
 
-  const compositeLayers: OverlayOptions[] = [
-    { input: scaledPhoneBuffer, left: phoneLeft, top: phoneTop },
-  ];
+  const compositeLayers: OverlayOptions[] = [];
 
+  // Ambient 3D Radial Mesh Glow layer behind phone chassis
+  if (options.gradientPreset !== 'none' && options.enableAmbientGlow !== false) {
+    const glowColor = options.ambientGlowColor || colors[0] || '#38bdf8';
+    const glowRadius = Math.round(Math.max(targetPhoneWidth, targetPhoneHeight) * 0.52);
+    const glowCenterY = Math.round(phoneTop + targetPhoneHeight * 0.45);
+    const ambientGlowSvg = generateAmbientGlowSvg({
+      canvasWidth,
+      canvasHeight,
+      centerX: Math.round(phoneLeft + targetPhoneWidth / 2),
+      centerY: glowCenterY,
+      radius: glowRadius,
+      glowColor,
+    });
+    compositeLayers.push({
+      input: Buffer.from(ambientGlowSvg),
+      left: 0,
+      top: 0,
+    });
+  }
+
+  // Physical vector phone device chassis
+  compositeLayers.push({ input: scaledPhoneBuffer, left: phoneLeft, top: phoneTop });
+
+  // Marketing typography & pill badges overlay
   if (typographySvg) {
     compositeLayers.push({
       input: Buffer.from(typographySvg),
@@ -215,14 +294,31 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
     });
   }
 
-
   // 9. Composite everything onto canvas in a single Sharp pass
-  const finalBuffer = await sharp(gradientBaseBuffer)
+  const outputFormat = options.format || 'png';
+  const pipeline = sharp(gradientBaseBuffer)
     .composite(compositeLayers)
     .flatten({ background: { r: 10, g: 11, b: 14 } })
-    .toColorspace('srgb')
-    .png({ quality: 95, compressionLevel: 8 })
-    .toBuffer();
+    .toColorspace('srgb');
+
+  let finalBuffer: Buffer;
+  if (outputFormat === 'webp') {
+    finalBuffer = await pipeline
+      .webp({ quality: options.quality || 90, effort: 4 })
+      .toBuffer();
+  } else if (outputFormat === 'avif') {
+    finalBuffer = await pipeline
+      .avif({ quality: options.quality || 85, effort: 4 })
+      .toBuffer();
+  } else if (outputFormat === 'jpeg') {
+    finalBuffer = await pipeline
+      .jpeg({ quality: options.quality || 90, mozjpeg: true })
+      .toBuffer();
+  } else {
+    finalBuffer = await pipeline
+      .png({ quality: options.quality || 95, compressionLevel: 6 })
+      .toBuffer();
+  }
 
   const elapsedMs = Math.round(performance.now() - startTime);
 
@@ -248,7 +344,7 @@ export interface StoreExportOutput {
 }
 
 /**
- * Generates marketing graphics for multiple store display resolutions in sequence.
+ * Generates marketing graphics for multiple store display resolutions concurrently.
  * Runs 100% in-memory with zero disk temporary files.
  */
 export async function exportMultiStore(options: MultiStoreExportOptions): Promise<StoreExportOutput[]> {
@@ -261,25 +357,31 @@ export async function exportMultiStore(options: MultiStoreExportOptions): Promis
     return t.store === filter;
   });
 
-  const results: StoreExportOutput[] = [];
+  const bezelId = options.bezelId || 'iphone-16-pro';
+  const spec: BezelSpec = BEZEL_PRESETS[bezelId] || BEZEL_PRESETS['iphone-16-pro'];
+  const fitMode = options.fit || 'cover';
 
-  for (const target of targets) {
-    const single = await compositeFrame({
-      ...options,
-      canvasWidth: target.width,
-      canvasHeight: target.height,
-    });
+  // Pre-assemble device chassis once for all target aspect ratios
+  const precomputedPhoneDeviceBuffer = await assemblePhoneDevice(options.screenshotBuffer, spec, fitMode);
 
-    results.push({
-      target,
-      buffer: single.buffer,
-      width: single.width,
-      height: single.height,
-      elapsedMs: single.elapsedMs,
-    });
-  }
+  return Promise.all(
+    targets.map(async (target) => {
+      const single = await compositeFrame({
+        ...options,
+        canvasWidth: target.width,
+        canvasHeight: target.height,
+        precomputedPhoneDeviceBuffer,
+      });
 
-  return results;
+      return {
+        target,
+        buffer: single.buffer,
+        width: single.width,
+        height: single.height,
+        elapsedMs: single.elapsedMs,
+      };
+    })
+  );
 }
 
 /**

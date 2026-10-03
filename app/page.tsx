@@ -31,6 +31,14 @@ import {
   Cable,
   Globe,
   WifiOff,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Italic,
+  Palette,
+  Wand2,
+  MoveVertical,
+  RotateCcw,
 } from 'lucide-react';
 
 interface ConnectedDevice {
@@ -48,6 +56,28 @@ interface SessionScreen {
   base64: string;
   timestamp: string;
   customTitle?: string;
+  subtitle?: string;
+  themeId?: string;
+  bezelId?: string;
+  layout?: 'appstore' | 'social';
+  font?: string;
+  headlineFont?: string;
+  subtitleFont?: string;
+  textAlign?: 'left' | 'center' | 'right';
+  titleScale?: number;
+  subtitleScale?: number;
+  titleWeight?: string;
+  subtitleWeight?: string;
+  isItalic?: boolean;
+  textOffset?: number;
+  showStars?: boolean;
+  ambientGlow?: boolean;
+  phoneScale?: number;
+  phoneOffset?: number;
+  customColor1?: string;
+  customColor2?: string;
+  useCustomColors?: boolean;
+  typographyPosition?: 'top' | 'bottom' | 'both';
 }
 
 const THEMES = [
@@ -59,6 +89,14 @@ const THEMES = [
   { id: 'midnight', name: 'Midnight Obsidian', colors: ['#090d16', '#111827', '#030712'], darkText: false },
   { id: 'royal', name: 'Royal Indigo', colors: ['#172554', '#1e1b4b', '#0f172a'], darkText: false },
   { id: 'cleanDark', name: 'Clean Dark', colors: ['#18181b', '#09090b'], darkText: false },
+  { id: 'fintech', name: 'Fintech Emerald', colors: ['#022c22', '#064e3b', '#047857'], darkText: false },
+  { id: 'lavender', name: 'Lavender Mist', colors: ['#1e1b4b', '#4c1d95', '#7c3aed'], darkText: false },
+  { id: 'cyberpunk', name: 'Cyberpunk Neon', colors: ['#09090b', '#701a75', '#a21caf'], darkText: false },
+  { id: 'crimsonVoid', name: 'Crimson Void', colors: ['#18181b', '#7f1d1d', '#450a0a'], darkText: false },
+  { id: 'cobalt', name: 'Cobalt Indigo', colors: ['#030712', '#1e3a8a', '#1e40af'], darkText: false },
+  { id: 'terracotta', name: 'Warm Terracotta', colors: ['#1c1917', '#78350f', '#9a3412'], darkText: false },
+  { id: 'slateCarbon', name: 'Carbon Matte', colors: ['#090d16', '#1e293b', '#334155'], darkText: false },
+  { id: 'pureWhite', name: 'Studio Minimal White', colors: ['#ffffff', '#f8fafc', '#f1f5f9'], darkText: true },
 ];
 
 interface BezelOption {
@@ -85,10 +123,172 @@ const BEZELS: BezelOption[] = [
 ];
 
 const FONTS = [
-  { id: 'modern', name: 'Modern Sans (SF / Inter)' },
-  { id: 'rounded', name: 'Rounded Casual' },
-  { id: 'editorial', name: 'Editorial Serif (Georgia)' },
-  { id: 'mono', name: 'Technical Monospace' },
+  { id: 'modern', name: 'Modern Sans (SF / Inter / Roboto)' },
+  { id: 'geometric', name: 'Geometric Tech (Poppins / Outfit)' },
+  { id: 'rounded', name: 'Friendly Rounded (Nunito / Quicksand)' },
+  { id: 'impact', name: 'Bold Impact (Bebas Neue / Oswald)' },
+  { id: 'editorial', name: 'Luxury Serif (Playfair / Georgia)' },
+  { id: 'mono', name: 'Developer Monospace (JetBrains / Fira)' },
+  { id: 'playful', name: 'Casual & Playful (Fredoka)' },
+  { id: 'humanist', name: 'Humanist Elegance (Optima / Candara)' },
+];
+
+const MAGIC_COPY_TEMPLATES = [
+  {
+    name: 'Feature Spotlight',
+    title: 'Supercharged **Performance**',
+    subtitle: 'Engineered from the ground up for blazing speed and fluid responsiveness.',
+  },
+  {
+    name: 'Social Proof / Trust',
+    title: 'Loved by **100,000+** Creators',
+    subtitle: 'Top-rated developer utility trusted by engineering teams worldwide.',
+  },
+  {
+    name: 'Problem / Solution',
+    title: 'Never Waste Time on **Mockups** Again',
+    subtitle: 'Automate chassis framing and App Store exports in seconds.',
+  },
+  {
+    name: 'Launch / V2',
+    title: 'Introducing **Studio 2.0**',
+    subtitle: 'Precision typography, 16 curated themes, and instant batch sync.',
+  },
+  {
+    name: 'Security & Privacy',
+    title: '100% Local & **Private**',
+    subtitle: 'Zero cloud uploads required. Everything runs locally on your machine.',
+  },
+];
+
+interface DesignerAesthetic {
+  id: string;
+  name: string;
+  badge: string;
+  subtitle: string;
+  icon: string;
+  gradient: string;
+  config: {
+    themeId: string;
+    useCustomColors: boolean;
+    headlineFont: string;
+    subtitleFont: string;
+    titleWeight: '400' | '600' | '700' | '800' | '900';
+    isItalic: boolean;
+    bezelId: string;
+    ambientGlow: boolean;
+    textAlign: 'left' | 'center' | 'right';
+    phoneScale: number;
+    layout: 'appstore' | 'social';
+  };
+}
+
+const DESIGNER_AESTHETICS: DesignerAesthetic[] = [
+  {
+    id: 'cupertino',
+    name: 'Cupertino Clean',
+    badge: 'Apple Keynote',
+    subtitle: 'Studio White • SF Modern',
+    icon: '🍏',
+    gradient: 'from-slate-100 to-slate-200 text-slate-900',
+    config: {
+      themeId: 'pureWhite',
+      useCustomColors: false,
+      headlineFont: 'modern',
+      subtitleFont: 'match',
+      titleWeight: '700',
+      isItalic: false,
+      bezelId: 'iphone-16-pro',
+      ambientGlow: false,
+      textAlign: 'center',
+      phoneScale: 1.0,
+      layout: 'appstore',
+    },
+  },
+  {
+    id: 'cyberpunk',
+    name: 'Cyberpunk Neon',
+    badge: 'High Voltage',
+    subtitle: 'Magenta Void • Bold 900',
+    icon: '⚡',
+    gradient: 'from-fuchsia-600 to-purple-800 text-white',
+    config: {
+      themeId: 'cyberpunk',
+      useCustomColors: false,
+      headlineFont: 'geometric',
+      subtitleFont: 'match',
+      titleWeight: '900',
+      isItalic: false,
+      bezelId: 'galaxy-s24-ultra',
+      ambientGlow: true,
+      textAlign: 'center',
+      phoneScale: 1.02,
+      layout: 'appstore',
+    },
+  },
+  {
+    id: 'editorial',
+    name: 'Editorial Luxury',
+    badge: 'Linear / Vogue',
+    subtitle: 'Obsidian • Serif Italic',
+    icon: '🏛️',
+    gradient: 'from-zinc-800 to-black text-amber-200',
+    config: {
+      themeId: 'cleanDark',
+      useCustomColors: false,
+      headlineFont: 'editorial',
+      subtitleFont: 'humanist',
+      titleWeight: '600',
+      isItalic: true,
+      bezelId: 'iphone-16',
+      ambientGlow: true,
+      textAlign: 'center',
+      phoneScale: 0.98,
+      layout: 'appstore',
+    },
+  },
+  {
+    id: 'action-tech',
+    name: 'Action Tech',
+    badge: 'Impact Store',
+    subtitle: 'Cobalt Deep • Bebas Heavy',
+    icon: '🚀',
+    gradient: 'from-blue-600 to-indigo-900 text-white',
+    config: {
+      themeId: 'cobalt',
+      useCustomColors: false,
+      headlineFont: 'impact',
+      subtitleFont: 'modern',
+      titleWeight: '800',
+      isItalic: false,
+      bezelId: 'pixel-9-pro',
+      ambientGlow: true,
+      textAlign: 'center',
+      phoneScale: 1.0,
+      layout: 'appstore',
+    },
+  },
+  {
+    id: 'fintech-trust',
+    name: 'Fintech Trust',
+    badge: 'Enterprise Emerald',
+    subtitle: 'Emerald Green • Titanium',
+    icon: '🌿',
+    gradient: 'from-emerald-700 to-teal-950 text-emerald-100',
+    config: {
+      themeId: 'fintech',
+      useCustomColors: false,
+      headlineFont: 'modern',
+      subtitleFont: 'match',
+      titleWeight: '800',
+      isItalic: false,
+      bezelId: 'iphone-16-pro',
+      ambientGlow: true,
+      textAlign: 'center',
+      phoneScale: 1.0,
+      layout: 'appstore',
+    },
+  },
 ];
 
 /**
@@ -183,9 +383,24 @@ export default function StudioPage() {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [layout, setLayout] = useState<'appstore' | 'social'>('appstore');
   const [font, setFont] = useState('modern');
+  const [headlineFont, setHeadlineFont] = useState('modern');
+  const [subtitleFont, setSubtitleFont] = useState('match');
+  const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right'>('center');
+  const [titleScale, setTitleScale] = useState<number>(1.0);
+  const [subtitleScale, setSubtitleScale] = useState<number>(1.0);
+  const [titleWeight, setTitleWeight] = useState<'400' | '600' | '700' | '800' | '900'>('800');
+  const [isItalic, setIsItalic] = useState(false);
+  const [textOffset, setTextOffset] = useState<number>(0);
+  const [customColor1, setCustomColor1] = useState('#4f46e5');
+  const [customColor2, setCustomColor2] = useState('#06b6d4');
+  const [useCustomColors, setUseCustomColors] = useState(false);
   const [title, setTitle] = useState('Transform Your Workflow');
   const [subtitle, setSubtitle] = useState('Effortless automated mobile screenshot studio.');
   const [showStars, setShowStars] = useState(true);
+  const [typographyPosition, setTypographyPosition] = useState<'top' | 'bottom' | 'both'>('top');
+  const [phoneScale, setPhoneScale] = useState<number>(1.0);
+  const [phoneOffset, setPhoneOffset] = useState<number>(0);
+  const [ambientGlow, setAmbientGlow] = useState<boolean>(true);
 
   // Images & Screen Session History
   const [screenshotBase64, setScreenshotBase64] = useState<string | null>(null);
@@ -202,6 +417,43 @@ export default function StudioPage() {
   const initialSnapTakenRef = useRef(false);
   const lastScreenBase64Ref = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const syncScreensTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isSelectingScreenRef = useRef(false);
+
+  // Interactive on-canvas text dragging state & refs
+  const [isDraggingText, setIsDraggingText] = useState(false);
+  const dragStartYRef = useRef(0);
+  const startOffsetRef = useRef(0);
+
+  const handleTextDragStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingText(true);
+    dragStartYRef.current = e.clientY;
+    startOffsetRef.current = textOffset;
+    document.body.style.cursor = 'ns-resize';
+    document.body.style.userSelect = 'none';
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      moveEvent.preventDefault();
+      const deltaY = moveEvent.clientY - dragStartYRef.current;
+      const newOffset = Math.max(-200, Math.min(200, Math.round(startOffsetRef.current + deltaY * 1.5)));
+      setTextOffset(newOffset);
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingText(false);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      refreshPreview();
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
 
   // 1. Setup Server-Sent Events (SSE) for live device updates
   useEffect(() => {
@@ -257,22 +509,66 @@ export default function StudioPage() {
 
   // 2. Trigger compositing preview
   const refreshPreview = useCallback(
-    async (rawScreenshot?: string) => {
+    async (rawScreenshot?: string, overrides?: Partial<SessionScreen>) => {
+      // Cancel previous pending render request if still running
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       setIsRendering(true);
       try {
+        const effThemeId = overrides?.themeId !== undefined ? overrides.themeId : themeId;
+        const effUseCustom = overrides?.useCustomColors !== undefined ? overrides.useCustomColors : useCustomColors;
+        const effCustom1 = overrides?.customColor1 !== undefined ? overrides.customColor1 : customColor1;
+        const effCustom2 = overrides?.customColor2 !== undefined ? overrides.customColor2 : customColor2;
+        const effBezelId = overrides?.bezelId !== undefined ? overrides.bezelId : bezelId;
+        const effLayout = overrides?.layout !== undefined ? overrides.layout : layout;
+        const effHeadlineFont = overrides?.headlineFont !== undefined ? overrides.headlineFont : headlineFont;
+        const effSubtitleFont = overrides?.subtitleFont !== undefined ? overrides.subtitleFont : subtitleFont;
+        const effTextAlign = overrides?.textAlign !== undefined ? overrides.textAlign : textAlign;
+        const effTitleScale = overrides?.titleScale !== undefined ? overrides.titleScale : titleScale;
+        const effSubtitleScale = overrides?.subtitleScale !== undefined ? overrides.subtitleScale : subtitleScale;
+        const effTitleWeight = overrides?.titleWeight !== undefined ? overrides.titleWeight : titleWeight;
+        const effIsItalic = overrides?.isItalic !== undefined ? overrides.isItalic : isItalic;
+        const effTextOffset = overrides?.textOffset !== undefined ? overrides.textOffset : textOffset;
+        const effTitle = overrides?.customTitle !== undefined ? overrides.customTitle : title;
+        const effSubtitle = overrides?.subtitle !== undefined ? overrides.subtitle : subtitle;
+        const effShowStars = overrides?.showStars !== undefined ? overrides.showStars : showStars;
+        const effTypoPos = overrides?.typographyPosition !== undefined ? overrides.typographyPosition : typographyPosition;
+        const effPhoneScale = overrides?.phoneScale !== undefined ? overrides.phoneScale : phoneScale;
+        const effPhoneOffset = overrides?.phoneOffset !== undefined ? overrides.phoneOffset : phoneOffset;
+        const effAmbientGlow = overrides?.ambientGlow !== undefined ? overrides.ambientGlow : ambientGlow;
+
         const res = await fetch('/api/export', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
           body: JSON.stringify({
-            screenshotBase64: rawScreenshot || screenshotBase64,
+            screenshotBase64: rawScreenshot || overrides?.base64 || screenshotBase64,
             deviceId: selectedDevice || undefined,
-            bezelId,
-            gradientPreset: themeId,
-            layout,
-            font,
-            title,
-            subtitle,
-            showStarBadge: showStars,
+            bezelId: effBezelId,
+            gradientPreset: effThemeId,
+            layout: effLayout,
+            font: effHeadlineFont,
+            headlineFont: effHeadlineFont,
+            subtitleFont: effSubtitleFont === 'match' ? effHeadlineFont : effSubtitleFont,
+            textAlign: effTextAlign,
+            titleScaleMultiplier: effTitleScale,
+            subtitleScaleMultiplier: effSubtitleScale,
+            titleWeight: effTitleWeight,
+            isItalic: effIsItalic,
+            textYOffset: effTextOffset,
+            useCustomColors: effUseCustom,
+            customColors: effUseCustom ? [effCustom1, effCustom2] : undefined,
+            title: effTitle,
+            subtitle: effSubtitle,
+            showStarBadge: effShowStars,
+            typographyPosition: effTypoPos,
+            phoneScaleMultiplier: effPhoneScale,
+            phoneTopOffset: effPhoneOffset,
+            enableAmbientGlow: effAmbientGlow,
             format: 'preview',
           }),
         });
@@ -281,13 +577,41 @@ export default function StudioPage() {
         if (data.success && data.base64) {
           setPreviewBase64(data.base64);
         }
-      } catch (err) {
-        console.error('Preview render error:', err);
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          console.error('Preview render error:', err);
+        }
       } finally {
-        setIsRendering(false);
+        if (abortControllerRef.current === controller) {
+          setIsRendering(false);
+        }
       }
     },
-    [screenshotBase64, selectedDevice, bezelId, themeId, layout, font, title, subtitle, showStars]
+    [
+      screenshotBase64,
+      selectedDevice,
+      bezelId,
+      themeId,
+      layout,
+      headlineFont,
+      subtitleFont,
+      textAlign,
+      titleScale,
+      subtitleScale,
+      titleWeight,
+      isItalic,
+      textOffset,
+      customColor1,
+      customColor2,
+      useCustomColors,
+      title,
+      subtitle,
+      showStars,
+      typographyPosition,
+      phoneScale,
+      phoneOffset,
+      ambientGlow,
+    ]
   );
 
   // Debounced auto-preview when styling knobs change
@@ -295,12 +619,107 @@ export default function StudioPage() {
     if (renderTimeoutRef.current) clearTimeout(renderTimeoutRef.current);
     renderTimeoutRef.current = setTimeout(() => {
       refreshPreview();
-    }, 400);
+    }, 120);
 
     return () => {
       if (renderTimeoutRef.current) clearTimeout(renderTimeoutRef.current);
     };
-  }, [themeId, bezelId, layout, font, title, subtitle, showStars, refreshPreview]);
+  }, [
+    themeId,
+    bezelId,
+    layout,
+    headlineFont,
+    subtitleFont,
+    textAlign,
+    titleScale,
+    subtitleScale,
+    titleWeight,
+    isItalic,
+    textOffset,
+    customColor1,
+    customColor2,
+    useCustomColors,
+    title,
+    subtitle,
+    showStars,
+    typographyPosition,
+    phoneScale,
+    phoneOffset,
+    ambientGlow,
+    refreshPreview,
+  ]);
+
+  // Automatically persist current styling into the active screen in filmstrip (debounced)
+  useEffect(() => {
+    if (isSelectingScreenRef.current) {
+      isSelectingScreenRef.current = false;
+      return;
+    }
+    if (screens.length === 0 || activeScreenIndex < 0 || activeScreenIndex >= screens.length) return;
+    if (syncScreensTimeoutRef.current) clearTimeout(syncScreensTimeoutRef.current);
+    syncScreensTimeoutRef.current = setTimeout(() => {
+      setScreens((prev) => {
+        if (!prev[activeScreenIndex]) return prev;
+        const current = prev[activeScreenIndex];
+        const next = [...prev];
+        next[activeScreenIndex] = {
+          ...current,
+          customTitle: title,
+          subtitle,
+          themeId,
+          bezelId,
+          layout,
+          font: headlineFont,
+          headlineFont,
+          subtitleFont,
+          textAlign,
+          titleScale,
+          subtitleScale,
+          titleWeight,
+          isItalic,
+          textOffset,
+          showStars,
+          ambientGlow,
+          phoneScale,
+          phoneOffset,
+          customColor1,
+          customColor2,
+          useCustomColors,
+          customColors: useCustomColors ? [customColor1, customColor2] : undefined,
+          typographyPosition,
+        };
+        return next;
+      });
+    }, 350);
+
+    return () => {
+      if (syncScreensTimeoutRef.current) clearTimeout(syncScreensTimeoutRef.current);
+    };
+  }, [
+    activeScreenIndex,
+    title,
+    subtitle,
+    themeId,
+    bezelId,
+    layout,
+    font,
+    headlineFont,
+    subtitleFont,
+    textAlign,
+    titleScale,
+    subtitleScale,
+    titleWeight,
+    isItalic,
+    textOffset,
+    showStars,
+    ambientGlow,
+    phoneScale,
+    phoneOffset,
+    customColor1,
+    customColor2,
+    useCustomColors,
+    typographyPosition,
+  ]);
 
   // 3. 1-Click Capture from Mobile Phone
   const handleSnap = useCallback(
@@ -339,6 +758,26 @@ export default function StudioPage() {
               label: `${appName} #${nextIdx}`,
               base64: data.base64,
               timestamp: timeStr,
+              themeId,
+              bezelId,
+              layout,
+              font: headlineFont,
+              headlineFont,
+              subtitleFont,
+              textAlign,
+              titleScale,
+              subtitleScale,
+              titleWeight,
+              isItalic,
+              textOffset,
+              showStars,
+              ambientGlow,
+              phoneScale,
+              phoneOffset,
+              customColor1,
+              customColor2,
+              useCustomColors,
+              typographyPosition,
             };
             setActiveScreenIndex(prev.length);
             return [...prev, newScreen];
@@ -532,29 +971,52 @@ export default function StudioPage() {
 
   const selectScreen = async (index: number) => {
     if (index < 0 || index >= screens.length) return;
+    isSelectingScreenRef.current = true;
     setActiveScreenIndex(index);
     const target = screens[index];
-    if (target.customTitle) {
-      setTitle(target.customTitle);
-    }
+    if (target.customTitle !== undefined) setTitle(target.customTitle);
+    if (target.subtitle !== undefined) setSubtitle(target.subtitle);
+    if (target.themeId) setThemeId(target.themeId);
+    if (target.bezelId) setBezelId(target.bezelId);
+    if (target.layout) setLayout(target.layout);
+    if (target.font) setFont(target.font);
+    if (target.headlineFont) setHeadlineFont(target.headlineFont);
+    if (target.subtitleFont) setSubtitleFont(target.subtitleFont);
+    if (target.textAlign) setTextAlign(target.textAlign);
+    if (target.titleScale !== undefined) setTitleScale(target.titleScale);
+    if (target.subtitleScale !== undefined) setSubtitleScale(target.subtitleScale);
+    if (target.titleWeight) setTitleWeight(target.titleWeight);
+    if (target.isItalic !== undefined) setIsItalic(target.isItalic);
+    if (target.textOffset !== undefined) setTextOffset(target.textOffset);
+    if (target.showStars !== undefined) setShowStars(target.showStars);
+    if (target.ambientGlow !== undefined) setAmbientGlow(target.ambientGlow);
+    if (target.phoneScale !== undefined) setPhoneScale(target.phoneScale);
+    if (target.phoneOffset !== undefined) setPhoneOffset(target.phoneOffset);
+    if (target.customColor1) setCustomColor1(target.customColor1);
+    if (target.customColor2) setCustomColor2(target.customColor2);
+    setUseCustomColors(target.useCustomColors ?? false);
+    if (target.typographyPosition) setTypographyPosition(target.typographyPosition);
+
     setScreenshotBase64(target.base64);
-    await refreshPreview(target.base64);
+    await refreshPreview(target.base64, target);
   };
 
   const deleteScreen = (e: React.MouseEvent, index: number) => {
     e.stopPropagation();
+    e.preventDefault();
     setScreens((prev) => {
       const updated = prev.filter((_, i) => i !== index);
-      if (activeScreenIndex >= updated.length) {
-        const nextIdx = Math.max(0, updated.length - 1);
+      if (updated.length === 0) {
+        setActiveScreenIndex(0);
+        setScreenshotBase64(null);
+        setPreviewBase64(null);
+      } else if (activeScreenIndex === index) {
+        const nextIdx = Math.min(index, updated.length - 1);
         setActiveScreenIndex(nextIdx);
-        if (updated.length > 0) {
-          setScreenshotBase64(updated[nextIdx].base64);
-          refreshPreview(updated[nextIdx].base64);
-        } else {
-          setScreenshotBase64(null);
-          setPreviewBase64(null);
-        }
+        setScreenshotBase64(updated[nextIdx].base64);
+        refreshPreview(updated[nextIdx].base64);
+      } else if (activeScreenIndex > index) {
+        setActiveScreenIndex(activeScreenIndex - 1);
       }
       return updated;
     });
@@ -615,6 +1077,26 @@ export default function StudioPage() {
             label: label || `Image #${nextIdx}`,
             base64: base64Data,
             timestamp: timeStr,
+            themeId,
+            bezelId,
+            layout,
+            font: headlineFont,
+            headlineFont,
+            subtitleFont,
+            textAlign,
+            titleScale,
+            subtitleScale,
+            titleWeight,
+            isItalic,
+            textOffset,
+            showStars,
+            ambientGlow,
+            phoneScale,
+            phoneOffset,
+            customColor1,
+            customColor2,
+            useCustomColors,
+            typographyPosition,
           };
           if (prev.length === 0 && i === 0) {
             setScreenshotBase64(base64Data);
@@ -698,6 +1180,8 @@ export default function StudioPage() {
           title,
           subtitle,
           showStarBadge: showStars,
+          useCustomColors,
+          customColors: useCustomColors ? [customColor1, customColor2] : undefined,
         }),
       });
       const data = await res.json();
@@ -739,6 +1223,8 @@ export default function StudioPage() {
           title,
           subtitle,
           showStarBadge: showStars,
+          useCustomColors,
+          customColors: useCustomColors ? [customColor1, customColor2] : undefined,
         }),
       });
 
@@ -795,10 +1281,24 @@ export default function StudioPage() {
           bezelId,
           gradientPreset: themeId,
           layout,
-          font,
+          font: headlineFont,
+          headlineFont,
+          subtitleFont: subtitleFont === 'match' ? headlineFont : subtitleFont,
+          textAlign,
+          titleScaleMultiplier: titleScale,
+          subtitleScaleMultiplier: subtitleScale,
+          titleWeight,
+          isItalic,
+          textYOffset: textOffset,
+          useCustomColors,
+          customColors: useCustomColors ? [customColor1, customColor2] : undefined,
           title,
           subtitle,
           showStarBadge: showStars,
+          typographyPosition,
+          phoneScaleMultiplier: phoneScale,
+          phoneTopOffset: phoneOffset,
+          enableAmbientGlow: ambientGlow,
           format: 'zip',
         }),
       });
@@ -830,6 +1330,100 @@ export default function StudioPage() {
     } finally {
       setIsExporting(false);
     }
+  };
+
+  // Sync styling across all screens in the filmstrip
+  const handleSyncStyleToAll = () => {
+    if (screens.length === 0) return;
+    setScreens((prev) =>
+      prev.map((s) => ({
+        ...s,
+        themeId,
+        bezelId,
+        layout,
+        font: headlineFont,
+        headlineFont,
+        subtitleFont,
+        textAlign,
+        titleScale,
+        subtitleScale,
+        titleWeight,
+        isItalic,
+        textOffset,
+        showStars,
+        ambientGlow,
+        phoneScale,
+        phoneOffset,
+        customColor1,
+        customColor2,
+        useCustomColors,
+        customColors: useCustomColors ? [customColor1, customColor2] : undefined,
+        typographyPosition,
+      }))
+    );
+
+    refreshPreview();
+
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setToastMessage(`✨ Applied current style & layout across all ${screens.length} screen${screens.length > 1 ? 's' : ''}!`);
+    toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 3000);
+    setStatusMessage(`Style synchronized across all ${screens.length} screens.`);
+  };
+
+  // 1-Click Designer Aesthetic Recipe Application
+  const applyDesignerAesthetic = (aesthetic: DesignerAesthetic) => {
+    const { config } = aesthetic;
+    setThemeId(config.themeId);
+    setUseCustomColors(config.useCustomColors);
+    setHeadlineFont(config.headlineFont);
+    setSubtitleFont(config.subtitleFont);
+    setTitleWeight(config.titleWeight);
+    setIsItalic(config.isItalic);
+    setBezelId(config.bezelId);
+    setAmbientGlow(config.ambientGlow);
+    setTextAlign(config.textAlign);
+    setPhoneScale(config.phoneScale);
+    setLayout(config.layout);
+
+    setScreens((prev) => {
+      if (!prev[activeScreenIndex]) return prev;
+      const next = [...prev];
+      next[activeScreenIndex] = {
+        ...next[activeScreenIndex],
+        themeId: config.themeId,
+        useCustomColors: config.useCustomColors,
+        customColors: undefined,
+        headlineFont: config.headlineFont,
+        subtitleFont: config.subtitleFont,
+        titleWeight: config.titleWeight,
+        isItalic: config.isItalic,
+        bezelId: config.bezelId,
+        ambientGlow: config.ambientGlow,
+        textAlign: config.textAlign,
+        phoneScale: config.phoneScale,
+        layout: config.layout,
+      };
+      return next;
+    });
+
+    refreshPreview(undefined, {
+      themeId: config.themeId,
+      useCustomColors: config.useCustomColors,
+      headlineFont: config.headlineFont,
+      subtitleFont: config.subtitleFont === 'match' ? config.headlineFont : config.subtitleFont,
+      titleWeight: config.titleWeight,
+      isItalic: config.isItalic,
+      bezelId: config.bezelId,
+      ambientGlow: config.ambientGlow,
+      textAlign: config.textAlign,
+      phoneScale: config.phoneScale,
+      layout: config.layout,
+    });
+
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setToastMessage(`✨ Applied "${aesthetic.name}" aesthetic!`);
+    toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2500);
+    setStatusMessage(`Applied ${aesthetic.name} style preset.`);
   };
 
   // 5. Autonomous Tab Crawler
@@ -1123,32 +1717,142 @@ export default function StudioPage() {
         {/* Left Sidebar Controls */}
         <aside className="w-84 border-r border-[#232733] bg-[#0f1117] flex flex-col shrink-0 overflow-y-auto">
           <div className="p-4 space-y-6">
+            {/* 1-Click Designer Aesthetics */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Wand2 className="w-3.5 h-3.5 text-amber-400" />
+                  Designer Aesthetics
+                </label>
+                <span className="text-[10px] text-amber-400 font-medium">1-Click Combos</span>
+              </div>
+              <div className="grid grid-cols-1 gap-1.5">
+                {DESIGNER_AESTHETICS.map((aesthetic) => {
+                  const isActive =
+                    !useCustomColors &&
+                    themeId === aesthetic.config.themeId &&
+                    headlineFont === aesthetic.config.headlineFont &&
+                    titleWeight === aesthetic.config.titleWeight;
+                  return (
+                    <button
+                      key={aesthetic.id}
+                      type="button"
+                      onClick={() => applyDesignerAesthetic(aesthetic)}
+                      className={`group relative flex items-center justify-between p-2 rounded-lg border text-left transition cursor-pointer ${
+                        isActive
+                          ? 'border-amber-400/80 bg-amber-400/10 shadow-sm shadow-amber-400/15'
+                          : 'border-[#232733] hover:border-slate-600 bg-[#161922] hover:bg-[#1c202d]'
+                      }`}
+                      title={aesthetic.subtitle}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-base select-none shrink-0">{aesthetic.icon}</span>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-semibold text-white truncate">{aesthetic.name}</span>
+                            <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-white/10 text-slate-300 font-medium shrink-0">
+                              {aesthetic.badge}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-400 block truncate">{aesthetic.subtitle}</span>
+                        </div>
+                      </div>
+                      <div
+                        className={`w-4 h-4 rounded-full border shrink-0 flex items-center justify-center transition ${
+                          isActive
+                            ? 'border-amber-400 bg-amber-400 text-black'
+                            : 'border-slate-700 bg-black/40 group-hover:border-slate-500'
+                        }`}
+                      >
+                        {isActive && <span className="text-[9px] font-bold">✓</span>}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Theme Presets */}
             <div>
-              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 mb-2.5">
-                <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                Curated Design Themes
-              </label>
-              <div className="grid grid-cols-1 gap-1.5">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                  Curated Themes ({THEMES.length})
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setUseCustomColors(!useCustomColors)}
+                  className={`text-[10px] px-2 py-0.5 rounded transition cursor-pointer flex items-center gap-1 ${
+                    useCustomColors
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-semibold'
+                      : 'text-slate-400 hover:text-slate-200 bg-slate-800/60'
+                  }`}
+                  title="Pick your own custom brand gradient colors"
+                >
+                  <Palette className="w-3 h-3 text-cyan-400" />
+                  Custom Brand
+                </button>
+              </div>
+
+              {useCustomColors && (
+                <div className="mb-2.5 p-2 rounded-lg bg-[#161922] border border-cyan-500/30 space-y-2">
+                  <span className="text-[10px] text-slate-300 font-semibold uppercase tracking-wider block">Custom Dual Gradient</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-[9px] text-slate-400 block mb-1">Color 1 (Start)</span>
+                      <div className="flex items-center gap-1.5 bg-[#0f1117] p-1 rounded border border-[#232733]">
+                        <input
+                          type="color"
+                          value={customColor1}
+                          onChange={(e) => setCustomColor1(e.target.value)}
+                          className="w-5 h-5 rounded cursor-pointer border-0 bg-transparent p-0"
+                        />
+                        <span className="text-[10px] font-mono text-slate-300 uppercase">{customColor1}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-slate-400 block mb-1">Color 2 (End)</span>
+                      <div className="flex items-center gap-1.5 bg-[#0f1117] p-1 rounded border border-[#232733]">
+                        <input
+                          type="color"
+                          value={customColor2}
+                          onChange={(e) => setCustomColor2(e.target.value)}
+                          className="w-5 h-5 rounded cursor-pointer border-0 bg-transparent p-0"
+                        />
+                        <span className="text-[10px] font-mono text-slate-300 uppercase">{customColor2}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    className="h-3.5 rounded border border-white/20 shadow-inner w-full"
+                    style={{ background: `linear-gradient(135deg, ${customColor1}, ${customColor2})` }}
+                  />
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-1.5 max-h-52 overflow-y-auto pr-1 scrollbar-thin">
                 {THEMES.map((theme) => (
                   <button
                     key={theme.id}
-                    onClick={() => setThemeId(theme.id)}
-                    className={`flex items-center justify-between p-2 rounded-lg border text-left text-xs transition cursor-pointer ${
-                      themeId === theme.id
+                    onClick={() => {
+                      setUseCustomColors(false);
+                      setThemeId(theme.id);
+                    }}
+                    className={`flex items-center justify-between p-1.5 rounded-lg border text-left text-xs transition cursor-pointer ${
+                      !useCustomColors && themeId === theme.id
                         ? 'border-cyan-500 bg-cyan-500/10 text-white font-medium'
                         : 'border-[#232733] hover:border-slate-700 bg-[#161922] text-slate-300'
                     }`}
                   >
-                    <span className={theme.isNone ? 'text-amber-300 font-semibold' : ''}>{theme.name}</span>
-                    <div className="flex items-center gap-1.5">
+                    <span className={`truncate text-[11px] ${theme.isNone ? 'text-amber-300 font-semibold' : ''}`}>{theme.name}</span>
+                    <div className="flex items-center gap-1 shrink-0">
                       {theme.isNone ? (
-                        <span className="text-[9px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-400/15 border border-amber-400/30 text-amber-300">
+                        <span className="text-[8px] font-mono font-bold tracking-wider px-1 py-0.2 rounded bg-amber-400/15 border border-amber-400/30 text-amber-300">
                           RAW
                         </span>
                       ) : (
                         <div
-                          className="w-4 h-4 rounded-full border border-white/20 shadow-inner"
+                          className="w-3.5 h-3.5 rounded-full border border-white/20 shadow-inner"
                           style={{
                             background: `linear-gradient(135deg, ${theme.colors.join(', ')})`,
                           }}
@@ -1278,41 +1982,323 @@ export default function StudioPage() {
                 )}
               </div>
               <div className="space-y-3">
+                {/* Text Positioning: Top, Bottom, Both */}
                 <div>
-                  <span className="text-[11px] text-slate-400 block mb-1">Headline</span>
-                  <input
-                    type="text"
+                  <span className="text-[11px] text-slate-400 block mb-1">Text Position</span>
+                  <div className="grid grid-cols-3 gap-1.5 p-1 bg-[#161922] border border-[#232733] rounded-lg text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setTypographyPosition('top')}
+                      className={`py-1.5 px-2 rounded font-medium transition cursor-pointer ${
+                        typographyPosition === 'top'
+                          ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                      title="Headline and subtitle rendered above phone with bottom-bleed frame"
+                    >
+                      ⬆ Top
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTypographyPosition('bottom')}
+                      className={`py-1.5 px-2 rounded font-medium transition cursor-pointer ${
+                        typographyPosition === 'bottom'
+                          ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                      title="Headline and subtitle rendered below phone with top-positioned frame"
+                    >
+                      ⬇ Bottom
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTypographyPosition('both')}
+                      className={`py-1.5 px-2 rounded font-medium transition cursor-pointer ${
+                        typographyPosition === 'both'
+                          ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                      title="Top headline & star rating chip with bottom subtitle / callout text"
+                    >
+                      ↕ Both
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] text-slate-400">Headline</span>
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1 bg-[#161922] border border-[#232733] rounded px-1.5 py-0.5">
+                        <Wand2 className="w-3 h-3 text-cyan-400 shrink-0" />
+                        <select
+                          value=""
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '__clear__') {
+                              setTitle('');
+                              setSubtitle('');
+                              if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+                              setToastMessage('✕ Cleared headline and subtitle');
+                              toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2000);
+                            } else if (val === '__reset__') {
+                              setTitle('Transform Your Workflow');
+                              setSubtitle('Effortless automated mobile screenshot studio.');
+                              if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+                              setToastMessage('↺ Restored default studio copy');
+                              toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2000);
+                            } else {
+                              const t = MAGIC_COPY_TEMPLATES.find((tpl) => tpl.name === val);
+                              if (t) {
+                                setTitle(t.title);
+                                setSubtitle(t.subtitle);
+                                if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+                                setToastMessage(`✨ Applied "${t.name}"`);
+                                toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2000);
+                              }
+                            }
+                          }}
+                          className="text-[10px] bg-transparent text-cyan-300 cursor-pointer focus:outline-none"
+                        >
+                          <option value="" disabled>Magic Copy...</option>
+                          <option value="__clear__" className="text-rose-400 font-medium">✕ Clear All Copy</option>
+                          <option value="__reset__" className="text-amber-300 font-medium">↺ Reset Default Copy</option>
+                          <option disabled className="text-slate-600">──────────</option>
+                          {MAGIC_COPY_TEMPLATES.map((tpl) => (
+                            <option key={tpl.name} value={tpl.name} className="text-slate-200">
+                              {tpl.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {(title || subtitle) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTitle('');
+                            setSubtitle('');
+                            if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+                            setToastMessage('✕ Cleared copy');
+                            toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 1800);
+                          }}
+                          className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 transition cursor-pointer"
+                          title="Clear headline & subtitle"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <textarea
+                    rows={2}
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Enter punchy headline..."
-                    className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                    placeholder="Enter punchy headline (press Enter for new line)..."
+                    className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 resize-none font-sans leading-relaxed"
                   />
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    Tip: Use <span className="text-cyan-400 font-mono font-bold">**bold radiant**</span> and <span className="text-cyan-300 font-mono italic">*italic*</span> for accents.
+                  </p>
                 </div>
 
                 <div>
-                  <span className="text-[11px] text-slate-400 block mb-1">Subtitle</span>
-                  <input
-                    type="text"
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] text-slate-400">
+                      {typographyPosition === 'both' ? 'Bottom Callout / Footer' : 'Subtitle'}
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-mono">Multi-line (Enter ↵)</span>
+                  </div>
+                  <textarea
+                    rows={2}
                     value={subtitle}
                     onChange={(e) => setSubtitle(e.target.value)}
-                    placeholder="Enter explanatory copy..."
-                    className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                    placeholder={typographyPosition === 'both' ? 'Enter bottom callout or feature copy...' : 'Enter explanatory copy...'}
+                    className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 resize-none font-sans leading-relaxed"
                   />
                 </div>
 
-                <div>
-                  <span className="text-[11px] text-slate-400 block mb-1">Font Preset</span>
-                  <select
-                    value={font}
-                    onChange={(e) => setFont(e.target.value)}
-                    className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
-                  >
-                    {FONTS.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.name}
-                      </option>
+                {/* Alignment, Weight & Italic Bar */}
+                <div className="grid grid-cols-3 gap-1.5 p-1 bg-[#161922] border border-[#232733] rounded-lg items-center">
+                  {/* Alignment Buttons */}
+                  <div className="flex items-center justify-around bg-[#0f1117] p-0.5 rounded border border-[#232733]">
+                    {(['left', 'center', 'right'] as const).map((align) => (
+                      <button
+                        key={align}
+                        type="button"
+                        onClick={() => setTextAlign(align)}
+                        className={`p-1 rounded transition cursor-pointer ${
+                          textAlign === align ? 'bg-cyan-500/25 text-cyan-400' : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                        title={`Align text ${align}`}
+                      >
+                        {align === 'left' && <AlignLeft className="w-3.5 h-3.5" />}
+                        {align === 'center' && <AlignCenter className="w-3.5 h-3.5" />}
+                        {align === 'right' && <AlignRight className="w-3.5 h-3.5" />}
+                      </button>
                     ))}
+                  </div>
+
+                  {/* Weight Selector */}
+                  <select
+                    value={titleWeight}
+                    onChange={(e) => setTitleWeight(e.target.value)}
+                    className="bg-[#0f1117] border border-[#232733] text-slate-300 rounded px-1.5 py-1 text-[11px] focus:outline-none cursor-pointer"
+                    title="Headline Font Weight"
+                  >
+                    <option value="400">Regular (400)</option>
+                    <option value="600">Semi (600)</option>
+                    <option value="700">Bold (700)</option>
+                    <option value="800">Extra (800)</option>
+                    <option value="900">Black (900)</option>
                   </select>
+
+                  {/* Italic Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => setIsItalic(!isItalic)}
+                    className={`flex items-center justify-center gap-1 rounded border text-[11px] py-1 font-medium transition cursor-pointer ${
+                      isItalic
+                        ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40'
+                        : 'bg-[#0f1117] border-[#232733] text-slate-400 hover:text-slate-200'
+                    }`}
+                    title="Toggle Italic typography"
+                  >
+                    <Italic className="w-3 h-3" />
+                    <span>Italic</span>
+                  </button>
+                </div>
+
+                {/* Font Pairing Selection */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block mb-1">
+                      {typographyPosition === 'both' ? 'Top Font (Headline)' : 'Headline Font'}
+                    </span>
+                    <select
+                      value={headlineFont}
+                      onChange={(e) => {
+                        setHeadlineFont(e.target.value);
+                        setFont(e.target.value);
+                      }}
+                      className="w-full bg-[#161922] border border-[#232733] rounded-lg p-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
+                    >
+                      {FONTS.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.name.split(' ')[0]} {f.name.includes('Serif') ? 'Serif' : f.name.includes('Mono') ? 'Mono' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block mb-1">
+                      {typographyPosition === 'both' ? 'Bottom Font (Callout)' : 'Subtitle Font'}
+                    </span>
+                    <select
+                      value={subtitleFont}
+                      onChange={(e) => setSubtitleFont(e.target.value)}
+                      className="w-full bg-[#161922] border border-[#232733] rounded-lg p-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
+                    >
+                      <option value="match">Match Headline</option>
+                      {FONTS.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.name.split(' ')[0]} {f.name.includes('Serif') ? 'Serif' : f.name.includes('Mono') ? 'Mono' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Precision Sliders */}
+                <div className="p-2.5 rounded-lg bg-[#161922] border border-[#232733] space-y-2">
+                  {/* Headline Scale */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[11px] text-slate-400">Headline Scale</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-cyan-400 text-[11px] font-semibold">{Math.round(titleScale * 100)}%</span>
+                        {titleScale !== 1.0 && (
+                          <button
+                            type="button"
+                            onClick={() => setTitleScale(1.0)}
+                            className="text-[9px] text-slate-400 hover:text-slate-200 underline cursor-pointer"
+                          >
+                            Reset
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.7"
+                      max="1.5"
+                      step="0.01"
+                      value={titleScale}
+                      onChange={(e) => setTitleScale(parseFloat(e.target.value))}
+                      className="w-full accent-cyan-500 cursor-pointer h-1 bg-[#232733] rounded-lg appearance-none"
+                    />
+                  </div>
+
+                  {/* Subtitle Scale */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[11px] text-slate-400">Subtitle Scale</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-cyan-400 text-[11px] font-semibold">{Math.round(subtitleScale * 100)}%</span>
+                        {subtitleScale !== 1.0 && (
+                          <button
+                            type="button"
+                            onClick={() => setSubtitleScale(1.0)}
+                            className="text-[9px] text-slate-400 hover:text-slate-200 underline cursor-pointer"
+                          >
+                            Reset
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.7"
+                      max="1.3"
+                      step="0.01"
+                      value={subtitleScale}
+                      onChange={(e) => setSubtitleScale(parseFloat(e.target.value))}
+                      className="w-full accent-cyan-500 cursor-pointer h-1 bg-[#232733] rounded-lg appearance-none"
+                    />
+                  </div>
+
+                  {/* Vertical Offset (Nudge) */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[11px] text-slate-400">Vertical Nudge</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-cyan-400 text-[11px] font-semibold">{textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`}</span>
+                        {textOffset !== 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setTextOffset(0)}
+                            className="text-[9px] text-slate-400 hover:text-slate-200 underline cursor-pointer"
+                          >
+                            Reset
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <input
+                      type="range"
+                      min="-200"
+                      max="200"
+                      step="1"
+                      value={textOffset}
+                      onChange={(e) => setTextOffset(parseInt(e.target.value, 10))}
+                      className="w-full accent-cyan-500 cursor-pointer h-1 bg-[#232733] rounded-lg appearance-none"
+                    />
+                    <div className="flex justify-between text-[8px] text-slate-500">
+                      <span>-200px (Higher)</span>
+                      <span>0px (Safe)</span>
+                      <span>+200px (Lower)</span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Star Badge Toggle */}
@@ -1327,6 +2313,97 @@ export default function StudioPage() {
                     onChange={(e) => setShowStars(e.target.checked)}
                     className="w-4 h-4 rounded accent-cyan-500 cursor-pointer"
                   />
+                </div>
+              </div>
+            </div>
+
+            {/* Device Layout & 3D Lighting */}
+            <div className={`transition ${themeId === 'none' ? 'opacity-40 pointer-events-none' : ''}`}>
+              <div className="flex items-center justify-between mb-2.5">
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                  Chassis Layout & 3D Lighting
+                </label>
+              </div>
+              <div className="space-y-3">
+                {/* 3D Ambient Mesh Glow Toggle */}
+                <div className="flex items-center justify-between p-2 rounded-lg bg-[#161922] border border-[#232733]">
+                  <div>
+                    <span className="text-xs text-slate-200 block font-medium">Ambient 3D Radial Glow</span>
+                    <span className="text-[10px] text-slate-500">Diffuse lighting mesh behind phone chassis</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={ambientGlow}
+                    onChange={(e) => setAmbientGlow(e.target.checked)}
+                    className="w-4 h-4 rounded accent-cyan-500 cursor-pointer"
+                  />
+                </div>
+
+                {/* Phone Scale Slider */}
+                <div className="p-2.5 rounded-lg bg-[#161922] border border-[#232733] space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-300">Device Scale</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono text-cyan-400 font-semibold">{Math.round(phoneScale * 100)}%</span>
+                      {phoneScale !== 1.0 && (
+                        <button
+                          type="button"
+                          onClick={() => setPhoneScale(1.0)}
+                          className="text-[10px] text-slate-400 hover:text-slate-200 underline cursor-pointer"
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.6"
+                    max="1.15"
+                    step="0.01"
+                    value={phoneScale}
+                    onChange={(e) => setPhoneScale(parseFloat(e.target.value))}
+                    className="w-full accent-cyan-500 cursor-pointer h-1.5 bg-[#232733] rounded-lg appearance-none"
+                  />
+                  <div className="flex justify-between text-[9px] text-slate-500">
+                    <span>60% (Compact)</span>
+                    <span>100% (Default)</span>
+                    <span>115% (Hero)</span>
+                  </div>
+                </div>
+
+                {/* Phone Vertical Nudge Offset Slider */}
+                <div className="p-2.5 rounded-lg bg-[#161922] border border-[#232733] space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-300">Vertical Nudge (Y-Offset)</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono text-cyan-400 font-semibold">{phoneOffset > 0 ? `+${phoneOffset}px` : `${phoneOffset}px`}</span>
+                      {phoneOffset !== 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setPhoneOffset(0)}
+                          className="text-[10px] text-slate-400 hover:text-slate-200 underline cursor-pointer"
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <input
+                    type="range"
+                    min="-150"
+                    max="150"
+                    step="1"
+                    value={phoneOffset}
+                    onChange={(e) => setPhoneOffset(parseInt(e.target.value, 10))}
+                    className="w-full accent-cyan-500 cursor-pointer h-1.5 bg-[#232733] rounded-lg appearance-none"
+                  />
+                  <div className="flex justify-between text-[9px] text-slate-500">
+                    <span>-150px (Higher)</span>
+                    <span>0px (Auto)</span>
+                    <span>+150px (Lower)</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1487,19 +2564,95 @@ export default function StudioPage() {
                 <img
                   src={`data:image/png;base64,${previewBase64}`}
                   alt="ADBSnap Canvas Preview"
-                  className="max-h-[66vh] w-auto object-contain rounded-xl select-none"
+                  draggable={false}
+                  className="max-h-[66vh] w-auto object-contain rounded-xl select-none pointer-events-none"
                 />
 
-                {isRendering && (
-                  <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center transition">
-                    <div className="px-3 py-1.5 rounded-full bg-slate-900/90 text-cyan-400 text-xs flex items-center gap-2 border border-cyan-500/30">
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Updating Frame...</span>
+                {/* Direct On-Canvas Draggable Text Zone (Top Headline Area) */}
+                {themeId !== 'none' && (typographyPosition === 'top' || typographyPosition === 'both') && (
+                  <div
+                    onMouseDown={handleTextDragStart}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      setTextOffset(0);
+                    }}
+                    className="absolute top-0 inset-x-0 h-[32%] z-20 cursor-ns-resize group/drag flex flex-col items-center justify-start pt-3 transition-all select-none rounded-t-xl hover:bg-cyan-500/[0.04]"
+                    title="Click and drag up/down to reposition text. Double-click to reset."
+                  >
+                    <div className="opacity-0 group-hover/drag:opacity-100 transition-opacity duration-150 px-3 py-1 rounded-full bg-slate-900/90 text-cyan-300 text-[11px] font-medium border border-cyan-500/50 shadow-2xl flex items-center gap-1.5 select-none pointer-events-none">
+                      <MoveVertical className="w-3 h-3 text-cyan-400" />
+                      <span>Drag to Reposition Text</span>
+                      {textOffset !== 0 && (
+                        <span className="font-mono text-[10px] text-cyan-400 font-bold ml-1">
+                          ({textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`})
+                        </span>
+                      )}
                     </div>
                   </div>
                 )}
+
+                {/* Direct On-Canvas Draggable Text Zone (Bottom Callout Area) */}
+                {themeId !== 'none' && (typographyPosition === 'bottom' || typographyPosition === 'both') && (
+                  <div
+                    onMouseDown={handleTextDragStart}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      setTextOffset(0);
+                    }}
+                    className="absolute bottom-0 inset-x-0 h-[30%] z-20 cursor-ns-resize group/drag flex flex-col items-center justify-end pb-3 transition-all select-none rounded-b-xl hover:bg-cyan-500/[0.04]"
+                    title="Click and drag up/down to reposition text. Double-click to reset."
+                  >
+                    <div className="opacity-0 group-hover/drag:opacity-100 transition-opacity duration-150 px-3 py-1 rounded-full bg-slate-900/90 text-cyan-300 text-[11px] font-medium border border-cyan-500/50 shadow-2xl flex items-center gap-1.5 select-none pointer-events-none">
+                      <MoveVertical className="w-3 h-3 text-cyan-400" />
+                      <span>Drag to Reposition Text</span>
+                      {textOffset !== 0 && (
+                        <span className="font-mono text-[10px] text-cyan-400 font-bold ml-1">
+                          ({textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Dynamic Live HUD Badge only when dragging */}
+                {isDraggingText && (
+                  <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 px-3.5 py-1.5 rounded-full bg-slate-900/95 border border-cyan-400 text-cyan-300 text-xs font-mono font-semibold shadow-2xl backdrop-blur flex items-center gap-2 pointer-events-none animate-in fade-in duration-100">
+                    <MoveVertical className="w-3.5 h-3.5 text-cyan-400 animate-bounce" />
+                    <span>Nudge: {textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`}</span>
+                  </div>
+                )}
+
+                {/* Subtle Non-Blocking Updating Badge */}
+                {isRendering && (
+                  <div className="absolute top-3 right-3 z-30 px-2.5 py-1 rounded-full bg-slate-900/85 backdrop-blur border border-cyan-500/40 text-cyan-300 text-[10px] font-medium flex items-center gap-1.5 shadow-lg pointer-events-none animate-in fade-in duration-100">
+                    <RefreshCw className="w-3 h-3 animate-spin text-cyan-400" />
+                    <span>Updating...</span>
+                  </div>
+                )}
+
                 {/* Floating Quick Action Buttons on Canvas Hover */}
-                <div className="absolute bottom-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                <div className="absolute bottom-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200">
+                  {themeId !== 'none' && (
+                    <button
+                      type="button"
+                      onMouseDown={handleTextDragStart}
+                      onDoubleClick={() => setTextOffset(0)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border shadow-xl backdrop-blur flex items-center gap-1.5 cursor-ns-resize select-none transition cursor-pointer ${
+                        isDraggingText
+                          ? 'bg-cyan-500 text-slate-950 font-bold border-cyan-400 shadow-cyan-500/30'
+                          : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-white/15'
+                      }`}
+                      title="Click & drag vertically to reposition text. Double-click to reset."
+                    >
+                      <MoveVertical className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>
+                        {textOffset !== 0
+                          ? `Nudge (${textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`})`
+                          : 'Drag Nudge'}
+                      </span>
+                    </button>
+                  )}
+
                   <button
                     onClick={handleCopyImage}
                     disabled={isCopying}
@@ -1576,6 +2729,17 @@ export default function StudioPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
+                  {screens.length > 1 && (
+                    <button
+                      onClick={handleSyncStyleToAll}
+                      className="text-[11px] px-2.5 py-1.5 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/60 border border-cyan-500/40 text-cyan-300 font-medium flex items-center gap-1 cursor-pointer transition shadow-sm"
+                      title="Apply current theme, typography, font scales, and offset to all screens in filmstrip"
+                    >
+                      <Sparkles className="w-3 h-3 text-cyan-400" />
+                      <span>Sync Style to All</span>
+                    </button>
+                  )}
+
                   <button
                     onClick={openStoryModal}
                     className="text-[11px] px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/25 transition"
@@ -1650,7 +2814,7 @@ export default function StudioPage() {
                           : 'border-[#232733] hover:border-slate-600 bg-[#161922]'
                       } ${draggedIndex === idx ? 'opacity-40 scale-95 border-cyan-400' : ''}`}
                     >
-                      <div className="relative w-12 h-20 rounded overflow-hidden bg-black/50 flex items-center justify-center border border-white/5 pointer-events-none">
+                      <div className="relative w-12 h-20 rounded overflow-hidden bg-black/50 flex items-center justify-center border border-white/5">
                         <img
                           src={`data:image/png;base64,${s.base64}`}
                           alt={s.label}
@@ -1663,32 +2827,35 @@ export default function StudioPage() {
 
                         {/* Top Right: Delete Screen */}
                         <button
+                          type="button"
                           onClick={(e) => deleteScreen(e, idx)}
-                          className="absolute top-0.5 right-0.5 p-1 rounded bg-black/80 hover:bg-rose-600 text-white opacity-0 group-hover:opacity-100 transition shadow cursor-pointer z-10"
+                          className="absolute top-0.5 right-0.5 p-1 rounded bg-black/80 hover:bg-rose-600 text-white opacity-0 group-hover:opacity-100 transition shadow cursor-pointer z-20 pointer-events-auto"
                           title="Remove screen"
                         >
-                          <Trash2 className="w-2.5 h-2.5" />
+                          <Trash2 className="w-2.5 h-2.5 pointer-events-none" />
                         </button>
 
                         {/* Bottom Left: Move Left in Order */}
                         {idx > 0 && (
                           <button
+                            type="button"
                             onClick={(e) => moveScreen(e, idx, 'left')}
-                            className="absolute bottom-0.5 left-0.5 p-0.5 rounded bg-black/80 hover:bg-cyan-600 text-white opacity-0 group-hover:opacity-100 transition shadow cursor-pointer z-10"
+                            className="absolute bottom-0.5 left-0.5 p-0.5 rounded bg-black/80 hover:bg-cyan-600 text-white opacity-0 group-hover:opacity-100 transition shadow cursor-pointer z-20 pointer-events-auto"
                             title="Move left in export order"
                           >
-                            <ChevronLeft className="w-2.5 h-2.5" />
+                            <ChevronLeft className="w-2.5 h-2.5 pointer-events-none" />
                           </button>
                         )}
 
                         {/* Bottom Right: Move Right in Order */}
                         {idx < screens.length - 1 && (
                           <button
+                            type="button"
                             onClick={(e) => moveScreen(e, idx, 'right')}
-                            className="absolute bottom-0.5 right-0.5 p-0.5 rounded bg-black/80 hover:bg-cyan-600 text-white opacity-0 group-hover:opacity-100 transition shadow cursor-pointer z-10"
+                            className="absolute bottom-0.5 right-0.5 p-0.5 rounded bg-black/80 hover:bg-cyan-600 text-white opacity-0 group-hover:opacity-100 transition shadow cursor-pointer z-20 pointer-events-auto"
                             title="Move right in export order"
                           >
-                            <ChevronRight className="w-2.5 h-2.5" />
+                            <ChevronRight className="w-2.5 h-2.5 pointer-events-none" />
                           </button>
                         )}
                       </div>
