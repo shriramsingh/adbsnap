@@ -1,4 +1,4 @@
-﻿import http from 'node:http';
+import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -15,14 +15,22 @@ export interface StudioServerOptions {
 export function startStudioServer(options: StudioServerOptions): Promise<http.Server> {
   const port = options.port || 3000;
 
-  // Resolve directory where dist/studio files live
+  // Resolve directory where dist/studio files live (must contain index.html)
   let studioDir = path.resolve(process.cwd(), 'dist/studio');
   try {
     const currentDir = path.dirname(fileURLToPath(import.meta.url));
-    const candidate1 = path.resolve(currentDir, '../studio');
-    const candidate2 = path.resolve(currentDir, '../../dist/studio');
-    if (fs.existsSync(candidate1)) studioDir = candidate1;
-    else if (fs.existsSync(candidate2)) studioDir = candidate2;
+    const candidates = [
+      path.resolve(process.cwd(), 'dist/studio'),
+      path.resolve(currentDir, '../studio'),
+      path.resolve(currentDir, '../../dist/studio'),
+      path.resolve(currentDir, '../dist/studio'),
+    ];
+    for (const c of candidates) {
+      if (fs.existsSync(path.join(c, 'index.html'))) {
+        studioDir = c;
+        break;
+      }
+    }
   } catch {}
 
   return new Promise((resolve, reject) => {

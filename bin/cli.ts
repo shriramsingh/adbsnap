@@ -805,7 +805,7 @@ async function handleStudio(options: Record<string, unknown>) {
     const { startStudioServer } = await import('../lib/studio-server');
     await startStudioServer({ port });
 
-    const url = `http://adbsnap.localhost:${port}`;
+    const url = `http://localhost:${port}`;
     logger.success(`🚀 Server active! Running at ${STYLES.info(url)}`);
 
     if (!noOpen) {
