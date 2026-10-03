@@ -286,6 +286,8 @@ export default function StudioPage() {
   const initialSnapTakenRef = useRef(false);
   const lastScreenBase64Ref = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const syncScreensTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Interactive on-canvas text dragging state & refs
   const [isDraggingText, setIsDraggingText] = useState(false);
@@ -369,11 +371,19 @@ export default function StudioPage() {
   // 2. Trigger compositing preview
   const refreshPreview = useCallback(
     async (rawScreenshot?: string) => {
+      // Cancel previous pending render request if still running
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       setIsRendering(true);
       try {
         const res = await fetch('/api/export', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
           body: JSON.stringify({
             screenshotBase64: rawScreenshot || screenshotBase64,
             deviceId: selectedDevice || undefined,
@@ -405,10 +415,14 @@ export default function StudioPage() {
         if (data.success && data.base64) {
           setPreviewBase64(data.base64);
         }
-      } catch (err) {
-        console.error('Preview render error:', err);
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          console.error('Preview render error:', err);
+        }
       } finally {
-        setIsRendering(false);
+        if (abortControllerRef.current === controller) {
+          setIsRendering(false);
+        }
       }
     },
     [
@@ -473,66 +487,47 @@ export default function StudioPage() {
     refreshPreview,
   ]);
 
-  // Automatically persist current styling into the active screen in filmstrip
+  // Automatically persist current styling into the active screen in filmstrip (debounced)
   useEffect(() => {
     if (screens.length === 0 || activeScreenIndex < 0 || activeScreenIndex >= screens.length) return;
-    setScreens((prev) => {
-      if (!prev[activeScreenIndex]) return prev;
-      const current = prev[activeScreenIndex];
-      if (
-        current.customTitle === title &&
-        current.subtitle === subtitle &&
-        current.themeId === themeId &&
-        current.bezelId === bezelId &&
-        current.layout === layout &&
-        current.font === font &&
-        current.headlineFont === headlineFont &&
-        current.subtitleFont === subtitleFont &&
-        current.textAlign === textAlign &&
-        current.titleScale === titleScale &&
-        current.subtitleScale === subtitleScale &&
-        current.titleWeight === titleWeight &&
-        current.isItalic === isItalic &&
-        current.textOffset === textOffset &&
-        current.showStars === showStars &&
-        current.ambientGlow === ambientGlow &&
-        current.phoneScale === phoneScale &&
-        current.phoneOffset === phoneOffset &&
-        current.customColor1 === customColor1 &&
-        current.customColor2 === customColor2 &&
-        current.useCustomColors === useCustomColors &&
-        current.typographyPosition === typographyPosition
-      ) {
-        return prev;
-      }
-      const next = [...prev];
-      next[activeScreenIndex] = {
-        ...current,
-        customTitle: title,
-        subtitle,
-        themeId,
-        bezelId,
-        layout,
-        font,
-        headlineFont,
-        subtitleFont,
-        textAlign,
-        titleScale,
-        subtitleScale,
-        titleWeight,
-        isItalic,
-        textOffset,
-        showStars,
-        ambientGlow,
-        phoneScale,
-        phoneOffset,
-        customColor1,
-        customColor2,
-        useCustomColors,
-        typographyPosition,
-      };
-      return next;
-    });
+    if (syncScreensTimeoutRef.current) clearTimeout(syncScreensTimeoutRef.current);
+    syncScreensTimeoutRef.current = setTimeout(() => {
+      setScreens((prev) => {
+        if (!prev[activeScreenIndex]) return prev;
+        const current = prev[activeScreenIndex];
+        const next = [...prev];
+        next[activeScreenIndex] = {
+          ...current,
+          customTitle: title,
+          subtitle,
+          themeId,
+          bezelId,
+          layout,
+          font,
+          headlineFont,
+          subtitleFont,
+          textAlign,
+          titleScale,
+          subtitleScale,
+          titleWeight,
+          isItalic,
+          textOffset,
+          showStars,
+          ambientGlow,
+          phoneScale,
+          phoneOffset,
+          customColor1,
+          customColor2,
+          useCustomColors,
+          typographyPosition,
+        };
+        return next;
+      });
+    }, 350);
+
+    return () => {
+      if (syncScreensTimeoutRef.current) clearTimeout(syncScreensTimeoutRef.current);
+    };
   }, [
     activeScreenIndex,
     title,
@@ -1843,7 +1838,7 @@ export default function StudioPage() {
                       type="range"
                       min="0.7"
                       max="1.5"
-                      step="0.05"
+                      step="0.01"
                       value={titleScale}
                       onChange={(e) => setTitleScale(parseFloat(e.target.value))}
                       className="w-full accent-cyan-500 cursor-pointer h-1 bg-[#232733] rounded-lg appearance-none"
@@ -1871,7 +1866,7 @@ export default function StudioPage() {
                       type="range"
                       min="0.7"
                       max="1.3"
-                      step="0.05"
+                      step="0.01"
                       value={subtitleScale}
                       onChange={(e) => setSubtitleScale(parseFloat(e.target.value))}
                       className="w-full accent-cyan-500 cursor-pointer h-1 bg-[#232733] rounded-lg appearance-none"
@@ -1899,7 +1894,7 @@ export default function StudioPage() {
                       type="range"
                       min="-200"
                       max="200"
-                      step="10"
+                      step="1"
                       value={textOffset}
                       onChange={(e) => setTextOffset(parseInt(e.target.value, 10))}
                       className="w-full accent-cyan-500 cursor-pointer h-1 bg-[#232733] rounded-lg appearance-none"
@@ -1972,7 +1967,7 @@ export default function StudioPage() {
                     type="range"
                     min="0.6"
                     max="1.15"
-                    step="0.05"
+                    step="0.01"
                     value={phoneScale}
                     onChange={(e) => setPhoneScale(parseFloat(e.target.value))}
                     className="w-full accent-cyan-500 cursor-pointer h-1.5 bg-[#232733] rounded-lg appearance-none"
@@ -2005,7 +2000,7 @@ export default function StudioPage() {
                     type="range"
                     min="-150"
                     max="150"
-                    step="10"
+                    step="1"
                     value={phoneOffset}
                     onChange={(e) => setPhoneOffset(parseInt(e.target.value, 10))}
                     className="w-full accent-cyan-500 cursor-pointer h-1.5 bg-[#232733] rounded-lg appearance-none"
@@ -2178,38 +2173,45 @@ export default function StudioPage() {
                   className="max-h-[66vh] w-auto object-contain rounded-xl select-none"
                 />
 
-                {/* Interactive On-Canvas Drag-to-Position Handle */}
-                {themeId !== 'none' && (
-                  <div
-                    onMouseDown={handleTextDragStart}
-                    onDoubleClick={() => setTextOffset(0)}
-                    className={`absolute ${
-                      typographyPosition === 'bottom' ? 'bottom-14' : 'top-3'
-                    } left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-full bg-slate-900/90 hover:bg-slate-800 border border-cyan-500/40 text-cyan-300 text-[11px] font-medium shadow-xl backdrop-blur flex items-center gap-1.5 cursor-ns-resize select-none transition-all ${
-                      isDraggingText ? 'ring-2 ring-cyan-400 bg-cyan-950 scale-105 opacity-100' : 'opacity-70 group-hover:opacity-100'
-                    }`}
-                    title="Click & drag vertically to reposition text. Double-click to reset to safe default."
-                  >
-                    <MoveVertical className={`w-3.5 h-3.5 text-cyan-400 ${isDraggingText ? 'animate-bounce' : ''}`} />
-                    <span>{isDraggingText ? `Nudge: ${textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`}` : 'Drag to Reposition Text'}</span>
-                    {textOffset !== 0 && !isDraggingText && (
-                      <span className="font-mono text-[9px] bg-cyan-500/20 px-1 py-0.2 rounded text-cyan-300">
-                        {textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`}
-                      </span>
-                    )}
+                {/* Dynamic Live HUD Badge only when dragging */}
+                {isDraggingText && (
+                  <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 px-3.5 py-1.5 rounded-full bg-slate-900/95 border border-cyan-400 text-cyan-300 text-xs font-mono font-semibold shadow-2xl backdrop-blur flex items-center gap-2 pointer-events-none animate-in fade-in duration-100">
+                    <MoveVertical className="w-3.5 h-3.5 text-cyan-400 animate-bounce" />
+                    <span>Nudge: {textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`}</span>
                   </div>
                 )}
 
+                {/* Subtle Non-Blocking Updating Badge */}
                 {isRendering && (
-                  <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center transition">
-                    <div className="px-3 py-1.5 rounded-full bg-slate-900/90 text-cyan-400 text-xs flex items-center gap-2 border border-cyan-500/30">
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Updating Frame...</span>
-                    </div>
+                  <div className="absolute top-3 right-3 z-30 px-2.5 py-1 rounded-full bg-slate-900/85 backdrop-blur border border-cyan-500/40 text-cyan-300 text-[10px] font-medium flex items-center gap-1.5 shadow-lg pointer-events-none animate-in fade-in duration-100">
+                    <RefreshCw className="w-3 h-3 animate-spin text-cyan-400" />
+                    <span>Updating...</span>
                   </div>
                 )}
+
                 {/* Floating Quick Action Buttons on Canvas Hover */}
-                <div className="absolute bottom-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                <div className="absolute bottom-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200">
+                  {themeId !== 'none' && (
+                    <button
+                      type="button"
+                      onMouseDown={handleTextDragStart}
+                      onDoubleClick={() => setTextOffset(0)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border shadow-xl backdrop-blur flex items-center gap-1.5 cursor-ns-resize select-none transition cursor-pointer ${
+                        isDraggingText
+                          ? 'bg-cyan-500 text-slate-950 font-bold border-cyan-400 shadow-cyan-500/30'
+                          : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-white/15'
+                      }`}
+                      title="Click & drag vertically to reposition text. Double-click to reset."
+                    >
+                      <MoveVertical className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>
+                        {textOffset !== 0
+                          ? `Nudge (${textOffset > 0 ? `+${textOffset}px` : `${textOffset}px`})`
+                          : 'Drag Nudge'}
+                      </span>
+                    </button>
+                  )}
+
                   <button
                     onClick={handleCopyImage}
                     disabled={isCopying}
