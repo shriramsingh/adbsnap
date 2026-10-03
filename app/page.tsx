@@ -48,7 +48,6 @@ interface SessionScreen {
   base64: string;
   timestamp: string;
   customTitle?: string;
-  customEyebrow?: string;
 }
 
 const THEMES = [
@@ -188,7 +187,6 @@ export default function StudioPage() {
   const [subtitle, setSubtitle] = useState('Effortless automated mobile screenshot studio.');
   const [showStars, setShowStars] = useState(true);
   const [typographyPosition, setTypographyPosition] = useState<'top' | 'bottom' | 'both'>('top');
-  const [eyebrowTag, setEyebrowTag] = useState('');
   const [phoneScale, setPhoneScale] = useState<number>(1.0);
   const [phoneOffset, setPhoneOffset] = useState<number>(0);
   const [ambientGlow, setAmbientGlow] = useState<boolean>(true);
@@ -278,7 +276,6 @@ export default function StudioPage() {
             font,
             title,
             subtitle,
-            eyebrowTag: eyebrowTag || undefined,
             showStarBadge: showStars,
             typographyPosition,
             phoneScaleMultiplier: phoneScale,
@@ -298,7 +295,7 @@ export default function StudioPage() {
         setIsRendering(false);
       }
     },
-    [screenshotBase64, selectedDevice, bezelId, themeId, layout, font, title, subtitle, eyebrowTag, showStars, typographyPosition, phoneScale, phoneOffset, ambientGlow]
+    [screenshotBase64, selectedDevice, bezelId, themeId, layout, font, title, subtitle, showStars, typographyPosition, phoneScale, phoneOffset, ambientGlow]
   );
 
   // Debounced auto-preview when styling knobs change
@@ -311,7 +308,7 @@ export default function StudioPage() {
     return () => {
       if (renderTimeoutRef.current) clearTimeout(renderTimeoutRef.current);
     };
-  }, [themeId, bezelId, layout, font, title, subtitle, eyebrowTag, showStars, typographyPosition, phoneScale, phoneOffset, ambientGlow, refreshPreview]);
+  }, [themeId, bezelId, layout, font, title, subtitle, showStars, typographyPosition, phoneScale, phoneOffset, ambientGlow, refreshPreview]);
 
   // 3. 1-Click Capture from Mobile Phone
   const handleSnap = useCallback(
@@ -547,9 +544,6 @@ export default function StudioPage() {
     const target = screens[index];
     if (target.customTitle) {
       setTitle(target.customTitle);
-    }
-    if (target.customEyebrow !== undefined) {
-      setEyebrowTag(target.customEyebrow);
     }
     setScreenshotBase64(target.base64);
     await refreshPreview(target.base64);
@@ -814,7 +808,6 @@ export default function StudioPage() {
           font,
           title,
           subtitle,
-          eyebrowTag: eyebrowTag || undefined,
           showStarBadge: showStars,
           typographyPosition,
           phoneScaleMultiplier: phoneScale,
@@ -1339,42 +1332,6 @@ export default function StudioPage() {
                     >
                       ↕ Both
                     </button>
-                  </div>
-                </div>
-
-                {/* Eyebrow Tag (Pill Badge) */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11px] text-slate-400">Eyebrow Tag (Pill Badge)</span>
-                    <span className="text-[10px] text-slate-500 font-mono">Optional</span>
-                  </div>
-                  <input
-                    type="text"
-                    value={eyebrowTag}
-                    onChange={(e) => setEyebrowTag(e.target.value)}
-                    placeholder="e.g. ⚡ NEW IN 2026 or 🔥 #1 APP"
-                    className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 font-sans"
-                  />
-                  <div className="flex flex-wrap gap-1 mt-1.5">
-                    {['⚡ NEW IN 2026', '🔥 #1 PRODUCTIVITY', '🔒 100% PRIVATE', '✨ AI POWERED'].map((tag) => (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() => setEyebrowTag(tag)}
-                        className="text-[10px] px-1.5 py-0.5 rounded bg-[#1e2330] hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-300 border border-[#2d3345] transition cursor-pointer"
-                      >
-                        {tag}
-                      </button>
-                    ))}
-                    {eyebrowTag && (
-                      <button
-                        type="button"
-                        onClick={() => setEyebrowTag('')}
-                        className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition cursor-pointer"
-                      >
-                        Clear
-                      </button>
-                    )}
                   </div>
                 </div>
 
