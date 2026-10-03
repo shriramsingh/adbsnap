@@ -11,10 +11,12 @@ export interface TypographyOptions {
   title?: string;
   subtitle?: string;
   footer?: string;
+  eyebrowTag?: string;
   showStarBadge?: boolean;
   position?: 'top' | 'bottom' | 'both';
   isDarkTheme?: boolean;
   fontFamily?: string;
+  accentColors?: [string, string];
 }
 
 /**
@@ -48,8 +50,39 @@ export function generateGradientSvg(options: BackdropOptions): string {
 }
 
 /**
+ * Generates a soft, diffuse ambient mesh radial glow positioned behind the device chassis.
+ * Creates an illuminated, 3D floating effect with high visual depth.
+ */
+export function generateAmbientGlowSvg(options: {
+  canvasWidth: number;
+  canvasHeight: number;
+  centerX: number;
+  centerY: number;
+  radius: number;
+  glowColor?: string;
+}): string {
+  const { canvasWidth, canvasHeight, centerX, centerY, radius, glowColor = '#38bdf8' } = options;
+  const blurStd = Math.round(radius * 0.22);
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${canvasWidth}" height="${canvasHeight}">
+    <defs>
+      <radialGradient id="meshGlowGrad" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="${glowColor}" stop-opacity="0.48" />
+        <stop offset="35%" stop-color="${glowColor}" stop-opacity="0.25" />
+        <stop offset="70%" stop-color="${glowColor}" stop-opacity="0.08" />
+        <stop offset="100%" stop-color="${glowColor}" stop-opacity="0" />
+      </radialGradient>
+      <filter id="meshGlowBlur" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="${blurStd}" />
+      </filter>
+    </defs>
+    <circle cx="${centerX}" cy="${centerY}" r="${radius}" fill="url(#meshGlowGrad)" filter="url(#meshGlowBlur)" />
+  </svg>`;
+}
+
+/**
  * Generates an SVG typography overlay with headlines, subtitles, and rating chips.
- * Supports multi-line headlines, automatic downscaling, and 'top', 'bottom', or 'both' positioning.
+ * Supports keyword highlighting (**word**), eyebrow tags, auto-downscaling, and 3-way positioning.
  */
 export function generateTypographySvg(options: TypographyOptions): string {
   const {
@@ -58,13 +91,15 @@ export function generateTypographySvg(options: TypographyOptions): string {
     title,
     subtitle,
     footer,
+    eyebrowTag,
     showStarBadge,
     position = 'top',
     isDarkTheme = true,
     fontFamily,
+    accentColors = ['#38bdf8', '#c084fc'],
   } = options;
 
-  if (!title && !subtitle && !footer && !showStarBadge) return '';
+  if (!title && !subtitle && !footer && !showStarBadge && !eyebrowTag) return '';
 
   const font = fontFamily || "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, sans-serif";
   const scale = Math.min(canvasWidth / 1290, canvasHeight / 2796);
@@ -89,7 +124,36 @@ export function generateTypographySvg(options: TypographyOptions): string {
   const subtitleSize = Math.max(16, Math.round(28 * scale));
   const subtitleLineHeight = Math.round(subtitleSize * 1.25);
 
-  // Helper for Star Rating Chip
+  // Helper: Modern Eyebrow Tag Pill
+  const renderEyebrow = (y: number) => {
+    if (!eyebrowTag || !eyebrowTag.trim()) return { svg: '', height: 0 };
+    const text = eyebrowTag.trim();
+    const badgeFontSize = Math.max(12, Math.round(18 * scale));
+    const paddingX = Math.round(22 * scale);
+    const badgeHeight = Math.round(44 * scale);
+    const badgeRadius = Math.round(22 * scale);
+    const estTextWidth = Math.round(text.length * badgeFontSize * 0.65);
+    const badgeWidth = estTextWidth + paddingX * 2;
+    const badgeX = (canvasWidth - badgeWidth) / 2;
+    const textY = Math.round(28 * scale);
+    const tagBg = isDarkTheme ? 'rgba(56, 189, 248, 0.14)' : 'rgba(14, 165, 233, 0.10)';
+    const tagBorder = isDarkTheme ? 'rgba(56, 189, 248, 0.45)' : 'rgba(14, 165, 233, 0.35)';
+    const tagColor = isDarkTheme ? '#38bdf8' : '#0284c7';
+
+    return {
+      svg: `
+        <g transform="translate(${badgeX}, ${y})">
+          <rect width="${badgeWidth}" height="${badgeHeight}" rx="${badgeRadius}" fill="${tagBg}" stroke="${tagBorder}" stroke-width="1.5" />
+          <text x="${badgeWidth / 2}" y="${textY}" text-anchor="middle" font-family="${font}" font-size="${badgeFontSize}" font-weight="700" fill="${tagColor}" letter-spacing="1.2">
+            ${escapeXml(text)}
+          </text>
+        </g>
+      `,
+      height: badgeHeight + Math.round(16 * scale),
+    };
+  };
+
+  // Helper: Star Rating Chip
   const renderBadge = (y: number) => {
     const badgeWidth = Math.round(280 * scale);
     const badgeHeight = Math.round(48 * scale);
@@ -111,23 +175,44 @@ export function generateTypographySvg(options: TypographyOptions): string {
           </text>
         </g>
       `,
-      height: badgeHeight + Math.round(22 * scale),
+      height: badgeHeight + Math.round(20 * scale),
     };
   };
 
-  // Helper for Text Block
+  // Helper: Text Block with Markdown (**word**) Gradient Highlight Parsing
   const renderText = (lines: string[], fontSize: number, lineHeight: number, fontWeight: string, color: string, y: number, letterSpacing = 'normal') => {
     if (lines.length === 0) return { svg: '', height: 0 };
     let tspans = '';
-    lines.forEach((line, idx) => {
-      tspans += `<tspan x="${centerX}" ${idx > 0 ? `dy="${lineHeight}"` : ''}>${escapeXml(line)}</tspan>`;
+
+    lines.forEach((line, lineIdx) => {
+      // Split into **highlighted** and normal tokens
+      const segments = line.split(/(\*\*[^*]+\*\*)/g);
+      let isFirstTspanOfLine = true;
+
+      for (const seg of segments) {
+        if (!seg) continue;
+        const isHighlight = seg.startsWith('**') && seg.endsWith('**');
+        const cleanContent = isHighlight ? seg.slice(2, -2) : seg;
+
+        const lineBreakAttrs = isFirstTspanOfLine
+          ? `x="${centerX}" ${lineIdx > 0 ? `dy="${lineHeight}"` : ''}`
+          : '';
+
+        if (isHighlight) {
+          tspans += `<tspan ${lineBreakAttrs} fill="url(#textAccentGrad)" font-weight="900">${escapeXml(cleanContent)}</tspan>`;
+        } else {
+          tspans += `<tspan ${lineBreakAttrs} fill="${color}">${escapeXml(cleanContent)}</tspan>`;
+        }
+
+        isFirstTspanOfLine = false;
+      }
     });
 
     const blockHeight = fontSize + (lines.length - 1) * lineHeight;
     const svg = `
-      <text x="${centerX}" y="${y + fontSize}" text-anchor="middle" 
+      <text xml:space="preserve" x="${centerX}" y="${y + fontSize}" text-anchor="middle" 
             font-family="${font}" 
-            font-size="${fontSize}" font-weight="${fontWeight}" fill="${color}" letter-spacing="${letterSpacing}">
+            font-size="${fontSize}" font-weight="${fontWeight}" letter-spacing="${letterSpacing}">
         ${tspans}
       </text>
     `;
@@ -136,36 +221,13 @@ export function generateTypographySvg(options: TypographyOptions): string {
 
   // POSITION: TOP (Default)
   if (position === 'top') {
-    let currentY = Math.round(130 * scale);
+    let currentY = Math.round(110 * scale);
 
-    if (showStarBadge) {
-      const badge = renderBadge(currentY);
-      content += badge.svg;
-      currentY += badge.height;
+    if (eyebrowTag) {
+      const tag = renderEyebrow(currentY);
+      content += tag.svg;
+      currentY += tag.height;
     }
-
-    if (titleLines.length > 0) {
-      const titleBlock = renderText(titleLines, titleSize, titleLineHeight, '800', titleColor, currentY, '-1');
-      content += titleBlock.svg;
-      currentY += titleBlock.height + Math.round(22 * scale);
-    }
-
-    if (subtitleLines.length > 0) {
-      const subBlock = renderText(subtitleLines, subtitleSize, subtitleLineHeight, '500', subtitleColor, currentY);
-      content += subBlock.svg;
-    }
-  }
-
-  // POSITION: BOTTOM (Store copy under phone chassis)
-  else if (position === 'bottom') {
-    // Calculate total height required
-    let totalHeight = 0;
-    if (showStarBadge) totalHeight += Math.round(70 * scale);
-    if (titleLines.length > 0) totalHeight += titleSize + (titleLines.length - 1) * titleLineHeight + Math.round(18 * scale);
-    if (subtitleLines.length > 0) totalHeight += subtitleSize + (subtitleLines.length - 1) * subtitleLineHeight;
-
-    const bottomPadding = Math.round(95 * scale);
-    let currentY = Math.max(Math.round(canvasHeight * 0.64), canvasHeight - totalHeight - bottomPadding);
 
     if (showStarBadge) {
       const badge = renderBadge(currentY);
@@ -185,10 +247,52 @@ export function generateTypographySvg(options: TypographyOptions): string {
     }
   }
 
+  // POSITION: BOTTOM (Store copy under phone chassis)
+  else if (position === 'bottom') {
+    let totalHeight = 0;
+    if (eyebrowTag) totalHeight += Math.round(60 * scale);
+    if (showStarBadge) totalHeight += Math.round(68 * scale);
+    if (titleLines.length > 0) totalHeight += titleSize + (titleLines.length - 1) * titleLineHeight + Math.round(18 * scale);
+    if (subtitleLines.length > 0) totalHeight += subtitleSize + (subtitleLines.length - 1) * subtitleLineHeight;
+
+    const bottomPadding = Math.round(85 * scale);
+    let currentY = Math.max(Math.round(canvasHeight * 0.64), canvasHeight - totalHeight - bottomPadding);
+
+    if (eyebrowTag) {
+      const tag = renderEyebrow(currentY);
+      content += tag.svg;
+      currentY += tag.height;
+    }
+
+    if (showStarBadge) {
+      const badge = renderBadge(currentY);
+      content += badge.svg;
+      currentY += badge.height;
+    }
+
+    if (titleLines.length > 0) {
+      const titleBlock = renderText(titleLines, titleSize, titleLineHeight, '800', titleColor, currentY, '-1');
+      content += titleBlock.svg;
+      currentY += titleBlock.height + Math.round(18 * scale);
+    }
+
+    if (subtitleLines.length > 0) {
+      const subBlock = renderText(subtitleLines, subtitleSize, subtitleLineHeight, '500', subtitleColor, currentY);
+      content += subBlock.svg;
+    }
+  }
+
   // POSITION: BOTH (Top Headline/Badge + Bottom Subtitle/Callout)
   else if (position === 'both') {
-    // TOP ZONE: Star Badge + Headline
-    let topY = Math.round(120 * scale);
+    // TOP ZONE: Eyebrow + Star Badge + Headline
+    let topY = Math.round(110 * scale);
+
+    if (eyebrowTag) {
+      const tag = renderEyebrow(topY);
+      content += tag.svg;
+      topY += tag.height;
+    }
+
     if (showStarBadge) {
       const badge = renderBadge(topY);
       content += badge.svg;
@@ -205,7 +309,7 @@ export function generateTypographySvg(options: TypographyOptions): string {
     const bottomLines = bottomText ? wrapText(bottomText, maxSubChars) : [];
     if (bottomLines.length > 0) {
       const bottomBlockHeight = subtitleSize + (bottomLines.length - 1) * subtitleLineHeight;
-      const bottomY = canvasHeight - Math.round(120 * scale) - bottomBlockHeight;
+      const bottomY = canvasHeight - Math.round(110 * scale) - bottomBlockHeight;
       const subBlock = renderText(bottomLines, subtitleSize, subtitleLineHeight, '600', subtitleColor, bottomY);
       content += subBlock.svg;
     }
@@ -215,6 +319,10 @@ export function generateTypographySvg(options: TypographyOptions): string {
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${canvasWidth}" height="${canvasHeight}">
     <defs>
+      <linearGradient id="textAccentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="${accentColors[0]}" />
+        <stop offset="100%" stop-color="${accentColors[1]}" />
+      </linearGradient>
       <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
         <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000000" flood-opacity="${shadowOpacity}" />
       </filter>
@@ -227,6 +335,7 @@ export function generateTypographySvg(options: TypographyOptions): string {
 
 /**
  * Splits text into wrapped lines, preserving explicit user newlines while wrapping paragraphs.
+ * Ignores markdown ** syntax when computing visible line width.
  */
 export function wrapText(text: string, maxCharsPerLine: number = 24): string[] {
   if (!text) return [];
@@ -240,12 +349,13 @@ export function wrapText(text: string, maxCharsPerLine: number = 24): string[] {
     let currentLine = '';
 
     for (const word of words) {
-      if (!currentLine) {
-        currentLine = word;
-      } else if ((currentLine + ' ' + word).length <= maxCharsPerLine) {
-        currentLine += ' ' + word;
+      const prospective = currentLine ? `${currentLine} ${word}` : word;
+      const visibleLength = prospective.replace(/\*\*/g, '').length;
+
+      if (visibleLength <= maxCharsPerLine) {
+        currentLine = prospective;
       } else {
-        result.push(currentLine);
+        if (currentLine) result.push(currentLine);
         currentLine = word;
       }
     }

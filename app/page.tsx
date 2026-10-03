@@ -48,6 +48,7 @@ interface SessionScreen {
   base64: string;
   timestamp: string;
   customTitle?: string;
+  customEyebrow?: string;
 }
 
 const THEMES = [
@@ -187,6 +188,10 @@ export default function StudioPage() {
   const [subtitle, setSubtitle] = useState('Effortless automated mobile screenshot studio.');
   const [showStars, setShowStars] = useState(true);
   const [typographyPosition, setTypographyPosition] = useState<'top' | 'bottom' | 'both'>('top');
+  const [eyebrowTag, setEyebrowTag] = useState('');
+  const [phoneScale, setPhoneScale] = useState<number>(1.0);
+  const [phoneOffset, setPhoneOffset] = useState<number>(0);
+  const [ambientGlow, setAmbientGlow] = useState<boolean>(true);
 
   // Images & Screen Session History
   const [screenshotBase64, setScreenshotBase64] = useState<string | null>(null);
@@ -273,8 +278,12 @@ export default function StudioPage() {
             font,
             title,
             subtitle,
+            eyebrowTag: eyebrowTag || undefined,
             showStarBadge: showStars,
             typographyPosition,
+            phoneScaleMultiplier: phoneScale,
+            phoneTopOffset: phoneOffset,
+            enableAmbientGlow: ambientGlow,
             format: 'preview',
           }),
         });
@@ -289,7 +298,7 @@ export default function StudioPage() {
         setIsRendering(false);
       }
     },
-    [screenshotBase64, selectedDevice, bezelId, themeId, layout, font, title, subtitle, showStars, typographyPosition]
+    [screenshotBase64, selectedDevice, bezelId, themeId, layout, font, title, subtitle, eyebrowTag, showStars, typographyPosition, phoneScale, phoneOffset, ambientGlow]
   );
 
   // Debounced auto-preview when styling knobs change
@@ -302,7 +311,7 @@ export default function StudioPage() {
     return () => {
       if (renderTimeoutRef.current) clearTimeout(renderTimeoutRef.current);
     };
-  }, [themeId, bezelId, layout, font, title, subtitle, showStars, typographyPosition, refreshPreview]);
+  }, [themeId, bezelId, layout, font, title, subtitle, eyebrowTag, showStars, typographyPosition, phoneScale, phoneOffset, ambientGlow, refreshPreview]);
 
   // 3. 1-Click Capture from Mobile Phone
   const handleSnap = useCallback(
@@ -538,6 +547,9 @@ export default function StudioPage() {
     const target = screens[index];
     if (target.customTitle) {
       setTitle(target.customTitle);
+    }
+    if (target.customEyebrow !== undefined) {
+      setEyebrowTag(target.customEyebrow);
     }
     setScreenshotBase64(target.base64);
     await refreshPreview(target.base64);
@@ -802,8 +814,12 @@ export default function StudioPage() {
           font,
           title,
           subtitle,
+          eyebrowTag: eyebrowTag || undefined,
           showStarBadge: showStars,
           typographyPosition,
+          phoneScaleMultiplier: phoneScale,
+          phoneTopOffset: phoneOffset,
+          enableAmbientGlow: ambientGlow,
           format: 'zip',
         }),
       });
@@ -1326,6 +1342,42 @@ export default function StudioPage() {
                   </div>
                 </div>
 
+                {/* Eyebrow Tag (Pill Badge) */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] text-slate-400">Eyebrow Tag (Pill Badge)</span>
+                    <span className="text-[10px] text-slate-500 font-mono">Optional</span>
+                  </div>
+                  <input
+                    type="text"
+                    value={eyebrowTag}
+                    onChange={(e) => setEyebrowTag(e.target.value)}
+                    placeholder="e.g. ⚡ NEW IN 2026 or 🔥 #1 APP"
+                    className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 font-sans"
+                  />
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {['⚡ NEW IN 2026', '🔥 #1 PRODUCTIVITY', '🔒 100% PRIVATE', '✨ AI POWERED'].map((tag) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => setEyebrowTag(tag)}
+                        className="text-[10px] px-1.5 py-0.5 rounded bg-[#1e2330] hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-300 border border-[#2d3345] transition cursor-pointer"
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                    {eyebrowTag && (
+                      <button
+                        type="button"
+                        onClick={() => setEyebrowTag('')}
+                        className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition cursor-pointer"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[11px] text-slate-400">Headline</span>
@@ -1338,6 +1390,9 @@ export default function StudioPage() {
                     placeholder="Enter punchy headline (press Enter for new line)..."
                     className="w-full bg-[#161922] border border-[#232733] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 resize-none font-sans leading-relaxed"
                   />
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    Tip: Wrap words in <span className="text-cyan-400 font-mono font-bold">**word**</span> to render glowing radiant gradient accents.
+                  </p>
                 </div>
 
                 <div>
@@ -1383,6 +1438,97 @@ export default function StudioPage() {
                     onChange={(e) => setShowStars(e.target.checked)}
                     className="w-4 h-4 rounded accent-cyan-500 cursor-pointer"
                   />
+                </div>
+              </div>
+            </div>
+
+            {/* Device Layout & 3D Lighting */}
+            <div className={`transition ${themeId === 'none' ? 'opacity-40 pointer-events-none' : ''}`}>
+              <div className="flex items-center justify-between mb-2.5">
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                  Chassis Layout & 3D Lighting
+                </label>
+              </div>
+              <div className="space-y-3">
+                {/* 3D Ambient Mesh Glow Toggle */}
+                <div className="flex items-center justify-between p-2 rounded-lg bg-[#161922] border border-[#232733]">
+                  <div>
+                    <span className="text-xs text-slate-200 block font-medium">Ambient 3D Radial Glow</span>
+                    <span className="text-[10px] text-slate-500">Diffuse lighting mesh behind phone chassis</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={ambientGlow}
+                    onChange={(e) => setAmbientGlow(e.target.checked)}
+                    className="w-4 h-4 rounded accent-cyan-500 cursor-pointer"
+                  />
+                </div>
+
+                {/* Phone Scale Slider */}
+                <div className="p-2.5 rounded-lg bg-[#161922] border border-[#232733] space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-300">Device Scale</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono text-cyan-400 font-semibold">{Math.round(phoneScale * 100)}%</span>
+                      {phoneScale !== 1.0 && (
+                        <button
+                          type="button"
+                          onClick={() => setPhoneScale(1.0)}
+                          className="text-[10px] text-slate-400 hover:text-slate-200 underline cursor-pointer"
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.6"
+                    max="1.15"
+                    step="0.05"
+                    value={phoneScale}
+                    onChange={(e) => setPhoneScale(parseFloat(e.target.value))}
+                    className="w-full accent-cyan-500 cursor-pointer h-1.5 bg-[#232733] rounded-lg appearance-none"
+                  />
+                  <div className="flex justify-between text-[9px] text-slate-500">
+                    <span>60% (Compact)</span>
+                    <span>100% (Default)</span>
+                    <span>115% (Hero)</span>
+                  </div>
+                </div>
+
+                {/* Phone Vertical Nudge Offset Slider */}
+                <div className="p-2.5 rounded-lg bg-[#161922] border border-[#232733] space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-300">Vertical Nudge (Y-Offset)</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono text-cyan-400 font-semibold">{phoneOffset > 0 ? `+${phoneOffset}px` : `${phoneOffset}px`}</span>
+                      {phoneOffset !== 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setPhoneOffset(0)}
+                          className="text-[10px] text-slate-400 hover:text-slate-200 underline cursor-pointer"
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <input
+                    type="range"
+                    min="-150"
+                    max="150"
+                    step="10"
+                    value={phoneOffset}
+                    onChange={(e) => setPhoneOffset(parseInt(e.target.value, 10))}
+                    className="w-full accent-cyan-500 cursor-pointer h-1.5 bg-[#232733] rounded-lg appearance-none"
+                  />
+                  <div className="flex justify-between text-[9px] text-slate-500">
+                    <span>-150px (Higher)</span>
+                    <span>0px (Auto)</span>
+                    <span>+150px (Lower)</span>
+                  </div>
                 </div>
               </div>
             </div>

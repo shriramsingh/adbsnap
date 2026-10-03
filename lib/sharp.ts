@@ -1,7 +1,7 @@
 import sharp, { type OverlayOptions } from 'sharp';
 import { BEZEL_PRESETS, GRADIENT_PRESETS, LAYOUT_PRESETS, FONT_PRESETS, STORE_TARGETS, type BezelSpec, type LayoutMode, type StoreTarget } from '../constants/themes';
 import { generateBezelSvg, generateScreenCornerMask, generateStudioShadowSvg } from './bezel-generator';
-import { generateGradientSvg, generateTypographySvg } from './backdrop-generator';
+import { generateGradientSvg, generateTypographySvg, generateAmbientGlowSvg } from './backdrop-generator';
 
 export interface CompositeFrameOptions {
   screenshotBuffer: Buffer;
@@ -14,11 +14,16 @@ export interface CompositeFrameOptions {
   title?: string;
   subtitle?: string;
   footer?: string;
+  eyebrowTag?: string;
   showStarBadge?: boolean;
   typographyPosition?: 'top' | 'bottom' | 'both';
   canvasWidth?: number;
   canvasHeight?: number;
   phoneTopOffset?: number;
+  phoneScaleMultiplier?: number;
+  enableAmbientGlow?: boolean;
+  ambientGlowColor?: string;
+  accentColors?: [string, string];
   fit?: 'cover' | 'contain' | 'fill';
   precomputedPhoneDeviceBuffer?: Buffer;
   format?: 'png' | 'webp' | 'avif' | 'jpeg';
@@ -142,9 +147,11 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
 
   // 4. Responsive Phone Sizing to guarantee title headroom on all screen ratios
   const layout = options.layout || 'appstore';
-  const targetRatio = layout === 'appstore' ? 0.74 : 0.66;
+  const baseRatio = layout === 'appstore' ? 0.74 : 0.66;
+  const scaleMult = options.phoneScaleMultiplier ? Math.max(0.4, Math.min(1.35, options.phoneScaleMultiplier)) : 1.0;
+  const targetRatio = baseRatio * scaleMult;
   let targetPhoneHeight = Math.round(canvasHeight * targetRatio);
-  const maxAllowedWidth = Math.round(canvasWidth * 0.88);
+  const maxAllowedWidth = Math.round(canvasWidth * 0.94);
 
   if ((targetPhoneHeight / deviceCanvasHeight) * deviceCanvasWidth > maxAllowedWidth) {
     targetPhoneHeight = Math.round((maxAllowedWidth / deviceCanvasWidth) * deviceCanvasHeight);
@@ -197,7 +204,7 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
     defaultPhoneTop = layoutPreset.phoneTop(canvasHeight, targetPhoneHeight);
   }
 
-  const phoneTop = options.phoneTopOffset ?? defaultPhoneTop;
+  const phoneTop = Math.round(defaultPhoneTop + (options.phoneTopOffset ?? 0));
 
   // 7. Generate Gradient Backdrop SVG
   const gradientSvg = generateGradientSvg({
@@ -224,16 +231,40 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
     title: options.title,
     subtitle: options.subtitle,
     footer: options.footer,
+    eyebrowTag: options.eyebrowTag,
     showStarBadge: options.showStarBadge,
     position: typographyPosition,
     isDarkTheme,
     fontFamily,
+    accentColors: options.accentColors,
   });
 
-  const compositeLayers: OverlayOptions[] = [
-    { input: scaledPhoneBuffer, left: phoneLeft, top: phoneTop },
-  ];
+  const compositeLayers: OverlayOptions[] = [];
 
+  // Ambient 3D Radial Mesh Glow layer behind phone chassis
+  if (options.gradientPreset !== 'none' && options.enableAmbientGlow !== false) {
+    const glowColor = options.ambientGlowColor || colors[0] || '#38bdf8';
+    const glowRadius = Math.round(Math.max(targetPhoneWidth, targetPhoneHeight) * 0.52);
+    const glowCenterY = Math.round(phoneTop + targetPhoneHeight * 0.45);
+    const ambientGlowSvg = generateAmbientGlowSvg({
+      canvasWidth,
+      canvasHeight,
+      centerX: Math.round(phoneLeft + targetPhoneWidth / 2),
+      centerY: glowCenterY,
+      radius: glowRadius,
+      glowColor,
+    });
+    compositeLayers.push({
+      input: Buffer.from(ambientGlowSvg),
+      left: 0,
+      top: 0,
+    });
+  }
+
+  // Physical vector phone device chassis
+  compositeLayers.push({ input: scaledPhoneBuffer, left: phoneLeft, top: phoneTop });
+
+  // Marketing typography & pill badges overlay
   if (typographySvg) {
     compositeLayers.push({
       input: Buffer.from(typographySvg),

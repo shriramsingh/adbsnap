@@ -39,6 +39,10 @@ async function main() {
       out: { type: 'string' },
       port: { type: 'string', default: '3000' },
       'text-pos': { type: 'string', default: 'top' },
+      tag: { type: 'string' },
+      'phone-scale': { type: 'string' },
+      'phone-offset': { type: 'string' },
+      'no-glow': { type: 'boolean', default: false },
       footer: { type: 'string' },
       browser: { type: 'boolean', default: false },
       'no-open': { type: 'boolean', default: false },
@@ -264,6 +268,10 @@ async function handleSnap(options: {
   const format = (options.format as 'png' | 'webp' | 'avif' | 'jpeg') || 'png';
   const quality = options.quality ? Number(options.quality) : undefined;
   const textPos = (options['text-pos'] as 'top' | 'bottom' | 'both') || 'top';
+  const eyebrowTag = options.tag;
+  const phoneScaleMultiplier = options['phone-scale'] ? Number(options['phone-scale']) : undefined;
+  const phoneTopOffset = options['phone-offset'] ? Number(options['phone-offset']) : undefined;
+  const enableAmbientGlow = !options['no-glow'];
 
   if (!BEZEL_PRESETS[frame]) {
     logger.warn(`Unknown frame "${frame}", falling back to "iphone-16-pro". Available: ${Object.keys(BEZEL_PRESETS).join(', ')}`);
@@ -288,8 +296,12 @@ async function handleSnap(options: {
     title: options.title,
     subtitle: options.subtitle,
     footer: options.footer,
+    eyebrowTag,
     showStarBadge: options.stars,
     typographyPosition: textPos,
+    phoneScaleMultiplier,
+    phoneTopOffset,
+    enableAmbientGlow,
   });
 
   logger.success(MESSAGES.COMPOSITE_SUCCESS(result.elapsedMs, result.width, result.height));
@@ -316,6 +328,10 @@ async function handleExport(options: {
   title?: string;
   subtitle?: string;
   footer?: string;
+  tag?: string;
+  'phone-scale'?: string;
+  'phone-offset'?: string;
+  'no-glow'?: boolean;
   'text-pos'?: string;
   stars?: boolean;
   zip?: boolean;
@@ -333,6 +349,10 @@ async function handleExport(options: {
   let title = options.title;
   let subtitle = options.subtitle;
   let footer = options.footer;
+  let tag = options.tag;
+  let phoneScaleMultiplier = options['phone-scale'] ? Number(options['phone-scale']) : undefined;
+  let phoneTopOffset = options['phone-offset'] ? Number(options['phone-offset']) : undefined;
+  let enableAmbientGlow = !options['no-glow'];
   let textPos = (options['text-pos'] as 'top' | 'bottom' | 'both') || 'top';
   let stars = options.stars ?? false;
 
@@ -345,6 +365,10 @@ async function handleExport(options: {
       if (cfg.font) font = cfg.font;
       if (cfg.stars !== undefined) stars = cfg.stars;
       if (cfg.textPos) textPos = cfg.textPos;
+      if (cfg.tag) tag = cfg.tag;
+      if (cfg.phoneScale !== undefined) phoneScaleMultiplier = Number(cfg.phoneScale);
+      if (cfg.phoneOffset !== undefined) phoneTopOffset = Number(cfg.phoneOffset);
+      if (cfg.glow !== undefined) enableAmbientGlow = Boolean(cfg.glow);
       if (cfg.screens && cfg.screens[0]) {
         if (!title) title = cfg.screens[0].title;
         if (!subtitle) subtitle = cfg.screens[0].subtitle;
@@ -391,6 +415,10 @@ async function handleExport(options: {
     title,
     subtitle,
     footer,
+    eyebrowTag: tag,
+    phoneScaleMultiplier,
+    phoneTopOffset,
+    enableAmbientGlow,
     showStarBadge: stars,
     typographyPosition: textPos,
     storeFilter,

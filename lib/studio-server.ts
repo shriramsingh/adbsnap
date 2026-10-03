@@ -78,21 +78,30 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
         if (pathname === '/' || pathname === '/index.html') {
           const indexPath = path.join(studioDir, 'index.html');
           if (fs.existsSync(indexPath)) {
-            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+            res.writeHead(200, {
+              'Content-Type': 'text/html; charset=utf-8',
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+            });
             return fs.createReadStream(indexPath).pipe(res);
           }
         }
         if (pathname === '/studio.js') {
           const jsPath = path.join(studioDir, 'studio.js');
           if (fs.existsSync(jsPath)) {
-            res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' });
+            res.writeHead(200, {
+              'Content-Type': 'application/javascript; charset=utf-8',
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+            });
             return fs.createReadStream(jsPath).pipe(res);
           }
         }
         if (pathname === '/studio.css') {
           const cssPath = path.join(studioDir, 'studio.css');
           if (fs.existsSync(cssPath)) {
-            res.writeHead(200, { 'Content-Type': 'text/css; charset=utf-8' });
+            res.writeHead(200, {
+              'Content-Type': 'text/css; charset=utf-8',
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+            });
             return fs.createReadStream(cssPath).pipe(res);
           }
         }
@@ -231,8 +240,12 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
                   title: scr.customTitle || body.title,
                   subtitle: body.subtitle,
                   footer: body.footer,
+                  eyebrowTag: scr.customEyebrow || body.eyebrowTag,
                   showStarBadge: body.showStarBadge,
                   typographyPosition: body.typographyPosition || body.textPosition || 'top',
+                  phoneScaleMultiplier: body.phoneScaleMultiplier !== undefined ? Number(body.phoneScaleMultiplier) : undefined,
+                  phoneTopOffset: body.phoneTopOffset !== undefined ? Number(body.phoneTopOffset) : undefined,
+                  enableAmbientGlow: body.enableAmbientGlow !== undefined ? Boolean(body.enableAmbientGlow) : undefined,
                 });
                 zipFiles.push({ path: `mockups/${filename}`, buffer: framed.buffer });
               }
@@ -260,9 +273,13 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
               title: body.title,
               subtitle: body.subtitle,
               footer: body.footer,
+              eyebrowTag: body.eyebrowTag,
               font: body.font,
               showStarBadge: body.showStarBadge,
               typographyPosition: body.typographyPosition || body.textPosition || 'top',
+              phoneScaleMultiplier: body.phoneScaleMultiplier !== undefined ? Number(body.phoneScaleMultiplier) : undefined,
+              phoneTopOffset: body.phoneTopOffset !== undefined ? Number(body.phoneTopOffset) : undefined,
+              enableAmbientGlow: body.enableAmbientGlow !== undefined ? Boolean(body.enableAmbientGlow) : undefined,
             });
 
             const zipFiles = outputs.map(o => ({ path: o.path, buffer: o.buffer }));
@@ -291,9 +308,13 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
             title: body.title,
             subtitle: body.subtitle,
             footer: body.footer,
+            eyebrowTag: body.eyebrowTag,
             font: body.font,
             showStarBadge: body.showStarBadge,
             typographyPosition: body.typographyPosition || body.textPosition || 'top',
+            phoneScaleMultiplier: body.phoneScaleMultiplier !== undefined ? Number(body.phoneScaleMultiplier) : undefined,
+            phoneTopOffset: body.phoneTopOffset !== undefined ? Number(body.phoneTopOffset) : undefined,
+            enableAmbientGlow: body.enableAmbientGlow !== undefined ? Boolean(body.enableAmbientGlow) : undefined,
             canvasWidth,
             canvasHeight,
           });
