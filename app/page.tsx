@@ -429,6 +429,7 @@ export default function StudioPage() {
   const dragStartYRef = useRef(0);
   const startOffsetRef = useRef(0);
   const currentDragOffsetRef = useRef(0);
+  const dragGhostRef = useRef<HTMLDivElement | null>(null);
 
   const handleTextDragStart = (e: React.MouseEvent, target: 'top' | 'bottom' = 'top') => {
     e.preventDefault();
@@ -447,26 +448,34 @@ export default function StudioPage() {
       const deltaY = moveEvent.clientY - dragStartYRef.current;
       const newOffset = Math.max(-200, Math.min(200, Math.round(startOffsetRef.current + deltaY * 1.5)));
       currentDragOffsetRef.current = newOffset;
+      if (dragGhostRef.current) {
+        dragGhostRef.current.style.transform = `translate3d(0, ${deltaY}px, 0)`;
+      }
     };
 
-    const handleMouseUp = () => {
+    const handleMouseUp = async () => {
       const finalOffset = currentDragOffsetRef.current;
       const targetType = dragTargetRef.current;
-      setIsDraggingText(null);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
       
-      // Update state and refresh preview cleanly on release
+      // Update state immediately
       if (targetType === 'top') {
         setTextOffset(finalOffset);
       } else {
         setBottomTextOffset(finalOffset);
       }
-      refreshPreview(undefined, {
-        [targetType === 'top' ? 'textOffset' : 'bottomTextOffset']: finalOffset,
-      });
+
+      // Optimistically hold ghost at final location until server composite completes
+      try {
+        await refreshPreview(undefined, {
+          [targetType === 'top' ? 'textOffset' : 'bottomTextOffset']: finalOffset,
+        });
+      } finally {
+        setIsDraggingText(null);
+      }
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -2698,6 +2707,31 @@ export default function StudioPage() {
                       className="absolute bottom-0 inset-x-0 h-[28%] z-20 cursor-grab active:cursor-grabbing select-none"
                       title="Drag up/down to reposition callout text. Double-click to reset."
                     />
+                  )}
+
+                  {/* Instant 120 FPS Drag Preview Ghost (Follows cursor with zero latency) */}
+                  {isDraggingText === 'top' && (
+                    <div
+                      ref={dragGhostRef}
+                      className="absolute top-5 inset-x-6 z-30 pointer-events-none flex flex-col items-center justify-center py-2 px-3 rounded-xl border border-cyan-400/60 bg-slate-950/80 backdrop-blur-md shadow-2xl shadow-cyan-500/25 text-center animate-in fade-in duration-100"
+                      style={{ willChange: 'transform' }}
+                    >
+                      <span className="text-white text-xs font-bold tracking-tight line-clamp-1">
+                        {title ? title.replace(/\*\*/g, '') : 'Headline Position'}
+                      </span>
+                    </div>
+                  )}
+
+                  {isDraggingText === 'bottom' && (
+                    <div
+                      ref={dragGhostRef}
+                      className="absolute bottom-5 inset-x-6 z-30 pointer-events-none flex flex-col items-center justify-center py-2 px-3 rounded-xl border border-cyan-400/60 bg-slate-950/80 backdrop-blur-md shadow-2xl shadow-cyan-500/25 text-center animate-in fade-in duration-100"
+                      style={{ willChange: 'transform' }}
+                    >
+                      <span className="text-slate-200 text-[11px] font-medium line-clamp-1">
+                        {subtitle || 'Callout Position'}
+                      </span>
+                    </div>
                   )}
                 </div>
 
