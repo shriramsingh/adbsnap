@@ -19,15 +19,79 @@ export interface CompositeFrameOptions {
   canvasHeight?: number;
   phoneTopOffset?: number;
   fit?: 'cover' | 'contain' | 'fill';
+  precomputedPhoneDeviceBuffer?: Buffer;
 }
-
-
 
 export interface CompositeResult {
   buffer: Buffer;
   width: number;
   height: number;
   elapsedMs: number;
+}
+
+/**
+ * Assembles a raw screenshot into the full vector device frame at native hardware resolution.
+ * Cached and reused across multi-target store exports for extreme performance.
+ */
+export async function assemblePhoneDevice(
+  screenshotBuffer: Buffer,
+  spec: BezelSpec,
+  fit: 'cover' | 'contain' | 'fill' = 'cover'
+): Promise<Buffer> {
+  const cornerMaskSvg = generateScreenCornerMask(spec.screen.width, spec.screen.height, spec.screen.radius);
+  const cornerMaskBuffer = Buffer.from(cornerMaskSvg);
+
+  const roundedScreen = await sharp(screenshotBuffer)
+    .resize(spec.screen.width, spec.screen.height, {
+      fit,
+      position: 'top',
+      background: { r: 0, g: 0, b: 0, alpha: 1 },
+    })
+    .composite([{ input: cornerMaskBuffer, blend: 'dest-in' }])
+    .png()
+    .toBuffer();
+
+  const isFramelessMode = Boolean(spec.isFrameless || spec.id === 'none');
+  if (isFramelessMode) {
+    const shadowPad = 60;
+    const deviceWidth = spec.screen.width + shadowPad * 2;
+    const deviceHeight = spec.screen.height + shadowPad * 2;
+    const shadowSvg = generateStudioShadowSvg(spec.screen.width, spec.screen.height, spec.screen.radius);
+    const shadowBuffer = Buffer.from(shadowSvg);
+
+    return sharp({
+      create: {
+        width: deviceWidth,
+        height: deviceHeight,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      },
+    })
+      .composite([
+        { input: shadowBuffer, left: 0, top: 0 },
+        { input: roundedScreen, left: shadowPad, top: shadowPad - 4 },
+      ])
+      .png()
+      .toBuffer();
+  }
+
+  const bezelSvg = generateBezelSvg({ spec });
+  const bezelBuffer = Buffer.from(bezelSvg);
+
+  return sharp({
+    create: {
+      width: spec.width,
+      height: spec.height,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  })
+    .composite([
+      { input: roundedScreen, left: spec.screen.x, top: spec.screen.y },
+      { input: bezelBuffer, left: 0, top: 0 },
+    ])
+    .png()
+    .toBuffer();
 }
 
 /**
@@ -59,97 +123,21 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
     isDarkTheme = preset.isDark ?? true;
   }
 
-  // 3. Resize and corner-mask raw screenshot to fit bezel screen cutout
+  // 3. Resolve Device Dimensions & Assemble Chassis Frame (or reuse precomputed)
   const fitMode = options.fit || 'cover';
-  const resizedScreen = await sharp(options.screenshotBuffer)
-    .resize(spec.screen.width, spec.screen.height, {
-      fit: fitMode,
-      position: 'top',
-      background: { r: 0, g: 0, b: 0, alpha: 1 },
-    })
-    .png()
-    .toBuffer();
-
-  const cornerMaskSvg = generateScreenCornerMask(spec.screen.width, spec.screen.height, spec.screen.radius);
-  const cornerMaskBuffer = Buffer.from(cornerMaskSvg);
-
-  const roundedScreen = await sharp(resizedScreen)
-    .composite([{ input: cornerMaskBuffer, blend: 'dest-in' }])
-    .png()
-    .toBuffer();
-
-  // 4 & 5. Assemble Phone Device (Masked Screen + Optional Bezel Hardware or Studio Shadow)
-  let phoneDeviceBuffer: Buffer;
+  const isFramelessMode = Boolean(spec.isFrameless || spec.id === 'none');
   let deviceCanvasWidth = spec.width;
   let deviceCanvasHeight = spec.height;
 
-  if (spec.isFrameless || spec.id === 'none') {
-    // Pure Floating Screen: no hardware chassis, realistic studio drop shadow
+  if (isFramelessMode) {
     const shadowPad = 60;
     deviceCanvasWidth = spec.screen.width + shadowPad * 2;
     deviceCanvasHeight = spec.screen.height + shadowPad * 2;
-    const shadowSvg = generateStudioShadowSvg(spec.screen.width, spec.screen.height, spec.screen.radius);
-    const shadowBuffer = Buffer.from(shadowSvg);
-
-    phoneDeviceBuffer = await sharp({
-      create: {
-        width: deviceCanvasWidth,
-        height: deviceCanvasHeight,
-        channels: 4,
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
-      },
-    })
-      .composite([
-        { input: shadowBuffer, left: 0, top: 0 },
-        { input: roundedScreen, left: shadowPad, top: shadowPad - 4 },
-      ])
-      .png()
-      .toBuffer();
-  } else {
-    // Hardware Chassis Frame
-    const bezelSvg = generateBezelSvg({ spec });
-    const bezelBuffer = Buffer.from(bezelSvg);
-
-    phoneDeviceBuffer = await sharp({
-      create: {
-        width: spec.width,
-        height: spec.height,
-        channels: 4,
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
-      },
-    })
-      .composite([
-        { input: roundedScreen, left: spec.screen.x, top: spec.screen.y },
-        { input: bezelBuffer, left: 0, top: 0 },
-      ])
-      .png()
-      .toBuffer();
   }
 
-  // If "None (Raw Screenshot)" theme preset is active:
-  // Bypass gradient canvas, marketing headers, subheaders, and layout padding.
-  if (options.gradientPreset === 'none') {
-    if (spec.isFrameless || spec.id === 'none') {
-      const rawPng = await sharp(options.screenshotBuffer).png().toBuffer();
-      const meta = await sharp(rawPng).metadata();
-      return {
-        buffer: rawPng,
-        width: meta.width || spec.screen.width,
-        height: meta.height || spec.screen.height,
-        elapsedMs: Math.round(performance.now() - startTime),
-      };
-    }
+  const phoneDeviceBuffer = options.precomputedPhoneDeviceBuffer || await assemblePhoneDevice(options.screenshotBuffer, spec, fitMode);
 
-    const meta = await sharp(phoneDeviceBuffer).metadata();
-    return {
-      buffer: phoneDeviceBuffer,
-      width: meta.width || spec.width,
-      height: meta.height || spec.height,
-      elapsedMs: Math.round(performance.now() - startTime),
-    };
-  }
-
-  // 6. Responsive Phone Sizing to guarantee title headroom on all screen ratios (16:9, 19.5:9, 4:3, etc.)
+  // 4. Responsive Phone Sizing to guarantee title headroom on all screen ratios
   const layout = options.layout || 'appstore';
   const targetRatio = layout === 'appstore' ? 0.74 : 0.66;
   let targetPhoneHeight = Math.round(canvasHeight * targetRatio);
@@ -162,18 +150,41 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
   const phoneScale = targetPhoneHeight / deviceCanvasHeight;
   const targetPhoneWidth = Math.round(deviceCanvasWidth * phoneScale);
 
+  // 5. Scale Chassis to Canvas Dimensions
   const scaledPhoneBuffer = await sharp(phoneDeviceBuffer)
     .resize(targetPhoneWidth, targetPhoneHeight)
     .png()
     .toBuffer();
 
-  // 7. Calculate Placement
+  // If "None (Raw Screenshot)" theme preset is active:
+  if (options.gradientPreset === 'none') {
+    if (isFramelessMode) {
+      const rawPng = await sharp(options.screenshotBuffer).png().toBuffer();
+      const meta = await sharp(rawPng).metadata();
+      return {
+        buffer: rawPng,
+        width: meta.width || spec.screen.width,
+        height: meta.height || spec.screen.height,
+        elapsedMs: Math.round(performance.now() - startTime),
+      };
+    }
+
+    const meta = await sharp(scaledPhoneBuffer).metadata();
+    return {
+      buffer: scaledPhoneBuffer,
+      width: meta.width || targetPhoneWidth,
+      height: meta.height || targetPhoneHeight,
+      elapsedMs: Math.round(performance.now() - startTime),
+    };
+  }
+
+  // 6. Calculate Placement
   const phoneLeft = Math.round((canvasWidth - targetPhoneWidth) / 2);
   const layoutPreset = LAYOUT_PRESETS[layout] || LAYOUT_PRESETS.appstore;
   const defaultPhoneTop = layoutPreset.phoneTop(canvasHeight, targetPhoneHeight);
   const phoneTop = options.phoneTopOffset ?? defaultPhoneTop;
 
-  // 8. Generate Gradient Backdrop SVG
+  // 7. Generate Gradient Backdrop SVG
   const gradientSvg = generateGradientSvg({
     canvasWidth,
     canvasHeight,
@@ -182,7 +193,7 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
   });
   const gradientBaseBuffer = Buffer.from(gradientSvg);
 
-  // 9. Resolve Font Family & Generate Typography Overlay SVG (if requested)
+  // 8. Resolve Font Family & Generate Typography Overlay SVG (if requested)
   let fontFamily = FONT_PRESETS.modern.family;
   if (options.font) {
     if (FONT_PRESETS[options.font]) {
@@ -215,13 +226,12 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
     });
   }
 
-
   // 9. Composite everything onto canvas in a single Sharp pass
   const finalBuffer = await sharp(gradientBaseBuffer)
     .composite(compositeLayers)
     .flatten({ background: { r: 10, g: 11, b: 14 } })
     .toColorspace('srgb')
-    .png({ quality: 95, compressionLevel: 8 })
+    .png({ quality: 95, compressionLevel: 6 })
     .toBuffer();
 
   const elapsedMs = Math.round(performance.now() - startTime);
@@ -248,7 +258,7 @@ export interface StoreExportOutput {
 }
 
 /**
- * Generates marketing graphics for multiple store display resolutions in sequence.
+ * Generates marketing graphics for multiple store display resolutions concurrently.
  * Runs 100% in-memory with zero disk temporary files.
  */
 export async function exportMultiStore(options: MultiStoreExportOptions): Promise<StoreExportOutput[]> {
@@ -261,25 +271,31 @@ export async function exportMultiStore(options: MultiStoreExportOptions): Promis
     return t.store === filter;
   });
 
-  const results: StoreExportOutput[] = [];
+  const bezelId = options.bezelId || 'iphone-16-pro';
+  const spec: BezelSpec = BEZEL_PRESETS[bezelId] || BEZEL_PRESETS['iphone-16-pro'];
+  const fitMode = options.fit || 'cover';
 
-  for (const target of targets) {
-    const single = await compositeFrame({
-      ...options,
-      canvasWidth: target.width,
-      canvasHeight: target.height,
-    });
+  // Pre-assemble device chassis once for all target aspect ratios
+  const precomputedPhoneDeviceBuffer = await assemblePhoneDevice(options.screenshotBuffer, spec, fitMode);
 
-    results.push({
-      target,
-      buffer: single.buffer,
-      width: single.width,
-      height: single.height,
-      elapsedMs: single.elapsedMs,
-    });
-  }
+  return Promise.all(
+    targets.map(async (target) => {
+      const single = await compositeFrame({
+        ...options,
+        canvasWidth: target.width,
+        canvasHeight: target.height,
+        precomputedPhoneDeviceBuffer,
+      });
 
-  return results;
+      return {
+        target,
+        buffer: single.buffer,
+        width: single.width,
+        height: single.height,
+        elapsedMs: single.elapsedMs,
+      };
+    })
+  );
 }
 
 /**
