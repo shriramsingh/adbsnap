@@ -55,6 +55,28 @@ interface SessionScreen {
   base64: string;
   timestamp: string;
   customTitle?: string;
+  subtitle?: string;
+  themeId?: string;
+  bezelId?: string;
+  layout?: 'appstore' | 'social';
+  font?: string;
+  headlineFont?: string;
+  subtitleFont?: string;
+  textAlign?: 'left' | 'center' | 'right';
+  titleScale?: number;
+  subtitleScale?: number;
+  titleWeight?: string;
+  subtitleWeight?: string;
+  isItalic?: boolean;
+  textOffset?: number;
+  showStars?: boolean;
+  ambientGlow?: boolean;
+  phoneScale?: number;
+  phoneOffset?: number;
+  customColor1?: string;
+  customColor2?: string;
+  useCustomColors?: boolean;
+  typographyPosition?: 'top' | 'bottom' | 'both';
 }
 
 const THEMES = [
@@ -451,6 +473,92 @@ export default function StudioPage() {
     refreshPreview,
   ]);
 
+  // Automatically persist current styling into the active screen in filmstrip
+  useEffect(() => {
+    if (screens.length === 0 || activeScreenIndex < 0 || activeScreenIndex >= screens.length) return;
+    setScreens((prev) => {
+      if (!prev[activeScreenIndex]) return prev;
+      const current = prev[activeScreenIndex];
+      if (
+        current.customTitle === title &&
+        current.subtitle === subtitle &&
+        current.themeId === themeId &&
+        current.bezelId === bezelId &&
+        current.layout === layout &&
+        current.font === font &&
+        current.headlineFont === headlineFont &&
+        current.subtitleFont === subtitleFont &&
+        current.textAlign === textAlign &&
+        current.titleScale === titleScale &&
+        current.subtitleScale === subtitleScale &&
+        current.titleWeight === titleWeight &&
+        current.isItalic === isItalic &&
+        current.textOffset === textOffset &&
+        current.showStars === showStars &&
+        current.ambientGlow === ambientGlow &&
+        current.phoneScale === phoneScale &&
+        current.phoneOffset === phoneOffset &&
+        current.customColor1 === customColor1 &&
+        current.customColor2 === customColor2 &&
+        current.useCustomColors === useCustomColors &&
+        current.typographyPosition === typographyPosition
+      ) {
+        return prev;
+      }
+      const next = [...prev];
+      next[activeScreenIndex] = {
+        ...current,
+        customTitle: title,
+        subtitle,
+        themeId,
+        bezelId,
+        layout,
+        font,
+        headlineFont,
+        subtitleFont,
+        textAlign,
+        titleScale,
+        subtitleScale,
+        titleWeight,
+        isItalic,
+        textOffset,
+        showStars,
+        ambientGlow,
+        phoneScale,
+        phoneOffset,
+        customColor1,
+        customColor2,
+        useCustomColors,
+        typographyPosition,
+      };
+      return next;
+    });
+  }, [
+    activeScreenIndex,
+    title,
+    subtitle,
+    themeId,
+    bezelId,
+    layout,
+    font,
+    headlineFont,
+    subtitleFont,
+    textAlign,
+    titleScale,
+    subtitleScale,
+    titleWeight,
+    isItalic,
+    textOffset,
+    showStars,
+    ambientGlow,
+    phoneScale,
+    phoneOffset,
+    customColor1,
+    customColor2,
+    useCustomColors,
+    typographyPosition,
+  ]);
+
   // 3. 1-Click Capture from Mobile Phone
   const handleSnap = useCallback(
     async (silent = false) => {
@@ -683,9 +791,28 @@ export default function StudioPage() {
     if (index < 0 || index >= screens.length) return;
     setActiveScreenIndex(index);
     const target = screens[index];
-    if (target.customTitle) {
-      setTitle(target.customTitle);
-    }
+    if (target.customTitle !== undefined) setTitle(target.customTitle);
+    if (target.subtitle !== undefined) setSubtitle(target.subtitle);
+    if (target.themeId) setThemeId(target.themeId);
+    if (target.bezelId) setBezelId(target.bezelId);
+    if (target.layout) setLayout(target.layout);
+    if (target.font) setFont(target.font);
+    if (target.headlineFont) setHeadlineFont(target.headlineFont);
+    if (target.subtitleFont) setSubtitleFont(target.subtitleFont);
+    if (target.textAlign) setTextAlign(target.textAlign);
+    if (target.titleScale !== undefined) setTitleScale(target.titleScale);
+    if (target.subtitleScale !== undefined) setSubtitleScale(target.subtitleScale);
+    if (target.titleWeight) setTitleWeight(target.titleWeight);
+    if (target.isItalic !== undefined) setIsItalic(target.isItalic);
+    if (target.textOffset !== undefined) setTextOffset(target.textOffset);
+    if (target.showStars !== undefined) setShowStars(target.showStars);
+    if (target.ambientGlow !== undefined) setAmbientGlow(target.ambientGlow);
+    if (target.phoneScale !== undefined) setPhoneScale(target.phoneScale);
+    if (target.customColor1) setCustomColor1(target.customColor1);
+    if (target.customColor2) setCustomColor2(target.customColor2);
+    if (target.useCustomColors !== undefined) setUseCustomColors(target.useCustomColors);
+    if (target.typographyPosition) setTypographyPosition(target.typographyPosition);
+
     setScreenshotBase64(target.base64);
     await refreshPreview(target.base64);
   };
