@@ -190,7 +190,24 @@ Once pairing is established, **iOS screenshot capture does not require an Apple 
 
 ### iOS Auto Explorer (XCTest preview)
 
-The iOS Auto Explorer uses Apple's XCTest/XCUITest, not a third-party automation library. In Studio, choose **Auto-Crawl** on an iOS device, select an installed app from the searchable picker, then start exploration. On simulators, the included ADBSnap demo app can also be selected and installed automatically. On a physical device, only apps already installed on that device are listed.
+The iOS Auto Explorer uses Apple's XCTest/XCUITest, not a third-party automation library.
+
+#### Explore an iOS Simulator app
+
+1. Install/open Xcode, install an iOS Simulator runtime, then launch a simulator from Xcode or the Simulator app and leave it booted.
+2. Install the app you want to explore in that simulator and launch it once if its first-run setup is needed. Find its bundle ID in the app's Xcode target settings or your app build configuration.
+3. Run `npx adbsnap devices` to find the simulator ID. If several simulators are booted, use the ID of the intended one.
+4. Either start `npx adbsnap studio`, click **Auto-Crawl**, choose the simulator app from the searchable picker, and click **Explore selected app**; or run the CLI command below. The ADBSnap demo app is available in Studio and can be installed automatically for simulator runs.
+
+#### Explore a physical iPhone or iPad app
+
+1. Connect and unlock the device, accept **Trust This Computer**, and complete Xcode pairing. Confirm it appears in `xcrun devicectl list devices` and `npx adbsnap devices`.
+2. Enable **Developer Mode** on the device (Settings > Privacy & Security > Developer Mode); iOS may require a restart and a confirmation.
+3. Install the app you want to explore on the device and note its bundle ID. Only apps already installed on the physical device are available; the ADBSnap demo app is simulator-only.
+4. Sign in to an Apple account in Xcode (Xcode > Settings > Accounts), obtain the account's 10-character **Team ID**, then provide it in Studio's Team ID field or pass it with `--team`.
+5. In Studio, select the connected phone/tablet, click **Auto-Crawl**, choose the installed app, enter the Team ID, and start. Or run the CLI command below.
+
+Xcode uses automatic signing for ADBSnap's temporary UI-test runner and may contact Apple to create or refresh a provisioning profile. A free Personal Team may work for local testing, but account, provisioning, device, or app capability restrictions can prevent it; ADBSnap cannot bypass Apple's signing requirements. The Team ID is an identifier, not a password or signing certificate. Follow actionable Xcode signing or Developer Mode errors.
 
 Alternatively, use the published CLI. You need the app's bundle identifier and the target device ID. The target app must already be installed:
 
@@ -203,16 +220,11 @@ npx adbsnap explore-ios --bundle com.example.myapp \
   --device "<iOS device ID>" --team "<10-character Apple Developer Team ID>" --zip
 ```
 
-Physical-device exploration has extra Apple/Xcode prerequisites:
-
-1. Pair and trust the unlocked iPhone/iPad with this Mac.
-2. Enable **Developer Mode** on the device (Settings > Privacy & Security > Developer Mode); iOS may require a restart and confirmation.
-3. Sign in to an Apple account in Xcode (Xcode > Settings > Accounts), and provide the account's 10-character **Team ID** in Studio or with `--team`. The Team ID is shown in Xcode under the account/team details. It is an identifier, not a password or signing certificate.
-4. Xcode uses automatic signing for ADBSnap's temporary XCTest runner and may contact Apple to create or refresh a provisioning profile. A free Personal Team may work for local testing, but account, provisioning, device, or app capability restrictions can prevent it; ADBSnap cannot bypass Apple's signing requirements. Follow any actionable Xcode signing or Developer Mode error.
-
 **What to expect:** the first run can take several minutes while Xcode builds the UI-test runner. XCTest launches the selected app and may terminate/relaunch it while replaying routes; do not run while the app has unsaved work or during a sensitive operation. It captures the initial screen/tab roots and follows a conservative set of accessible, labelled navigation controls (for example, Details or Settings), up to two navigation levels, 20 screens, and 30 navigation attempts.
 
 **What it does not do:** this is not a full test recorder or general-purpose crawler. It does not fill forms, use arbitrary buttons, follow external links, log in, or understand app-specific workflows. Destructive/transactional labels are skipped, but no automation can guarantee that every app action is safe. Screens/controls must be exposed to XCTest accessibility. The physical-device path is implemented, but has not yet been verified on real hardware; simulator XCTest and mocked physical-device parsing are covered by the project's CI checks.
+
+**Verification status:** Auto Explorer has been run and tested on an iOS Simulator. Physical iPhone/iPad XCTest execution has **not been verified on real hardware**; pairing, signing, provisioning, or device-specific behavior may need troubleshooting on the target Mac/device.
 
 Android's `adbsnap explore`/`crawl` and wireless ADB commands remain Android-only; use `explore-ios` or Studio's iOS Auto-Crawl for iOS. The [iOS Simulator GitHub Actions workflow](.github/workflows/ios-simulator.yml) tests simulator capture and exploration on macOS. Hosted CI does not provide an attached physical iPhone/iPad.
 

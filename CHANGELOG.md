@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added physical-device iOS app discovery and XCTest/XCUITest Auto Explorer support with explicit Apple Developer Team signing configuration.
 - Kept simulator Auto Explorer unsigned and added mocked physical app-inventory parsing coverage; physical hardware execution still requires local device verification.
 - Expanded npm and VS Code Marketplace documentation with platform support matrices, Android/iOS setup, capture and exploration workflows, signing requirements, expectations, and limitations; updated package discovery metadata for iOS.
+- Added step-by-step simulator and physical-device XCTest setup instructions and an explicit note that Auto Explorer has been tested on simulators but not verified on physical iPhones/iPads.
 
 ## [1.3.0] - 2026-10-03
 

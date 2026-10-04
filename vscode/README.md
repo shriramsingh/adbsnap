@@ -63,22 +63,39 @@ App exploration is available through the published CLI or the full Studio (`adbs
 ```bash
 npm install -g adbsnap
 adbsnap devices
+```
 
-# Simulator: app must already be installed; use its bundle identifier
+#### iOS Simulator
+
+1. Install/open Xcode, install an iOS Simulator runtime, and boot a simulator from Xcode or the Simulator app.
+2. Install the app in the simulator and note its bundle identifier.
+3. Run `adbsnap devices` and copy the intended simulator ID if more than one simulator is booted.
+4. Use the CLI below, or launch `adbsnap studio`, click **Auto-Crawl**, pick the simulator and installed app, then start exploration. The sample ADBSnap app is available for simulator runs and can be installed automatically.
+
+```bash
 adbsnap explore-ios --bundle com.example.myapp --device "<simulator ID>" --zip
+```
 
-# Physical device: requires Xcode signing configuration
+#### Physical iPhone/iPad
+
+1. Connect and unlock the device, accept **Trust This Computer**, complete Xcode pairing, then confirm it appears in `xcrun devicectl list devices` and `adbsnap devices`.
+2. Enable **Developer Mode** (Settings > Privacy & Security > Developer Mode). iOS may require a restart and confirmation.
+3. Install the app on the device and note its bundle identifier. Physical runs can only select apps installed on that device; the ADBSnap sample app is simulator-only.
+4. Sign in to an Apple account in Xcode (Xcode > Settings > Accounts) and get the account's 10-character Team ID.
+5. Use the CLI below, or in the full Studio select the phone/tablet, click **Auto-Crawl**, choose an installed app, enter the Team ID, and start.
+
+```bash
 adbsnap explore-ios --bundle com.example.myapp \
   --device "<iOS device ID>" --team "<10-character Team ID>" --zip
 ```
 
-In the full Studio, click **Auto-Crawl**, select an installed app in the iOS app picker, and start the run. The demo app is installable automatically on simulators only.
-
-For a physical iPhone/iPad, pair and trust it, enable **Developer Mode** (Settings > Privacy & Security > Developer Mode; a restart may be required), sign in to an Apple account in Xcode, and provide the account's 10-character Team ID. Xcode automatically signs ADBSnap's temporary UI-test runner and may contact Apple to create/update a provisioning profile. A free Personal Team may work for local runs but is subject to Apple's provisioning and capability restrictions; signing is required for physical XCTest, not for screenshots. Follow Xcode's error output if signing or Developer Mode is not ready.
+Xcode automatically signs ADBSnap's temporary UI-test runner and may contact Apple to create/update a provisioning profile. A free Personal Team may work for local runs but is subject to Apple's provisioning and capability restrictions; signing is required for physical XCTest, not for screenshots. The Team ID is an identifier, not a password or certificate. Follow Xcode's error output if signing or Developer Mode is not ready.
 
 **What to expect:** the first exploration may take several minutes while Xcode builds the runner. XCTest launches and may terminate/relaunch the selected app while replaying routes; do not run during unsaved work or sensitive in-app operations. It captures tab roots and follows accessible, labelled navigation buttons up to two levels deep, with a maximum of 20 screens and 30 navigation attempts.
 
-**Limitations:** this is a conservative accessibility-based explorer, not a general-purpose test recorder. It does not fill forms, tap arbitrary controls, follow external links, authenticate, or understand app-specific flows. Common destructive/transactional labels are skipped, but review the limitations before using it on apps with important data. Controls must be exposed to XCTest. Physical-device XCTest is implemented but has not yet been validated on a connected iPhone/iPad; simulator automation and mocked device inventory parsing are covered by CI.
+**Limitations:** this is a conservative accessibility-based explorer, not a general-purpose test recorder. It does not fill forms, tap arbitrary controls, follow external links, authenticate, or understand app-specific flows. Common destructive/transactional labels are skipped, but review the limitations before using it on apps with important data. Controls must be exposed to XCTest.
+
+**Verification status:** Auto Explorer has been run and tested on an iOS Simulator. Physical iPhone/iPad XCTest execution has **not been verified on real hardware**; pairing, signing, provisioning, or device-specific behavior may need troubleshooting on the target Mac/device.
 
 ## Commands
 
