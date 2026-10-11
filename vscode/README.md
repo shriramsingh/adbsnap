@@ -3,7 +3,14 @@
 > Capture Android and iOS screens, style device mockups, and prepare App Store / Google Play assets from VS Code.
 
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/shriramsingh.adbsnap.svg?style=flat-square&color=blue&label=VS%20Code)](https://marketplace.visualstudio.com/items?itemName=shriramsingh.adbsnap)
+[![Website](https://img.shields.io/badge/website-live-success.svg?style=flat-square)](https://shriramsingh.github.io/adbsnap/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](https://github.com/shriramsingh/adbsnap/blob/main/LICENSE)
+
+---
+
+### 🌐 [Official Website & Live Showcase ↗](https://shriramsingh.github.io/adbsnap/) &bull; 📦 [NPM Package ↗](https://www.npmjs.com/package/adbsnap) &bull; 🐙 [GitHub Repository ↗](https://github.com/shriramsingh/adbsnap)
+
+---
 
 ADBSnap for VS Code captures connected Android devices and, on macOS, iOS simulators and paired iPhones/iPads. Frame screenshots with vector device bezels, customize the canvas in the embedded Studio, and export store-ready image packs. iOS uses Apple's Xcode tools; it does not use ADB.
 

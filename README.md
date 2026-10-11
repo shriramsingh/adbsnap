@@ -9,6 +9,12 @@
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg?style=flat-square)](https://github.com/shriramsingh/adbsnap)
 
+---
+
+### 🌐 [Official Website & Live Showcase ↗](https://shriramsingh.github.io/adbsnap/) &bull; 💻 [VS Code Marketplace ↗](https://marketplace.visualstudio.com/items?itemName=shriramsingh.adbsnap) &bull; 🐙 [GitHub Repository ↗](https://github.com/shriramsingh/adbsnap)
+
+---
+
 Stop wrestling with manual Figma templates or low-res screenshot scripts. **ADBSnap** is the all-in-one Android & iOS screenshot and 4K device mockup tool available as an [NPM package](https://www.npmjs.com/package/adbsnap) and official [VS Code Marketplace extension](https://marketplace.visualstudio.com/items?itemName=shriramsingh.adbsnap). It captures Android devices and, on macOS, booted iOS simulators or paired physical iPhones and iPads, then frames screenshots with vector-sharp device bezels, studio-grade backdrops, and auto-wrapped typography for store-ready exports.
 
 ---
