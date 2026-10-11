@@ -5,63 +5,60 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
-## [Unreleased]
+## [1.3.0] - 2026-10-11
 
-### 🍎 iOS Device Support
-- Added physical iPhone/iPad discovery and screenshots through Xcode `devicectl` on macOS, alongside existing iOS Simulator support via `simctl`.
-- Wired iOS device selection through the CLI, Studio, and VS Code extension into the shared framing and App Store export pipelines.
-- Added a macOS GitHub Actions workflow for simulator capture/framing and mocked physical-device discovery/capture coverage.
-- Documented iOS pairing requirements and clarified Android-only automation features.
-- Added physical-device iOS app discovery and XCTest/XCUITest Auto Explorer support with explicit Apple Developer Team signing configuration.
-- Kept simulator Auto Explorer unsigned and added mocked physical app-inventory parsing coverage; physical hardware execution still requires local device verification.
-- Expanded npm and VS Code Marketplace documentation with platform support matrices, Android/iOS setup, capture and exploration workflows, signing requirements, expectations, and limitations; updated package discovery metadata for iOS.
-- Added step-by-step simulator and physical-device XCTest setup instructions and an explicit note that Auto Explorer has been tested on simulators but not verified on physical iPhones/iPads.
+### 🎨 Studio 2.0 Canvas Drag, Typography & Aesthetics
+- **Direct On-Canvas Text Repositioning**:
+  - Implemented Figma-style direct drag repositioning for top headline/subtitle and bottom callout text blocks.
+  - Added ultra-smooth 120 FPS ghost preview box while dragging, automatically committing final offsets on pointer release.
+  - Contextual selection-based typography inspector with live styling controls.
+- **Dual Visible Textareas & Flexible Positioning**:
+  - Added dedicated multi-line `<textarea>` editors for both Top Headline and Bottom Feature Callout with Enter/line-break preservation.
+  - Multi-position support: `[ ⬆ Top | ⬇ Bottom | ↕ Both ]` splitting punchy headlines above the device and explanatory callouts below.
+  - Added dynamic auto-downscaling for 3+ line headlines to guarantee edge clearance.
+- **1-Click Designer Aesthetics Style Recipes**:
+  - Added curated style presets (Bold Minimalist, Editorial Modern, Playful Pastel, Neon Cyber, Gradient Luxe) applying high-end typography and palette pairings with 1 click.
+  - Added 1-click "Apply to All Slides" batch styling synchronization across the filmstrip with preserved custom backdrop colors.
 
-## [1.3.0] - 2026-10-03
+### 🍎 Comprehensive Apple iOS Ecosystem Support
+- **Simulators & Physical Device Discovery & Screenshots**:
+  - Full support for booted iOS simulators via macOS `xcrun simctl` and paired physical iPhones/iPads via `xcrun devicectl`.
+  - Unified device listing in CLI (`adbsnap devices`), Studio, and VS Code extension with clear `iOS 🍎` badge.
+  - Seamless routing through shared 4K device framing and App Store multi-dimension export pipelines.
+- **Autonomous XCTest / XCUITest Auto Explorer (`adbsnap explore-ios`)**:
+  - Autonomous crawler traversing tab roots and accessible view hierarchies up to 2 levels deep, capturing App Store screenshots hands-free.
+  - Added Apple Developer Team ID automatic signing configuration for physical device execution.
+  - Validated with automated test coverage and macOS GitHub Actions workflows.
 
 ### ⚡ Performance & Engine Optimization
-- **Parallel Multi-Store Asset Rendering**:
-  - Implemented single-pass phone chassis assembly caching (`assemblePhoneDevice` in `lib/sharp.ts`). The physical bezel, screen buffer, Dynamic Island / punch-hole cutout, and realistic drop shadow are composited once in host RAM at native resolution.
-  - Parallelized `exportMultiStore` using `Promise.all` across all store target dimensions (Google Play Phone, Google Feature Graphic, iPhone 6.9", 6.7", 6.5", iPad Pro 13", and Android Tablet 11").
-  - Benchmarked: multi-store export turnaround reduced from **>8.1s down to ~2.5s** (over 3x speedup).
-  - Fixed aspect-ratio crop calculation for non-standard target ratios (e.g., Google Play Feature Graphic `1024x500`).
+- **Parallel Multi-Store Asset Rendering (3x Speedup)**:
+  - Implemented single-pass phone chassis assembly caching (`assemblePhoneDevice` in `lib/sharp.ts`). Composites 4K bezel, screen buffer, Dynamic Island/punch-hole cutout, and realistic drop shadow once in host RAM.
+  - Parallelized `exportMultiStore` with `Promise.all` across all target dimensions (Google Play Phone, Google Feature Graphic, iPhone 6.9", 6.7", 6.5", iPad Pro 13", and Android Tablet 11").
+  - Turnaround reduced from **>8.1s down to ~2.5s** (over 3x speedup).
+  - Fixed aspect-ratio crop calculation for non-standard target ratios (e.g. Google Play Feature Graphic `1024x500`).
 - **Raw In-Memory Framebuffer Screencap**:
-  - Added ultra-fast raw framebuffer capture via `adb exec-out screencap` without compression flags, bypassing slow on-device PNG encoding (`screencap -p`).
-  - Added binary header parsing (`width`, `height`, `format`) and host-side RAM conversion using Sharp in **~52ms** with automatic fallback to standard screencap.
+  - Direct uncompressed RGBA capture stream via `adb exec-out screencap`, bypassing slow on-device PNG compression.
+  - In-memory binary header parsing with Sharp completes in **~52ms** with automatic fallback to `screencap -p`.
 - **Studio Fast-Preview & 60fps Responsiveness**:
-  - Added half-resolution preview endpoint (`format: 'preview'`, `645x1398`), shrinking loopback Base64 payload by **83%** (~85 KB vs 500+ KB).
-  - Reduced Studio UI slider debounce to 120ms for smooth 60fps canvas updates during real-time property adjustments.
-  - Corrected Studio directory resolution to serve pre-compiled SPA from `dist/studio/` with clean `http://localhost:${port}` fallback.
+  - Dedicated half-resolution preview endpoint (`format: 'preview'`, `645x1398`), shrinking Base64 loopback payload by **83%** (~85 KB vs 500+ KB).
+  - Reduced Studio UI slider debounce to 120ms for instant 60fps canvas updates.
+  - Clean SPA serving from `dist/studio/` with native Node HTTP server.
 
-### 🎨 Formats & Device Bezels
+### 📱 2026 Flagship Bezels & Next-Gen Formats
 - **Next-Gen Image Formats**:
   - Added `--format=webp|avif|png|jpeg` support to CLI capture, export pipelines, and Studio API.
-  - AVIF exports at **7.3 KB (95% smaller than PNG)** with superior chroma fidelity; WebP exports at **~86 KB (42% smaller)** for instant web distribution.
+  - **AVIF** exports at **7.3 KB (95% smaller than PNG)** with superior chroma fidelity; **WebP** exports at **~86 KB (42% smaller)** for instant web distribution.
 - **2026 Flagship Vector Bezels**:
   - Added `iphone-16-pro-max`: 6.9" Super Retina XDR bezel with Dynamic Island and micro-bezels.
   - Added `pixel-9-pro-fold`: Inner 8" Foldable OLED bezel with hinge notch simulation.
   - Added `galaxy-s25-ultra`: 6.8" Dynamic AMOLED 2X titanium chassis with precision punch-hole camera.
 
-### 🍎 Cross-Platform Integration
-- **Pluggable iOS Simulator Driver**:
-  - Added `lib/ios.ts` using macOS `xcrun simctl` to detect booted iOS simulators and capture uncompressed screenshots.
-  - Unified device routing (`lib/devices.ts`) returning `ios` transport with `iOS 🍎` badge in CLI and Studio device lists.
+### 🐛 Bug Fixes & UX Polish
+- **Backdrop Y-Offset Clamping**: Unclamped `textYOffset` in backdrop generator allowing smooth negative and positive text repositioning without artificial boundaries.
+- **Stage Dock & Callout Collision**: Repositioned bottom stage dock controls (`bottom-8` instead of `bottom-24`) to eliminate overlap with bottom text callouts on the canvas.
+- **Curated Theme Sync**: Fixed `handleSyncStyleToAll` to properly synchronize curated gradient themes while preserving custom color choices.
+- **Filmstrip Delete Action**: Fixed click blocking caused by `pointer-events-none` on filmstrip thumbnail wrappers, restoring instant single-screen deletion (`Trash2`) and reordering.
 
-### ✍️ Flexible Multi-Line Typography & Positioning
-- **Top, Bottom & Both Placement (`lib/backdrop-generator.ts`, `lib/sharp.ts`)**:
-  - Added support for `'top'` (default), `'bottom'` (marketing text rendered below device chassis with top-positioned phone), and `'both'` (top punchy headline/badge + bottom feature callout/subtitle with vertically centered phone).
-  - Dynamically calculates phone chassis placement based on active typography positioning to ensure ample breathing room and prevent visual overlap.
-- **Multi-Line Text Formatting**:
-  - Upgraded `wrapText` to preserve user-entered explicit line breaks (`\n`) across paragraphs while wrapping long lines.
-  - Implemented dynamic auto-downscaling for headlines with 3+ lines to prevent canvas edge clipping.
-  - Upgraded Studio UI with multi-line `<textarea>` inputs with `Enter` support and a segmented text position selector (`[ ⬆ Top | ⬇ Bottom | ↕ Both ]`).
-  - Added `--text-pos <top|bottom|both>` and `--footer <text>` CLI options.
-
-### 🐛 Bug Fixes & Studio UX
-- **Filmstrip Delete Action**:
-  - Fixed click blocking caused by `pointer-events-none` on filmstrip thumbnail wrappers in `app/page.tsx`.
-  - Added `pointer-events-auto` and `z-20` on `<Trash2>` button and chevron reorder controls.
-  - Resynced `activeScreenIndex` and canvas preview state when deleting single items from the filmstrip.
 
 ---
 

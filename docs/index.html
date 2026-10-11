@@ -3,14 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ADBSnap — Android Screenshot, 4K Device Framing &amp; Store Mockup Studio (CLI &amp; VS Code)</title>
+    <title>ADBSnap — Android &amp; iOS Screenshot, 4K Device Framing &amp; Store Mockup Studio (CLI &amp; VS Code)</title>
     <meta
       name="description"
-      content="Automated mobile screenshot capture, 4K vector device framing (iPhone 16 Pro, Pixel 9 Pro), and App Store / Google Play asset studio for Android via ADB and VS Code extension."
+      content="Automated mobile screenshot capture, 4K vector device framing (iPhone 16 Pro Max, Pixel 9 Pro Fold), Studio 2.0 canvas drag, and App Store / Google Play asset studio for Android &amp; iOS."
     />
     <meta
       name="keywords"
-      content="adbsnap, adbsnap npm, adb screenshot, android screenshot mockup, app store screenshot generator, google play store assets, device framing cli, mobile screenshot capture, vscode adbsnap, android mockup studio"
+      content="adbsnap, adbsnap npm, adb screenshot, ios screenshot, ios simulator screenshot, xctest screenshot, android screenshot mockup, app store screenshot generator, google play store assets, device framing cli, mobile screenshot capture, vscode adbsnap, android mockup studio"
     />
     <meta name="author" content="Shriram Singh" />
     <meta name="robots" content="index, follow" />
@@ -19,20 +19,20 @@
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://shriramsingh.github.io/adbsnap/" />
-    <meta property="og:title" content="ADBSnap — Android Screenshot, 4K Device Framing &amp; Store Mockup Studio" />
+    <meta property="og:title" content="ADBSnap — Android &amp; iOS Screenshot, 4K Device Framing &amp; Store Mockup Studio" />
     <meta
       property="og:description"
-      content="Capture mobile screens over ADB directly into RAM, composite 4K vector bezels, and generate App Store &amp; Play Store mockups in under a second."
+      content="Capture mobile screens over ADB &amp; iOS Xcode tools directly into RAM, composite 4K vector bezels, and generate App Store &amp; Play Store mockups in under a second."
     />
     <meta property="og:image" content="https://shriramsingh.github.io/adbsnap/assets/hero.png" />
 
     <!-- Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:url" content="https://shriramsingh.github.io/adbsnap/" />
-    <meta name="twitter:title" content="ADBSnap — Android Screenshot, 4K Device Framing &amp; Store Mockup Studio" />
+    <meta name="twitter:title" content="ADBSnap — Android &amp; iOS Screenshot, 4K Device Framing &amp; Store Mockup Studio" />
     <meta
       name="twitter:description"
-      content="Direct RAM capture over ADB, 4K vector bezels (iPhone 16 Pro, Pixel 9 Pro), dynamic typography, and 1-click store asset generation."
+      content="Direct RAM capture over ADB &amp; iOS simctl, Studio 2.0 canvas drag repositioning, 4K vector bezels (iPhone 16 Pro Max, Pixel 9 Pro Fold), and 1-click store asset generation."
     />
     <meta name="twitter:image" content="https://shriramsingh.github.io/adbsnap/assets/hero.png" />
 
@@ -47,13 +47,13 @@
       "name": "ADBSnap",
       "alternateName": ["adbsnap npm", "adbsnap-cli", "adbsnap-vscode"],
       "applicationCategory": "DeveloperApplication",
-      "operatingSystem": "Windows, macOS, Linux, Android",
+      "operatingSystem": "Windows, macOS, Linux, Android, iOS",
       "offers": {
         "@type": "Offer",
         "price": "0",
         "priceCurrency": "USD"
       },
-      "description": "Automated mobile screenshot capture, 4K vector device framing (iPhone 16 Pro, Pixel 9 Pro), and App Store / Google Play asset studio for Android developers via ADB and VS Code.",
+      "description": "Automated mobile screenshot capture, 4K vector device framing (iPhone 16 Pro Max, Pixel 9 Pro Fold), and App Store / Google Play asset studio for Android & iOS developers via ADB, Xcode tools, and VS Code.",
       "url": "https://shriramsingh.github.io/adbsnap/",
       "downloadUrl": "https://www.npmjs.com/package/adbsnap",
       "softwareVersion": "1.3.0",
@@ -111,14 +111,14 @@
       <div class="shell hero-content">
         <div class="badge">
           <span class="badge-dot"></span>
-          <span>v1.3.0: 3x Faster Parallel Compositing &amp; Next-Gen Formats (AVIF/WebP)</span>
+          <span>v1.3.0: Dual Android &amp; iOS Support, Studio 2.0 Canvas Drag &amp; 3x Speedup</span>
         </div>
         <h1 class="hero-title">
           Automated Mobile Screenshots &amp;<br />
           <span class="gradient-text">4K Store Asset Studio</span>
         </h1>
         <p class="hero-lead">
-          Stop wrestling with manual Figma mockups and low-res screenshots. ADBSnap captures your Android device directly into RAM, wraps it into vector-crisp device bezels, and generates ready-to-upload store graphics in under a second.
+          Stop wrestling with manual Figma mockups and low-res screenshots. ADBSnap captures Android devices and iOS simulators/devices directly into RAM, wraps them into vector-crisp 4K bezels, and generates ready-to-upload store graphics in under a second.
         </p>
 
         <!-- Command Launcher -->
@@ -198,19 +198,19 @@
 
           <!-- Card 5 -->
           <div class="bento-card">
-            <div class="bento-icon">📶</div>
-            <h3>Wireless ADB &amp; iOS Simulator</h3>
+            <div class="bento-icon">🍎</div>
+            <h3>iOS &amp; Android Ecosystem</h3>
             <p>
-              Untether from cables with Android 11+ 6-digit wireless pairing. Plus cross-platform iOS Simulator discovery via macOS <code>xcrun simctl</code> with an instant <code>iOS 🍎</code> badge.
+              Capture booted iOS simulators (<code>xcrun simctl</code>) and paired physical iPhones/iPads (<code>xcrun devicectl</code>) alongside Android USB &amp; wireless debugging. Includes autonomous <strong>XCTest Auto Explorer</strong> (<code>adbsnap explore-ios</code>).
             </p>
           </div>
 
           <!-- Card 6: Studio App Mode -->
           <div class="bento-card span-3">
-            <div class="bento-icon">🪟</div>
-            <h3>Dedicated Desktop Studio (60fps Preview)</h3>
+            <div class="bento-icon">🎨</div>
+            <h3>Studio 2.0 Canvas Drag &amp; Designer Aesthetics</h3>
             <p>
-              Run <code>npx adbsnap studio</code> to launch an ultra-responsive visual workspace. Features 83% lighter loopback fast previews, 120ms debounce, and multi-screen filmstrip management without browser tabs or Webpack delays.
+              Direct Figma-style text repositioning right on the canvas with 120 FPS preview ghosts. Features dual visible headline and bottom callout textareas, 1-click Designer Aesthetics style recipes, fast-preview loopback, and multi-screen filmstrip management.
             </p>
             <div class="code-snippet">npx adbsnap studio # Boots instantly at http://localhost:3000</div>
           </div>
@@ -275,7 +275,7 @@
               </tr>
               <tr style="border-bottom: 1px solid var(--border-subtle);">
                 <td style="padding: 14px 20px; font-family: var(--font-mono); color: #38bdf8;">adbsnap studio</td>
-                <td style="padding: 14px 20px; color: var(--text-secondary);">Launch interactive visual studio with 60fps fast-preview.</td>
+                <td style="padding: 14px 20px; color: var(--text-secondary);">Launch interactive visual studio with on-canvas drag &amp; 60fps fast-preview.</td>
                 <td style="padding: 14px 20px; font-family: var(--font-mono); font-size: 13px;">--port=3000</td>
               </tr>
               <tr style="border-bottom: 1px solid var(--border-subtle);">
@@ -290,13 +290,18 @@
               </tr>
               <tr style="border-bottom: 1px solid var(--border-subtle);">
                 <td style="padding: 14px 20px; font-family: var(--font-mono); color: #38bdf8;">adbsnap devices</td>
-                <td style="padding: 14px 20px; color: var(--text-secondary);">List attached USB, Wi-Fi, emulator, and iOS simulator devices.</td>
+                <td style="padding: 14px 20px; color: var(--text-secondary);">List attached USB, Wi-Fi, emulator, and iOS simulator/device targets.</td>
                 <td style="padding: 14px 20px; font-family: var(--font-mono); font-size: 13px;">—</td>
               </tr>
-              <tr>
+              <tr style="border-bottom: 1px solid var(--border-subtle);">
                 <td style="padding: 14px 20px; font-family: var(--font-mono); color: #38bdf8;">adbsnap explore</td>
-                <td style="padding: 14px 20px; color: var(--text-secondary);">Autonomous bottom-tab crawler: captures each app tab hands-free.</td>
+                <td style="padding: 14px 20px; color: var(--text-secondary);">Autonomous Android bottom-tab crawler: captures each app tab hands-free.</td>
                 <td style="padding: 14px 20px; font-family: var(--font-mono); font-size: 13px;">--max-tabs=5</td>
+              </tr>
+              <tr>
+                <td style="padding: 14px 20px; font-family: var(--font-mono); color: #38bdf8;">adbsnap explore-ios</td>
+                <td style="padding: 14px 20px; color: var(--text-secondary);">Autonomous iOS UI explorer (XCTest): traverses tab roots &amp; views into App Store screenshots.</td>
+                <td style="padding: 14px 20px; font-family: var(--font-mono); font-size: 13px;">--bundle, --device, --team, --zip</td>
               </tr>
             </tbody>
           </table>

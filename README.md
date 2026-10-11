@@ -15,17 +15,26 @@ Stop wrestling with manual Figma templates or low-res screenshot scripts. **ADBS
 
 ## 🚀 What's New in v1.3.0
 
-- ⚡ **High-Speed Parallel Compositing & Chassis Caching**:
+- 🎨 **Studio 2.0 Direct On-Canvas Drag & Typography Inspector**:
+  - **Figma-Style Drag Repositioning**: Grab and reposition headline/subtitle or bottom callout text blocks directly on the interactive canvas with live 120 FPS ghost preview boxes that snap cleanly into place.
+  - **Dual Visible Textarea Editors**: Dedicated multi-line `<textarea>` inputs for both Top Headline and Bottom Feature Callout with full line-break (`\n`) preservation and auto-downscaling for 3+ lines.
+  - **Contextual Typography Inspector**: Adjust font weights, sizes, color swatches, and alignment on the fly with live 60fps canvas re-renders.
+  - **1-Click Designer Aesthetics Recipes**: Apply professional typography and color pairings with one click (Bold Minimalist, Editorial Modern, Playful Pastel, Neon Cyber, Gradient Luxe) and sync styling across all slides with "Apply to All".
+- 🍎 **Comprehensive Apple iOS Ecosystem Support**:
+  - **Simulators & Physical Device Discovery**: Auto-detects booted iOS simulators via macOS `xcrun simctl` and paired physical iPhones/iPads via `xcrun devicectl`.
+  - **Unified Device Routing**: View attached iOS targets with an instant `iOS 🍎` badge alongside Android devices in CLI, Studio, and VS Code.
+  - **Autonomous XCTest Auto Explorer (`adbsnap explore-ios`)**: Hands-free iOS UI exploration crawling tab roots and accessible view hierarchies up to 2 levels deep, with Apple Developer Team ID automatic signing for physical devices.
+- ⚡ **High-Speed Parallel Compositing & Chassis Caching (3x Speedup)**:
   - Pre-assembles phone chassis (screenshot + 4K bezel + drop shadow) once in host RAM and caches the composited buffer.
   - Multi-store export is fully parallelized across all store targets (`Promise.all`), slashing export duration from **>8.1s to ~2.5s** (over **3x speedup**).
   - Fixed aspect ratio crop calculations for non-standard banners (e.g. Google Play Feature Graphic 1024×500).
-- 🚀 **Ultra-Fast Raw Framebuffer Screencap**:
+- 🚀 **Ultra-Fast Raw Framebuffer Screencap (~52ms)**:
   - Direct uncompressed RGBA capture stream via `adb exec-out screencap`, bypassing slow on-device PNG encoding.
   - Binary header parsing with Sharp in-memory conversion completes in **~52ms** with transparent fallback to `screencap -p`.
 - ⚡ **Studio Fast-Preview & 60fps Responsiveness**:
   - Dedicated half-resolution preview endpoint (`format: 'preview'`, 645×1398), shrinking loopback Base64 payload by **83%** (~85 KB).
   - Tightened UI slider debounce to 120ms for smooth, instantaneous 60fps canvas feedback.
-  - Fixed Studio directory resolution to serve pre-compiled assets from `dist/studio/` with clean universal `http://localhost:${port}` fallback.
+  - Clean SPA serving from `dist/studio/` with native Node HTTP server.
 - 🎨 **Next-Gen Image Formats (`--format=webp|avif|png|jpeg`)**:
   - Added support for cutting-edge formats across CLI and export pipelines.
   - **AVIF** delivers stunning quality at **7.3 KB (95% smaller than PNG)**; **WebP** produces **~86 KB (42% smaller)** assets ready for high-speed web distribution.
@@ -33,17 +42,11 @@ Stop wrestling with manual Figma templates or low-res screenshot scripts. **ADBS
   - Added **iPhone 16 Pro Max** (`iphone-16-pro-max`, 6.9" Super Retina XDR with Dynamic Island).
   - Added **Pixel 9 Pro Fold** (`pixel-9-pro-fold`, Inner 8" Foldable OLED display).
   - Added **Galaxy S25 Ultra** (`galaxy-s25-ultra`, 6.8" Dynamic AMOLED 2X titanium chassis with punch-hole).
-- ✍️ **Flexible Multi-Line Typography & Positioning**:
-  - Support for **Top**, **Bottom**, or **Both** text placement: place copy above the device, below the device, or split headlines on top with feature callouts on bottom.
-  - Multi-line headline and subtitle formatting with explicit line breaks (`\n`) and dynamic font downscaling for 3+ lines.
-  - Interactive Studio dashboard includes a 1-click position switcher (`[ ⬆ Top | ⬇ Bottom | ↕ Both ]`) and multi-line textareas with live 60fps fast-preview.
-- 🍎 **iOS Simulator & Physical Device Support**:
-  - Auto-detects booted iOS simulators through `xcrun simctl` and paired physical iPhones/iPads through `xcrun devicectl` on macOS.
-  - Routes iOS screenshots through the same framing and App Store export pipelines used for Android captures.
-  - Adds native XCTest Auto Explorer for simulator apps and paired physical iOS devices (physical runs require Xcode automatic signing and a Team ID).
-  - Runs a macOS GitHub Actions smoke test for simulator capture and a mocked physical-device discovery/capture test.
-- 🐛 **Studio Filmstrip Bug Fixes**:
-  - Resolved event propagation blocking on filmstrip thumbnails (`pointer-events-none`), restoring instant single-screen deletion (`Trash2`) and reordering.
+- 🐛 **Resolved Bug Fixes & UX Polish**:
+  - **Backdrop Y-Offset Clamping**: Unclamped `textYOffset` in backdrop generator allowing smooth negative and positive text repositioning without artificial boundaries.
+  - **Stage Dock & Callout Collision**: Repositioned bottom stage dock controls (`bottom-8` instead of `bottom-24`) to eliminate overlap with bottom text callouts on the canvas.
+  - **Curated Theme Sync**: Fixed `handleSyncStyleToAll` to properly synchronize curated gradient themes while preserving custom color choices.
+  - **Filmstrip Delete Action**: Fixed click blocking caused by `pointer-events-none` on filmstrip thumbnail wrappers, restoring instant single-screen deletion (`Trash2`) and reordering.
 
 ---
 
@@ -273,24 +276,35 @@ Batch-generates complete asset packs across Apple App Store and Google Play dime
 adbsnap export --theme studioLight --title "Workout Companion" --zip --format webp
 ```
 
-### 3. `adbsnap crawl [package]`
+### 3. `adbsnap crawl [package]` (Android)
 Inspects your running Android app, auto-detects bottom navigation tabs (`BottomNavigationView`, `TabLayout`), and navigates through each tab capturing a complete framed showcase suite.
 
 ```bash
 adbsnap crawl com.example.myapp --theme midnight
 ```
 
-### 4. `adbsnap run [config.json]`
+### 4. `adbsnap explore-ios` (iOS Simulator & Physical Device)
+Runs autonomous accessibility-driven exploration for iOS apps via XCTest/XCUITest, capturing tab roots and views into framed screenshots:
+
+```bash
+# iOS Simulator
+adbsnap explore-ios --bundle com.example.myapp --device "<simulator ID>" --zip
+
+# Physical iPhone / iPad (with Apple Team ID signing)
+adbsnap explore-ios --bundle com.example.myapp --device "<iOS device ID>" --team "<10-char Team ID>" --zip
+```
+
+### 5. `adbsnap run [config.json]`
 Executes an automated multi-step screenshot journey from a JSON configuration file.
 
 ```bash
 adbsnap run adbsnap.config.json
 ```
 
-### 5. `adbsnap journey`
+### 6. `adbsnap journey`
 Interactive CLI wizard that guides you through a multi-screen capture session with customizable titles for each step.
 
-### 6. `adbsnap doctor`
+### 7. `adbsnap doctor`
 Diagnoses your local Android development environment:
 
 ```bash
@@ -304,8 +318,8 @@ adbsnap doctor
   [USB] Pixel 8 Pro (1A2B3C4D) -> READY
 ```
 
-### 7. `adbsnap devices`, `adbsnap wifi` & `adbsnap usb`
-List all connected USB, Wi-Fi, and emulator devices, switch to wireless mode, or cleanly revert back to USB:
+### 8. `adbsnap devices`, `adbsnap wifi` & `adbsnap usb`
+List all connected USB, Wi-Fi, emulator, and iOS targets, switch to wireless mode, or cleanly revert back to USB:
 
 ```bash
 # List all attached devices and authorization health
@@ -320,8 +334,11 @@ adbsnap wifi off
 adbsnap usb
 ```
 
-### 8. `adbsnap studio`
+### 9. `adbsnap studio`
 Launches the full interactive visual web dashboard on `http://localhost:3000`:
+- **Canvas Drag Repositioning:** Direct Figma-style drag repositioning for headlines & bottom callouts with 120 FPS preview ghosts.
+- **Dual Textarea Inputs:** Multi-line editing with line-break support and auto-downscaling.
+- **1-Click Designer Aesthetics:** Instantly style your frames with curated design recipes and batch sync across all slides.
 - **`Spacebar` Hotkey:** Pull fresh screens directly from phone to canvas instantly.
 - **Wireless IP & Android 11+ Pairing:** Connect and pair wirelessly from the header.
 - **Filmstrip Reordering:** Collect multiple screens across user flows, reorder tabs, or import computer images.
@@ -329,7 +346,7 @@ Launches the full interactive visual web dashboard on `http://localhost:3000`:
 - **Animated Story Maker:** Compile captured screens into looping animated GIFs.
 - **4K Multi-Store ZIP Export:** Download complete App Store & Google Play bundles in one click.
 
-### 9. 💻 VS Code Extension
+### 10. 💻 VS Code Extension
 Use ADBSnap directly inside Visual Studio Code without leaving your editor:
 - **Activity Bar Sidebar:** Live connected devices tree with 1-click capture & recent gallery.
 - **Shortcuts:** `Ctrl+Alt+S` for instant 4K framed capture, `Ctrl+Alt+C` to copy directly to clipboard.
