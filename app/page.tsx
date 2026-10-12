@@ -2325,133 +2325,223 @@ export default function StudioPage() {
                 })}
               </div>
 
-              <div className={`space-y-2.5 transition ${themeId === 'none' ? 'opacity-40 pointer-events-none' : ''}`}>
-                <div className="grid grid-cols-2 gap-2">
+              <div className={`space-y-3 transition ${themeId === 'none' ? 'opacity-40 pointer-events-none' : ''}`}>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-cyan-400" />
+                    Device Layout Mode
+                  </label>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                    {layout.startsWith('duo') ? '2 Phones (Duo)' : '1 Phone (Single)'}
+                  </span>
+                </div>
+
+                {/* Top Switcher: 1 Device vs 2 Devices */}
+                <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-[#0e1017] border border-[#232733]">
                   <button
+                    type="button"
                     onClick={() => {
-                      setLayout('appstore');
+                      const next = layout.startsWith('duo') ? 'appstore' : layout;
+                      setLayout(next);
                       setScreens((prev) => {
                         if (!prev[activeScreenIndex]) return prev;
-                        const next = [...prev];
-                        next[activeScreenIndex] = { ...next[activeScreenIndex], layout: 'appstore' };
-                        return next;
+                        const copy = [...prev];
+                        copy[activeScreenIndex] = { ...copy[activeScreenIndex], layout: next };
+                        return copy;
                       });
                     }}
-                    className={`p-2 rounded-lg border text-xs text-center transition cursor-pointer ${
-                      layout === 'appstore'
-                        ? 'border-cyan-500 bg-cyan-500/10 text-white font-medium shadow-sm shadow-cyan-500/20'
-                        : 'border-[#232733] bg-[#161922] text-slate-400 hover:text-slate-200'
+                    className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                      !layout.startsWith('duo')
+                        ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
+                        : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    📱 App Store (Bleed)
+                    <Smartphone className="w-3.5 h-3.5" />
+                    <span>Single Phone</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => {
-                      setLayout('social');
+                      const next = layout === 'duo-split' ? 'duo-split' : 'duo-overlap';
+                      setLayout(next);
                       setScreens((prev) => {
                         if (!prev[activeScreenIndex]) return prev;
-                        const next = [...prev];
-                        next[activeScreenIndex] = { ...next[activeScreenIndex], layout: 'social' };
-                        return next;
+                        const copy = [...prev];
+                        copy[activeScreenIndex] = { ...copy[activeScreenIndex], layout: next };
+                        return copy;
                       });
                     }}
-                    className={`p-2 rounded-lg border text-xs text-center transition cursor-pointer ${
-                      layout === 'social'
-                        ? 'border-cyan-500 bg-cyan-500/10 text-white font-medium shadow-sm shadow-cyan-500/20'
-                        : 'border-[#232733] bg-[#161922] text-slate-400 hover:text-slate-200'
+                    className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                      layout.startsWith('duo')
+                        ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
+                        : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    🌐 Social (Floating)
-                  </button>
-                  <button
-                    onClick={() => {
-                      setLayout('duo-overlap');
-                      setScreens((prev) => {
-                        if (!prev[activeScreenIndex]) return prev;
-                        const next = [...prev];
-                        next[activeScreenIndex] = { ...next[activeScreenIndex], layout: 'duo-overlap' };
-                        return next;
-                      });
-                    }}
-                    className={`p-2 rounded-lg border text-xs text-center transition cursor-pointer ${
-                      layout === 'duo-overlap'
-                        ? 'border-cyan-500 bg-cyan-500/10 text-white font-medium shadow-sm shadow-cyan-500/20'
-                        : 'border-[#232733] bg-[#161922] text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    📱📱 Duo Overlap
-                  </button>
-                  <button
-                    onClick={() => {
-                      setLayout('duo-split');
-                      setScreens((prev) => {
-                        if (!prev[activeScreenIndex]) return prev;
-                        const next = [...prev];
-                        next[activeScreenIndex] = { ...next[activeScreenIndex], layout: 'duo-split' };
-                        return next;
-                      });
-                    }}
-                    className={`p-2 rounded-lg border text-xs text-center transition cursor-pointer ${
-                      layout === 'duo-split'
-                        ? 'border-cyan-500 bg-cyan-500/10 text-white font-medium shadow-sm shadow-cyan-500/20'
-                        : 'border-[#232733] bg-[#161922] text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    🔲 Duo Split (Twin)
+                    <Layers className="w-3.5 h-3.5" />
+                    <span>2 Phones (Duo)</span>
                   </button>
                 </div>
 
-                {(layout === 'duo-overlap' || layout === 'duo-split') && (
-                  <div className="p-2.5 rounded-lg bg-[#12151e] border border-cyan-500/30 space-y-2 animate-in fade-in duration-150">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-semibold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
-                        📱 Secondary Phone Screen
-                      </span>
-                      <span className="text-[10px] text-slate-400">
-                        {secondaryScreenIndex !== null && screens[secondaryScreenIndex] ? `Slide #${secondaryScreenIndex + 1}` : 'Auto (Next)'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 overflow-x-auto py-1">
+                {/* Sub-options for Single vs Duo */}
+                {!layout.startsWith('duo') ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLayout('appstore');
+                        setScreens((prev) => {
+                          if (!prev[activeScreenIndex]) return prev;
+                          const copy = [...prev];
+                          copy[activeScreenIndex] = { ...copy[activeScreenIndex], layout: 'appstore' };
+                          return copy;
+                        });
+                      }}
+                      className={`p-2.5 rounded-xl border text-left transition cursor-pointer ${
+                        layout === 'appstore'
+                          ? 'border-cyan-500 bg-cyan-500/10 text-white shadow-sm ring-1 ring-cyan-500/30'
+                          : 'border-[#232733] bg-[#161922] text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <div className="font-semibold text-xs text-white">📱 App Store Bleed</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">Bottom crop for store listings</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLayout('social');
+                        setScreens((prev) => {
+                          if (!prev[activeScreenIndex]) return prev;
+                          const copy = [...prev];
+                          copy[activeScreenIndex] = { ...copy[activeScreenIndex], layout: 'social' };
+                          return copy;
+                        });
+                      }}
+                      className={`p-2.5 rounded-xl border text-left transition cursor-pointer ${
+                        layout === 'social'
+                          ? 'border-cyan-500 bg-cyan-500/10 text-white shadow-sm ring-1 ring-cyan-500/30'
+                          : 'border-[#232733] bg-[#161922] text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <div className="font-semibold text-xs text-white">🌐 Social Floating</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">Centered standalone phone</div>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
                       <button
+                        type="button"
                         onClick={() => {
-                          setSecondaryScreenIndex(null);
+                          setLayout('duo-overlap');
                           setScreens((prev) => {
                             if (!prev[activeScreenIndex]) return prev;
-                            const next = [...prev];
-                            next[activeScreenIndex] = { ...next[activeScreenIndex], secondaryScreenIndex: null };
-                            return next;
+                            const copy = [...prev];
+                            copy[activeScreenIndex] = { ...copy[activeScreenIndex], layout: 'duo-overlap' };
+                            return copy;
                           });
                         }}
-                        className={`px-2 py-1 rounded text-[11px] border transition cursor-pointer whitespace-nowrap ${
-                          secondaryScreenIndex === null
-                            ? 'border-cyan-500 bg-cyan-500/20 text-white font-medium'
+                        className={`p-2.5 rounded-xl border text-left transition cursor-pointer ${
+                          layout === 'duo-overlap'
+                            ? 'border-cyan-500 bg-cyan-500/10 text-white shadow-sm ring-1 ring-cyan-500/50'
                             : 'border-[#232733] bg-[#161922] text-slate-400 hover:text-slate-200'
                         }`}
                       >
-                        Auto (Next)
+                        <div className="font-bold text-xs text-white flex items-center gap-1.5">
+                          <span>📱📱 Overlapping Duo</span>
+                        </div>
+                        <div className="text-[10px] text-slate-400 mt-1 leading-snug">
+                          Keynote hero with 3D drop shadow layering
+                        </div>
                       </button>
-                      {screens.map((scr, idx) => (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLayout('duo-split');
+                          setScreens((prev) => {
+                            if (!prev[activeScreenIndex]) return prev;
+                            const copy = [...prev];
+                            copy[activeScreenIndex] = { ...copy[activeScreenIndex], layout: 'duo-split' };
+                            return copy;
+                          });
+                        }}
+                        className={`p-2.5 rounded-xl border text-left transition cursor-pointer ${
+                          layout === 'duo-split'
+                            ? 'border-cyan-500 bg-cyan-500/10 text-white shadow-sm ring-1 ring-cyan-500/50'
+                            : 'border-[#232733] bg-[#161922] text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <div className="font-bold text-xs text-white flex items-center gap-1.5">
+                          <span>🔲 Twin Side-by-Side</span>
+                        </div>
+                        <div className="text-[10px] text-slate-400 mt-1 leading-snug">
+                          Balanced twin phone comparison
+                        </div>
+                      </button>
+                    </div>
+
+                    {/* Secondary Screen Setup */}
+                    <div className="p-3 rounded-xl bg-[#12151e] border border-cyan-500/30 space-y-2.5">
+                      <div className="flex items-center justify-between text-xs font-semibold text-cyan-300">
+                        <span>Phone 2 Screen (Secondary)</span>
                         <button
-                          key={scr.id}
-                          onClick={() => {
-                            setSecondaryScreenIndex(idx);
-                            setScreens((prev) => {
-                              if (!prev[activeScreenIndex]) return prev;
-                              const next = [...prev];
-                              next[activeScreenIndex] = { ...next[activeScreenIndex], secondaryScreenIndex: idx };
-                              return next;
-                            });
-                          }}
-                          className={`flex items-center gap-1 px-2 py-1 rounded text-[11px] border transition cursor-pointer whitespace-nowrap ${
-                            secondaryScreenIndex === idx
-                              ? 'border-cyan-500 bg-cyan-500/20 text-white font-medium'
-                              : 'border-[#232733] bg-[#161922] text-slate-400 hover:text-slate-200'
-                          }`}
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="text-[10px] text-cyan-400 hover:text-cyan-200 underline cursor-pointer"
                         >
-                          <img src={`data:image/png;base64,${scr.base64}`} alt={`Screen ${idx + 1}`} className="w-3 h-5 object-cover rounded-[2px]" />
-                          <span>#{idx + 1}</span>
+                          + Upload 2nd Screen
                         </button>
-                      ))}
+                      </div>
+
+                      {screens.length <= 1 ? (
+                        <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 leading-relaxed">
+                          You only have 1 screenshot in your session. Click <b>+ Upload 2nd Screen</b> to load another screen, or ADBSnap will duplicate the current screen for the 2nd phone.
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 overflow-x-auto py-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSecondaryScreenIndex(null);
+                              setScreens((prev) => {
+                                if (!prev[activeScreenIndex]) return prev;
+                                const copy = [...prev];
+                                copy[activeScreenIndex] = { ...copy[activeScreenIndex], secondaryScreenIndex: null };
+                                return copy;
+                              });
+                            }}
+                            className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition cursor-pointer whitespace-nowrap ${
+                              secondaryScreenIndex === null
+                                ? 'border-cyan-500 bg-cyan-500/20 text-white font-semibold'
+                                : 'border-[#232733] bg-[#161922] text-slate-400 hover:text-slate-200'
+                            }`}
+                          >
+                            Auto-Pair (Next Slide)
+                          </button>
+                          {screens.map((scr, idx) => (
+                            <button
+                              key={scr.id}
+                              type="button"
+                              onClick={() => {
+                                setSecondaryScreenIndex(idx);
+                                setScreens((prev) => {
+                                  if (!prev[activeScreenIndex]) return prev;
+                                  const copy = [...prev];
+                                  copy[activeScreenIndex] = { ...copy[activeScreenIndex], secondaryScreenIndex: idx };
+                                  return copy;
+                                });
+                              }}
+                              className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs transition cursor-pointer whitespace-nowrap ${
+                                secondaryScreenIndex === idx
+                                  ? 'border-cyan-500 bg-cyan-500/20 text-white font-bold ring-1 ring-cyan-500/40'
+                                  : 'border-[#232733] bg-[#161922] text-slate-400 hover:text-slate-200'
+                              }`}
+                            >
+                              <img src={`data:image/png;base64,${scr.base64}`} alt={`Screen ${idx + 1}`} className="w-3.5 h-6 object-cover rounded-[3px]" />
+                              <span>#{idx + 1}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
