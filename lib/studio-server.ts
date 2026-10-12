@@ -594,7 +594,6 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
           const duration = Math.min(Math.max(Number(body.seconds) || 5, 2), 30);
           const deviceId = typeof body.deviceId === 'string' ? body.deviceId : undefined;
 
-          broadcast({ type: 'STATUS', message: `Recording screen for ${duration}s... Interact with device now.` });
           const videoBuf = await recordDeviceScreen({ durationSec: duration, deviceId });
 
           return sendJson({
