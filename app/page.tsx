@@ -1584,6 +1584,24 @@ export default function StudioPage() {
     }
   };
 
+  const handleSwapDuoScreens = () => {
+    if (screens.length < 2) return;
+    const p1 = activeScreenIndex;
+    const p2 = secondaryScreenIndex !== null ? secondaryScreenIndex : (activeScreenIndex + 1) % screens.length;
+    if (p1 === p2) return;
+    selectScreen(p2);
+    setSecondaryScreenIndex(p1);
+    setScreens((prev) => {
+      if (!prev[p2]) return prev;
+      const copy = [...prev];
+      copy[p2] = { ...copy[p2], secondaryScreenIndex: p1 };
+      return copy;
+    });
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setToastMessage(`⇄ Swapped Phone 1 (Slide #${p2 + 1}) & Phone 2 (Slide #${p1 + 1})`);
+    toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2500);
+  };
+
   const openIOSAppPicker = async () => {
     if (!selectedDevice) {
       setStatusMessage('Select a connected iOS simulator or device first.');
@@ -3382,6 +3400,22 @@ export default function StudioPage() {
                     <kbd className="text-[10px] px-1 py-0.2 rounded bg-slate-800 text-cyan-300 font-mono">Space</kbd>
                   </button>
 
+                  <div className="w-px h-3.5 bg-slate-700/60" />
+
+                  {/* 1-Click Delete Active Screen from Canvas */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteScreen(e, activeScreenIndex);
+                    }}
+                    className="flex items-center gap-1.5 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 px-2 py-0.5 rounded transition cursor-pointer"
+                    title="Remove active screen from canvas and filmstrip"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete</span>
+                  </button>
+
                   {isRendering && (
                     <>
                       <div className="w-px h-3.5 bg-slate-700/60" />
@@ -3392,6 +3426,35 @@ export default function StudioPage() {
                     </>
                   )}
                 </div>
+
+                {/* Duo Phone Quick Controller Dock on Canvas */}
+                {layout.startsWith('duo') && screens.length > 0 && (
+                  <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-[#12151e]/95 backdrop-blur-md border border-cyan-500/30 shadow-xl mt-2 select-none text-xs animate-in fade-in duration-150">
+                    <div className="flex items-center gap-1 text-cyan-300 font-semibold">
+                      <Smartphone className="w-3.5 h-3.5" />
+                      <span>Phone 1: #{activeScreenIndex + 1}</span>
+                    </div>
+
+                    {screens.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={handleSwapDuoScreens}
+                        className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 border border-cyan-500/40 text-[11px] font-bold transition cursor-pointer shadow-sm"
+                        title="Swap Foreground (Phone 1) & Background (Phone 2) screens"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        <span>⇄ Swap Phones</span>
+                      </button>
+                    )}
+
+                    <div className="flex items-center gap-1 text-purple-300 font-semibold">
+                      <Smartphone className="w-3.5 h-3.5 text-purple-400" />
+                      <span>
+                        Phone 2: #{screens.length > 1 ? (secondaryScreenIndex !== null ? secondaryScreenIndex : (activeScreenIndex + 1) % screens.length) + 1 : activeScreenIndex + 1}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
               <div
@@ -3546,17 +3609,27 @@ export default function StudioPage() {
                         {/* Top Right: Delete Screen */}
                         <button
                           type="button"
-                          onClick={(e) => deleteScreen(e, idx)}
-                          className="absolute top-0.5 right-0.5 p-1 rounded bg-black/80 hover:bg-rose-600 text-white opacity-0 group-hover:opacity-100 transition shadow cursor-pointer z-20 pointer-events-auto"
+                          draggable={false}
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            deleteScreen(e, idx);
+                          }}
+                          className="absolute top-0.5 right-0.5 p-1 rounded bg-black/85 hover:bg-rose-600 text-white opacity-0 group-hover:opacity-100 transition shadow cursor-pointer z-30 pointer-events-auto"
                           title="Remove screen"
                         >
-                          <Trash2 className="w-2.5 h-2.5 pointer-events-none" />
+                          <Trash2 className="w-3 h-3 pointer-events-none" />
                         </button>
 
                         {/* Bottom Left: Move Left in Order */}
                         {idx > 0 && (
                           <button
                             type="button"
+                            draggable={false}
+                            onMouseDown={(e) => e.stopPropagation()}
                             onClick={(e) => moveScreen(e, idx, 'left')}
                             className="absolute bottom-0.5 left-0.5 p-0.5 rounded bg-black/80 hover:bg-cyan-600 text-white opacity-0 group-hover:opacity-100 transition shadow cursor-pointer z-20 pointer-events-auto"
                             title="Move left in export order"
@@ -3569,6 +3642,8 @@ export default function StudioPage() {
                         {idx < screens.length - 1 && (
                           <button
                             type="button"
+                            draggable={false}
+                            onMouseDown={(e) => e.stopPropagation()}
                             onClick={(e) => moveScreen(e, idx, 'right')}
                             className="absolute bottom-0.5 right-0.5 p-0.5 rounded bg-black/80 hover:bg-cyan-600 text-white opacity-0 group-hover:opacity-100 transition shadow cursor-pointer z-20 pointer-events-auto"
                             title="Move right in export order"
@@ -3585,6 +3660,53 @@ export default function StudioPage() {
                       >
                         {s.customTitle || `#${idx + 1}`}
                       </span>
+
+                      {/* Direct 1-Click Duo Fast Assignment Buttons */}
+                      {layout.startsWith('duo') && (
+                        <div className="flex items-center gap-1 mt-1 z-20">
+                          <button
+                            type="button"
+                            draggable={false}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              selectScreen(idx);
+                            }}
+                            className={`px-1.5 py-0.5 rounded text-[8px] font-bold transition cursor-pointer ${
+                              isActive
+                                ? 'bg-cyan-500 text-slate-950 shadow-sm'
+                                : 'bg-[#1a1e28] text-slate-400 hover:text-white border border-[#2b3142]'
+                            }`}
+                            title="Set as Phone 1 (Foreground)"
+                          >
+                            P1
+                          </button>
+                          <button
+                            type="button"
+                            draggable={false}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSecondaryScreenIndex(idx);
+                              setScreens((prev) => {
+                                if (!prev[activeScreenIndex]) return prev;
+                                const copy = [...prev];
+                                copy[activeScreenIndex] = { ...copy[activeScreenIndex], secondaryScreenIndex: idx };
+                                return copy;
+                              });
+                              refreshPreview(undefined, { secondaryScreenIndex: idx });
+                            }}
+                            className={`px-1.5 py-0.5 rounded text-[8px] font-bold transition cursor-pointer ${
+                              idx === (secondaryScreenIndex !== null ? secondaryScreenIndex : (activeScreenIndex + 1) % screens.length)
+                                ? 'bg-purple-500 text-white shadow-sm'
+                                : 'bg-[#1a1e28] text-slate-400 hover:text-white border border-[#2b3142]'
+                            }`}
+                            title="Set as Phone 2 (Background)"
+                          >
+                            P2
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
