@@ -42,6 +42,7 @@ async function main() {
       out: { type: 'string' },
       port: { type: 'string', default: '3000' },
       'text-pos': { type: 'string', default: 'top' },
+      'secondary-screen': { type: 'string' },
       align: { type: 'string', default: 'center' },
       'font-h': { type: 'string' },
       'font-s': { type: 'string' },
@@ -309,6 +310,7 @@ async function handleSnap(options: {
   subtitle?: string;
   footer?: string;
   'text-pos'?: string;
+  'secondary-screen'?: string;
   stars?: boolean;
   device?: string;
   out?: string;
@@ -376,6 +378,11 @@ async function handleSnap(options: {
   const phoneTopOffset = options['phone-offset'] ? Number(options['phone-offset']) : undefined;
   const enableAmbientGlow = !options['no-glow'];
 
+  let secondaryScreenshotBuffer: Buffer | undefined = undefined;
+  if (options['secondary-screen'] && fs.existsSync(options['secondary-screen'])) {
+    secondaryScreenshotBuffer = fs.readFileSync(options['secondary-screen']);
+  }
+
   if (!BEZEL_PRESETS[frame]) {
     logger.warn(`Unknown frame "${frame}", falling back to "iphone-16-pro". Available: ${Object.keys(BEZEL_PRESETS).join(', ')}`);
   }
@@ -389,6 +396,7 @@ async function handleSnap(options: {
   logger.info(MESSAGES.COMPOSITE_START);
   const result = await compositeFrame({
     screenshotBuffer: rawBuffer,
+    secondaryScreenshotBuffer,
     bezelId: frame,
     gradientPreset: theme,
     layout,

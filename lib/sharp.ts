@@ -39,6 +39,9 @@ export interface CompositeFrameOptions {
   accentColors?: [string, string];
   fit?: 'cover' | 'contain' | 'fill';
   precomputedPhoneDeviceBuffer?: Buffer;
+  secondaryScreenshotBuffer?: Buffer;
+  secondaryBezelId?: string;
+  precomputedSecondaryPhoneDeviceBuffer?: Buffer;
   format?: 'png' | 'webp' | 'avif' | 'jpeg';
   quality?: number;
 }
@@ -289,8 +292,81 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
     });
   }
 
-  // Physical vector phone device chassis
-  compositeLayers.push({ input: scaledPhoneBuffer, left: phoneLeft, top: phoneTop });
+  // Physical vector phone device chassis (Single or Duo layouts)
+  if (layout === 'duo-overlap') {
+    // Background Phone (recessed left, ~0.88x scale)
+    const secBezelId = options.secondaryBezelId || bezelId;
+    const secSpec = BEZEL_PRESETS[secBezelId] || spec;
+    const secScreen = options.secondaryScreenshotBuffer || options.screenshotBuffer;
+    let secCanvasW = secSpec.width;
+    let secCanvasH = secSpec.height;
+    if (Boolean(secSpec.isFrameless || secSpec.id === 'none')) {
+      const shadowPad = 60;
+      secCanvasW = secSpec.screen.width + shadowPad * 2;
+      secCanvasH = secSpec.screen.height + shadowPad * 2;
+    }
+    const secDeviceBuf = options.precomputedSecondaryPhoneDeviceBuffer || await assemblePhoneDevice(secScreen, secSpec, fitMode);
+
+    const bgScale = phoneScale * 0.88;
+    const bgW = Math.round(secCanvasW * bgScale);
+    const bgH = Math.round(secCanvasH * bgScale);
+    const bgBuf = await sharp(secDeviceBuf).resize(bgW, bgH).png().toBuffer();
+
+    // Foreground Phone (prominent right, ~0.98x scale)
+    const fgScale = phoneScale * 0.98;
+    const fgW = Math.round(deviceCanvasWidth * fgScale);
+    const fgH = Math.round(deviceCanvasHeight * fgScale);
+    const fgBuf = await sharp(phoneDeviceBuffer).resize(fgW, fgH).png().toBuffer();
+
+    const bgLeft = Math.round(canvasWidth * 0.5 - fgW * 0.68);
+    const bgTop = Math.round(phoneTop + fgH * 0.08);
+
+    const fgLeft = Math.round(canvasWidth * 0.5 - fgW * 0.16);
+    const fgTop = phoneTop;
+
+    compositeLayers.push(
+      { input: bgBuf, left: bgLeft, top: bgTop },
+      { input: fgBuf, left: fgLeft, top: fgTop }
+    );
+  } else if (layout === 'duo-split') {
+    // Twin Split: Two phones side by side, symmetrically balanced
+    const secBezelId = options.secondaryBezelId || bezelId;
+    const secSpec = BEZEL_PRESETS[secBezelId] || spec;
+    const secScreen = options.secondaryScreenshotBuffer || options.screenshotBuffer;
+    let secCanvasW = secSpec.width;
+    let secCanvasH = secSpec.height;
+    if (Boolean(secSpec.isFrameless || secSpec.id === 'none')) {
+      const shadowPad = 60;
+      secCanvasW = secSpec.screen.width + shadowPad * 2;
+      secCanvasH = secSpec.screen.height + shadowPad * 2;
+    }
+    const secDeviceBuf = options.precomputedSecondaryPhoneDeviceBuffer || await assemblePhoneDevice(secScreen, secSpec, fitMode);
+
+    const splitScale = Math.min(phoneScale * 0.76, (canvasWidth * 0.46) / Math.max(deviceCanvasWidth, secCanvasW));
+    const leftW = Math.round(deviceCanvasWidth * splitScale);
+    const leftH = Math.round(deviceCanvasHeight * splitScale);
+    const rightW = Math.round(secCanvasW * splitScale);
+    const rightH = Math.round(secCanvasH * splitScale);
+
+    const leftBuf = await sharp(phoneDeviceBuffer).resize(leftW, leftH).png().toBuffer();
+    const rightBuf = await sharp(secDeviceBuf).resize(rightW, rightH).png().toBuffer();
+
+    const spacing = Math.round(canvasWidth * 0.03);
+    const totalW = leftW + rightW + spacing;
+    const startX = Math.round((canvasWidth - totalW) / 2);
+
+    const leftX = startX;
+    const rightX = startX + leftW + spacing;
+    const splitY = phoneTop;
+
+    compositeLayers.push(
+      { input: leftBuf, left: leftX, top: splitY },
+      { input: rightBuf, left: rightX, top: splitY }
+    );
+  } else {
+    // Single chassis
+    compositeLayers.push({ input: scaledPhoneBuffer, left: phoneLeft, top: phoneTop });
+  }
 
   // Marketing typography & pill badges overlay
   if (typographySvg) {
@@ -370,6 +446,13 @@ export async function exportMultiStore(options: MultiStoreExportOptions): Promis
 
   // Pre-assemble device chassis once for all target aspect ratios
   const precomputedPhoneDeviceBuffer = await assemblePhoneDevice(options.screenshotBuffer, spec, fitMode);
+  let precomputedSecondaryPhoneDeviceBuffer: Buffer | undefined = undefined;
+  if (options.layout === 'duo-overlap' || options.layout === 'duo-split') {
+    const secBezelId = options.secondaryBezelId || bezelId;
+    const secSpec = BEZEL_PRESETS[secBezelId] || spec;
+    const secScreen = options.secondaryScreenshotBuffer || options.screenshotBuffer;
+    precomputedSecondaryPhoneDeviceBuffer = await assemblePhoneDevice(secScreen, secSpec, fitMode);
+  }
 
   return Promise.all(
     targets.map(async (target) => {
@@ -378,6 +461,7 @@ export async function exportMultiStore(options: MultiStoreExportOptions): Promis
         canvasWidth: target.width,
         canvasHeight: target.height,
         precomputedPhoneDeviceBuffer,
+        precomputedSecondaryPhoneDeviceBuffer,
       });
 
       return {

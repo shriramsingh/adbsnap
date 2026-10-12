@@ -274,7 +274,7 @@ export const GRADIENT_PRESETS: Record<string, GradientPreset> = {
   },
 };
 
-export type LayoutMode = 'appstore' | 'social';
+export type LayoutMode = 'appstore' | 'social' | 'duo-overlap' | 'duo-split';
 
 export const LAYOUT_PRESETS: Record<LayoutMode, { name: string; phoneTop: (canvasH: number, phoneH: number) => number }> = {
   appstore: {
@@ -284,6 +284,14 @@ export const LAYOUT_PRESETS: Record<LayoutMode, { name: string; phoneTop: (canva
   social: {
     name: 'Social Floating Showcase',
     phoneTop: (canvasH, phoneH) => Math.round((canvasH - phoneH) / 2 + 100), // Fully centered with space for title
+  },
+  'duo-overlap': {
+    name: 'Duo Overlapping (Keynote Hero)',
+    phoneTop: (canvasH, phoneH) => Math.round(canvasH - phoneH + 80),
+  },
+  'duo-split': {
+    name: 'Duo Side-by-Side (Twin Split)',
+    phoneTop: (canvasH, phoneH) => Math.round((canvasH - phoneH) / 2 + 80),
   },
 };
 

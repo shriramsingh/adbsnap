@@ -254,8 +254,22 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
               if (isRawMode && body.bezelId === 'none') {
                 zipFiles.push({ path: `raw/${filename}`, buffer: screenBuffer });
               } else {
+                let secondaryScreenshotBuffer: Buffer | undefined = undefined;
+                if (scr.layout === 'duo-overlap' || scr.layout === 'duo-split' || body.layout === 'duo-overlap' || body.layout === 'duo-split') {
+                  if (scr.secondaryScreenIndex !== undefined && screens[scr.secondaryScreenIndex]) {
+                    secondaryScreenshotBuffer = Buffer.from(screens[scr.secondaryScreenIndex].base64, 'base64');
+                  } else if (screens.length > 1) {
+                    const nextIdx = (i + 1) % screens.length;
+                    secondaryScreenshotBuffer = Buffer.from(screens[nextIdx].base64, 'base64');
+                  } else {
+                    secondaryScreenshotBuffer = screenBuffer;
+                  }
+                }
+
                 const framed = await compositeFrame({
                   screenshotBuffer: screenBuffer,
+                  secondaryScreenshotBuffer,
+                  secondaryBezelId: scr.secondaryBezelId || body.secondaryBezelId,
                   bezelId: scr.bezelId || body.bezelId,
                   gradientPreset: scr.themeId || body.gradientPreset,
                   layout: scr.layout || body.layout,
@@ -305,8 +319,16 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
             const rawBase64 = body.screenshotBase64 || (screens[0] ? screens[0].base64 : '');
             if (!rawBase64) return sendJson({ success: false, error: 'No screenshot provided' }, 400);
 
+            const secScreenBuf = body.secondaryScreenshotBase64
+              ? Buffer.from(body.secondaryScreenshotBase64, 'base64')
+              : (body.layout === 'duo-overlap' || body.layout === 'duo-split')
+                ? Buffer.from(rawBase64, 'base64')
+                : undefined;
+
             const outputs = await exportMultiStore({
               screenshotBuffer: Buffer.from(rawBase64, 'base64'),
+              secondaryScreenshotBuffer: secScreenBuf,
+              secondaryBezelId: body.secondaryBezelId,
               bezelId: body.bezelId,
               gradientPreset: body.gradientPreset,
               layout: body.layout,
@@ -352,8 +374,16 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
           const canvasWidth = isPreview ? 645 : (body.canvasWidth || 1290);
           const canvasHeight = isPreview ? 1398 : (body.canvasHeight || 2796);
 
+          const secScreenBuf = body.secondaryScreenshotBase64
+            ? Buffer.from(body.secondaryScreenshotBase64, 'base64')
+            : (body.layout === 'duo-overlap' || body.layout === 'duo-split')
+              ? Buffer.from(rawBase64, 'base64')
+              : undefined;
+
           const result = await compositeFrame({
             screenshotBuffer: Buffer.from(rawBase64, 'base64'),
+            secondaryScreenshotBuffer: secScreenBuf,
+            secondaryBezelId: body.secondaryBezelId,
             bezelId: body.bezelId,
             gradientPreset: body.gradientPreset,
             layout: body.layout,

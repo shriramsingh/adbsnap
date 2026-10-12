@@ -74,7 +74,8 @@ interface SessionScreen {
   subtitle?: string;
   themeId?: string;
   bezelId?: string;
-  layout?: 'appstore' | 'social';
+  layout?: 'appstore' | 'social' | 'duo-overlap' | 'duo-split';
+  secondaryScreenIndex?: number | null;
   font?: string;
   headlineFont?: string;
   subtitleFont?: string;
@@ -196,7 +197,7 @@ interface DesignerAesthetic {
     ambientGlow: boolean;
     textAlign: 'left' | 'center' | 'right';
     phoneScale: number;
-    layout: 'appstore' | 'social';
+    layout: 'appstore' | 'social' | 'duo-overlap' | 'duo-split';
   };
 }
 
@@ -405,7 +406,8 @@ export default function StudioPage() {
   const [bezelId, setBezelId] = useState('iphone-16-pro');
   const [bezelCategory, setBezelCategory] = useState<'all' | 'apple' | 'android' | 'tablet' | 'frameless'>('all');
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [layout, setLayout] = useState<'appstore' | 'social'>('appstore');
+  const [layout, setLayout] = useState<'appstore' | 'social' | 'duo-overlap' | 'duo-split'>('appstore');
+  const [secondaryScreenIndex, setSecondaryScreenIndex] = useState<number | null>(null);
   const [font, setFont] = useState('modern');
   const [headlineFont, setHeadlineFont] = useState('modern');
   const [subtitleFont, setSubtitleFont] = useState('match');
@@ -597,6 +599,19 @@ export default function StudioPage() {
         const effPhoneScale = overrides?.phoneScale !== undefined ? overrides.phoneScale : phoneScale;
         const effPhoneOffset = overrides?.phoneOffset !== undefined ? overrides.phoneOffset : phoneOffset;
         const effAmbientGlow = overrides?.ambientGlow !== undefined ? overrides.ambientGlow : ambientGlow;
+        const effSecIdx = overrides?.secondaryScreenIndex !== undefined ? overrides.secondaryScreenIndex : secondaryScreenIndex;
+
+        let effSecondaryBase64: string | undefined = undefined;
+        if (effLayout === 'duo-overlap' || effLayout === 'duo-split') {
+          if (effSecIdx !== null && effSecIdx !== undefined && screens[effSecIdx]) {
+            effSecondaryBase64 = screens[effSecIdx].base64;
+          } else if (screens.length > 1) {
+            const nextIdx = (activeScreenIndex + 1) % screens.length;
+            effSecondaryBase64 = screens[nextIdx].base64;
+          } else {
+            effSecondaryBase64 = rawScreenshot || overrides?.base64 || screenshotBase64 || undefined;
+          }
+        }
 
         const res = await fetch('/api/export', {
           method: 'POST',
@@ -604,6 +619,7 @@ export default function StudioPage() {
           signal: controller.signal,
           body: JSON.stringify({
             screenshotBase64: rawScreenshot || overrides?.base64 || screenshotBase64,
+            secondaryScreenshotBase64: effSecondaryBase64,
             deviceId: selectedDevice || undefined,
             bezelId: effBezelId,
             gradientPreset: effThemeId,
@@ -1051,6 +1067,7 @@ export default function StudioPage() {
     if (target.themeId) setThemeId(target.themeId);
     if (target.bezelId) setBezelId(target.bezelId);
     if (target.layout) setLayout(target.layout);
+    setSecondaryScreenIndex(target.secondaryScreenIndex !== undefined ? target.secondaryScreenIndex : null);
     if (target.font) setFont(target.font);
     if (target.headlineFont) setHeadlineFont(target.headlineFont);
     if (target.subtitleFont) setSubtitleFont(target.subtitleFont);
@@ -1345,11 +1362,24 @@ export default function StudioPage() {
         : 'Generating 4K multi-store package & ZIP archive...'
     );
     try {
+      let secBase64: string | undefined = undefined;
+      if (layout === 'duo-overlap' || layout === 'duo-split') {
+        if (secondaryScreenIndex !== null && screens[secondaryScreenIndex]) {
+          secBase64 = screens[secondaryScreenIndex].base64;
+        } else if (screens.length > 1) {
+          const nextIdx = (activeScreenIndex + 1) % screens.length;
+          secBase64 = screens[nextIdx].base64;
+        } else {
+          secBase64 = screenshotBase64 || undefined;
+        }
+      }
+
       const res = await fetch('/api/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           screenshotBase64,
+          secondaryScreenshotBase64: secBase64,
           screens: scope === 'all' && screens.length > 0 ? screens : undefined,
           exportMode: scope,
           deviceId: selectedDevice || undefined,
@@ -2232,29 +2262,136 @@ export default function StudioPage() {
                 })}
               </div>
 
-              <div className={`space-y-2 transition ${themeId === 'none' ? 'opacity-40 pointer-events-none' : ''}`}>
+              <div className={`space-y-2.5 transition ${themeId === 'none' ? 'opacity-40 pointer-events-none' : ''}`}>
                 <div className="grid grid-cols-2 gap-2">
                   <button
-                    onClick={() => setLayout('appstore')}
+                    onClick={() => {
+                      setLayout('appstore');
+                      setScreens((prev) => {
+                        if (!prev[activeScreenIndex]) return prev;
+                        const next = [...prev];
+                        next[activeScreenIndex] = { ...next[activeScreenIndex], layout: 'appstore' };
+                        return next;
+                      });
+                    }}
                     className={`p-2 rounded-lg border text-xs text-center transition cursor-pointer ${
                       layout === 'appstore'
-                        ? 'border-cyan-500 bg-cyan-500/10 text-white font-medium'
+                        ? 'border-cyan-500 bg-cyan-500/10 text-white font-medium shadow-sm shadow-cyan-500/20'
                         : 'border-[#232733] bg-[#161922] text-slate-400 hover:text-slate-200'
                     }`}
                   >
-                    App Store (Bleed)
+                    📱 App Store (Bleed)
                   </button>
                   <button
-                    onClick={() => setLayout('social')}
+                    onClick={() => {
+                      setLayout('social');
+                      setScreens((prev) => {
+                        if (!prev[activeScreenIndex]) return prev;
+                        const next = [...prev];
+                        next[activeScreenIndex] = { ...next[activeScreenIndex], layout: 'social' };
+                        return next;
+                      });
+                    }}
                     className={`p-2 rounded-lg border text-xs text-center transition cursor-pointer ${
                       layout === 'social'
-                        ? 'border-cyan-500 bg-cyan-500/10 text-white font-medium'
+                        ? 'border-cyan-500 bg-cyan-500/10 text-white font-medium shadow-sm shadow-cyan-500/20'
                         : 'border-[#232733] bg-[#161922] text-slate-400 hover:text-slate-200'
                     }`}
                   >
-                    Social (Floating)
+                    🌐 Social (Floating)
+                  </button>
+                  <button
+                    onClick={() => {
+                      setLayout('duo-overlap');
+                      setScreens((prev) => {
+                        if (!prev[activeScreenIndex]) return prev;
+                        const next = [...prev];
+                        next[activeScreenIndex] = { ...next[activeScreenIndex], layout: 'duo-overlap' };
+                        return next;
+                      });
+                    }}
+                    className={`p-2 rounded-lg border text-xs text-center transition cursor-pointer ${
+                      layout === 'duo-overlap'
+                        ? 'border-cyan-500 bg-cyan-500/10 text-white font-medium shadow-sm shadow-cyan-500/20'
+                        : 'border-[#232733] bg-[#161922] text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    📱📱 Duo Overlap
+                  </button>
+                  <button
+                    onClick={() => {
+                      setLayout('duo-split');
+                      setScreens((prev) => {
+                        if (!prev[activeScreenIndex]) return prev;
+                        const next = [...prev];
+                        next[activeScreenIndex] = { ...next[activeScreenIndex], layout: 'duo-split' };
+                        return next;
+                      });
+                    }}
+                    className={`p-2 rounded-lg border text-xs text-center transition cursor-pointer ${
+                      layout === 'duo-split'
+                        ? 'border-cyan-500 bg-cyan-500/10 text-white font-medium shadow-sm shadow-cyan-500/20'
+                        : 'border-[#232733] bg-[#161922] text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    🔲 Duo Split (Twin)
                   </button>
                 </div>
+
+                {(layout === 'duo-overlap' || layout === 'duo-split') && (
+                  <div className="p-2.5 rounded-lg bg-[#12151e] border border-cyan-500/30 space-y-2 animate-in fade-in duration-150">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
+                        📱 Secondary Phone Screen
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {secondaryScreenIndex !== null && screens[secondaryScreenIndex] ? `Slide #${secondaryScreenIndex + 1}` : 'Auto (Next)'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 overflow-x-auto py-1">
+                      <button
+                        onClick={() => {
+                          setSecondaryScreenIndex(null);
+                          setScreens((prev) => {
+                            if (!prev[activeScreenIndex]) return prev;
+                            const next = [...prev];
+                            next[activeScreenIndex] = { ...next[activeScreenIndex], secondaryScreenIndex: null };
+                            return next;
+                          });
+                        }}
+                        className={`px-2 py-1 rounded text-[11px] border transition cursor-pointer whitespace-nowrap ${
+                          secondaryScreenIndex === null
+                            ? 'border-cyan-500 bg-cyan-500/20 text-white font-medium'
+                            : 'border-[#232733] bg-[#161922] text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        Auto (Next)
+                      </button>
+                      {screens.map((scr, idx) => (
+                        <button
+                          key={scr.id}
+                          onClick={() => {
+                            setSecondaryScreenIndex(idx);
+                            setScreens((prev) => {
+                              if (!prev[activeScreenIndex]) return prev;
+                              const next = [...prev];
+                              next[activeScreenIndex] = { ...next[activeScreenIndex], secondaryScreenIndex: idx };
+                              return next;
+                            });
+                          }}
+                          className={`flex items-center gap-1 px-2 py-1 rounded text-[11px] border transition cursor-pointer whitespace-nowrap ${
+                            secondaryScreenIndex === idx
+                              ? 'border-cyan-500 bg-cyan-500/20 text-white font-medium'
+                              : 'border-[#232733] bg-[#161922] text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          <img src={`data:image/png;base64,${scr.base64}`} alt={`Screen ${idx + 1}`} className="w-3 h-5 object-cover rounded-[2px]" />
+                          <span>#{idx + 1}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
