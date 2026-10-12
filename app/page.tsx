@@ -3541,18 +3541,19 @@ export default function StudioPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 overflow-x-auto w-full py-1.5 px-2 bg-[#12141a]/95 backdrop-blur-md rounded-xl border border-[#232733] shadow-lg">
+              <div className="flex items-start gap-2.5 overflow-x-auto w-full py-2.5 px-3 bg-[#12141a]/95 backdrop-blur-md rounded-xl border border-[#232733] shadow-lg min-h-[142px]">
                 {/* Quick Add Local Image Card in Tray */}
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-12 h-20 rounded-lg border border-dashed border-[#2c3242] hover:border-cyan-500/60 bg-[#151822] hover:bg-cyan-950/20 text-slate-400 hover:text-cyan-300 flex flex-col items-center justify-center gap-1 shrink-0 transition cursor-pointer"
+                  className="w-16 h-24 rounded-lg border border-dashed border-[#2c3242] hover:border-cyan-500/60 bg-[#151822] hover:bg-cyan-950/20 text-slate-400 hover:text-cyan-300 flex flex-col items-center justify-center gap-1 shrink-0 transition cursor-pointer"
                   title="Upload another screenshot from your computer"
                 >
                   <Plus className="w-4 h-4" />
-                  <span className="text-[9px] font-medium">Add</span>
+                  <span className="text-[10px] font-medium">Add</span>
                 </button>
                 {screens.map((s, idx) => {
                   const isActive = idx === activeScreenIndex;
+                  const isSecondary = idx === (secondaryScreenIndex !== null ? secondaryScreenIndex : (activeScreenIndex + 1) % screens.length);
                   return (
                     <div
                       key={s.id}
@@ -3589,13 +3590,15 @@ export default function StudioPage() {
                         setDraggedIndex(null);
                       }}
                       onClick={() => selectScreen(idx)}
-                      className={`group relative flex flex-col items-center p-1 rounded-lg border transition cursor-grab active:cursor-grabbing shrink-0 select-none ${
+                      className={`group relative flex flex-col items-center p-1 rounded-lg border transition cursor-grab active:cursor-grabbing shrink-0 select-none w-16 ${
                         isActive
-                          ? 'border-cyan-500 bg-cyan-500/15 shadow-md shadow-cyan-500/20'
+                          ? 'border-cyan-500 bg-cyan-500/15 shadow-md shadow-cyan-500/20 ring-1 ring-cyan-500/30'
+                          : isSecondary && layout.startsWith('duo')
+                          ? 'border-purple-500/60 bg-purple-500/10 shadow-sm'
                           : 'border-[#232733] hover:border-slate-600 bg-[#161922]'
                       } ${draggedIndex === idx ? 'opacity-40 scale-95 border-cyan-400' : ''}`}
                     >
-                      <div className="relative w-12 h-20 rounded overflow-hidden bg-black/50 flex items-center justify-center border border-white/5">
+                      <div className="relative w-full h-24 rounded overflow-hidden bg-black/50 flex items-center justify-center border border-white/5">
                         <img
                           src={`data:image/png;base64,${s.base64}`}
                           alt={s.label}
@@ -3604,6 +3607,22 @@ export default function StudioPage() {
                         />
                         {isActive && (
                           <div className="absolute inset-0 border-2 border-cyan-400 rounded pointer-events-none" />
+                        )}
+
+                        {/* Top Left: Duo Badge Indicator */}
+                        {layout.startsWith('duo') && (
+                          <div className="absolute top-0.5 left-0.5 z-20 pointer-events-none">
+                            {isActive && (
+                              <span className="px-1 py-0.2 rounded bg-cyan-500 text-slate-950 font-black text-[8px] shadow">
+                                P1
+                              </span>
+                            )}
+                            {!isActive && isSecondary && (
+                              <span className="px-1 py-0.2 rounded bg-purple-500 text-white font-black text-[8px] shadow">
+                                P2
+                              </span>
+                            )}
+                          </div>
                         )}
 
                         {/* Top Right: Delete Screen */}
@@ -3653,7 +3672,7 @@ export default function StudioPage() {
                         )}
                       </div>
                       <span
-                        className={`text-[9px] mt-0.5 font-medium max-w-[56px] truncate text-center ${
+                        className={`text-[9px] mt-0.5 font-medium max-w-[60px] truncate text-center ${
                           isActive ? 'text-cyan-300 font-bold' : 'text-slate-400'
                         }`}
                         title={s.customTitle || s.label}
@@ -3663,7 +3682,7 @@ export default function StudioPage() {
 
                       {/* Direct 1-Click Duo Fast Assignment Buttons */}
                       {layout.startsWith('duo') && (
-                        <div className="flex items-center gap-1 mt-1 z-20">
+                        <div className="w-full flex items-center gap-1 mt-1 z-20">
                           <button
                             type="button"
                             draggable={false}
@@ -3672,10 +3691,10 @@ export default function StudioPage() {
                               e.stopPropagation();
                               selectScreen(idx);
                             }}
-                            className={`px-1.5 py-0.5 rounded text-[8px] font-bold transition cursor-pointer ${
+                            className={`flex-1 py-1 rounded text-[9px] font-black transition cursor-pointer text-center ${
                               isActive
                                 ? 'bg-cyan-500 text-slate-950 shadow-sm'
-                                : 'bg-[#1a1e28] text-slate-400 hover:text-white border border-[#2b3142]'
+                                : 'bg-[#161922] text-slate-300 hover:text-white hover:bg-cyan-950/40 border border-[#2b3142]'
                             }`}
                             title="Set as Phone 1 (Foreground)"
                           >
@@ -3696,10 +3715,10 @@ export default function StudioPage() {
                               });
                               refreshPreview(undefined, { secondaryScreenIndex: idx });
                             }}
-                            className={`px-1.5 py-0.5 rounded text-[8px] font-bold transition cursor-pointer ${
-                              idx === (secondaryScreenIndex !== null ? secondaryScreenIndex : (activeScreenIndex + 1) % screens.length)
+                            className={`flex-1 py-1 rounded text-[9px] font-black transition cursor-pointer text-center ${
+                              isSecondary
                                 ? 'bg-purple-500 text-white shadow-sm'
-                                : 'bg-[#1a1e28] text-slate-400 hover:text-white border border-[#2b3142]'
+                                : 'bg-[#161922] text-slate-300 hover:text-white hover:bg-purple-950/40 border border-[#2b3142]'
                             }`}
                             title="Set as Phone 2 (Background)"
                           >
