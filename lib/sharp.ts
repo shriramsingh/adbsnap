@@ -53,15 +53,29 @@ export interface CompositeResult {
   elapsedMs: number;
 }
 
+const assembledDeviceCache = new Map<string, Buffer>();
+const MAX_DEVICE_CACHE = 24;
+
+function getDeviceFingerprint(buf: Buffer, specId: string, fit: string): string {
+  const len = buf.length;
+  const head = buf.subarray(0, 16).toString('hex');
+  const tail = buf.subarray(Math.max(0, len - 16)).toString('hex');
+  return `${specId}:${fit}:${len}:${head}:${tail}`;
+}
+
 /**
  * Assembles a raw screenshot into the full vector device frame at native hardware resolution.
- * Cached and reused across multi-target store exports for extreme performance.
+ * Cached and reused across multi-target store exports and live studio previews for extreme performance.
  */
 export async function assemblePhoneDevice(
   screenshotBuffer: Buffer,
   spec: BezelSpec,
   fit: 'cover' | 'contain' | 'fill' = 'cover'
 ): Promise<Buffer> {
+  const cacheKey = getDeviceFingerprint(screenshotBuffer, spec.id, fit);
+  const cached = assembledDeviceCache.get(cacheKey);
+  if (cached) return cached;
+
   const cornerMaskSvg = generateScreenCornerMask(spec.screen.width, spec.screen.height, spec.screen.radius);
   const cornerMaskBuffer = Buffer.from(cornerMaskSvg);
 
@@ -72,10 +86,12 @@ export async function assemblePhoneDevice(
       background: { r: 0, g: 0, b: 0, alpha: 1 },
     })
     .composite([{ input: cornerMaskBuffer, blend: 'dest-in' }])
-    .png()
+    .png({ compressionLevel: 1 })
     .toBuffer();
 
   const isFramelessMode = Boolean(spec.isFrameless || spec.id === 'none');
+  let deviceBuffer: Buffer;
+
   if (isFramelessMode) {
     const shadowPad = 60;
     const deviceWidth = spec.screen.width + shadowPad * 2;
@@ -83,7 +99,7 @@ export async function assemblePhoneDevice(
     const shadowSvg = generateStudioShadowSvg(spec.screen.width, spec.screen.height, spec.screen.radius);
     const shadowBuffer = Buffer.from(shadowSvg);
 
-    return sharp({
+    deviceBuffer = await sharp({
       create: {
         width: deviceWidth,
         height: deviceHeight,
@@ -95,27 +111,34 @@ export async function assemblePhoneDevice(
         { input: shadowBuffer, left: 0, top: 0 },
         { input: roundedScreen, left: shadowPad, top: shadowPad - 4 },
       ])
-      .png()
+      .png({ compressionLevel: 1 })
+      .toBuffer();
+  } else {
+    const bezelSvg = generateBezelSvg({ spec });
+    const bezelBuffer = Buffer.from(bezelSvg);
+
+    deviceBuffer = await sharp({
+      create: {
+        width: spec.width,
+        height: spec.height,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      },
+    })
+      .composite([
+        { input: roundedScreen, left: spec.screen.x, top: spec.screen.y },
+        { input: bezelBuffer, left: 0, top: 0 },
+      ])
+      .png({ compressionLevel: 1 })
       .toBuffer();
   }
 
-  const bezelSvg = generateBezelSvg({ spec });
-  const bezelBuffer = Buffer.from(bezelSvg);
-
-  return sharp({
-    create: {
-      width: spec.width,
-      height: spec.height,
-      channels: 4,
-      background: { r: 0, g: 0, b: 0, alpha: 0 },
-    },
-  })
-    .composite([
-      { input: roundedScreen, left: spec.screen.x, top: spec.screen.y },
-      { input: bezelBuffer, left: 0, top: 0 },
-    ])
-    .png()
-    .toBuffer();
+  if (assembledDeviceCache.size >= MAX_DEVICE_CACHE) {
+    const oldestKey = assembledDeviceCache.keys().next().value;
+    if (oldestKey) assembledDeviceCache.delete(oldestKey);
+  }
+  assembledDeviceCache.set(cacheKey, deviceBuffer);
+  return deviceBuffer;
 }
 
 /**
@@ -310,13 +333,13 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
     const bgScale = phoneScale * 0.88;
     const bgW = Math.round(secCanvasW * bgScale);
     const bgH = Math.round(secCanvasH * bgScale);
-    const bgBuf = await sharp(secDeviceBuf).resize(bgW, bgH).png().toBuffer();
+    const bgBuf = await sharp(secDeviceBuf).resize(bgW, bgH).png({ compressionLevel: 1 }).toBuffer();
 
     // Foreground Phone (prominent right, ~0.98x scale)
     const fgScale = phoneScale * 0.98;
     const fgW = Math.round(deviceCanvasWidth * fgScale);
     const fgH = Math.round(deviceCanvasHeight * fgScale);
-    const fgBuf = await sharp(phoneDeviceBuffer).resize(fgW, fgH).png().toBuffer();
+    const fgBuf = await sharp(phoneDeviceBuffer).resize(fgW, fgH).png({ compressionLevel: 1 }).toBuffer();
 
     const bgLeft = Math.round(canvasWidth * 0.5 - fgW * 0.68);
     const bgTop = Math.round(phoneTop + fgH * 0.08);
@@ -348,8 +371,8 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
     const rightW = Math.round(secCanvasW * splitScale);
     const rightH = Math.round(secCanvasH * splitScale);
 
-    const leftBuf = await sharp(phoneDeviceBuffer).resize(leftW, leftH).png().toBuffer();
-    const rightBuf = await sharp(secDeviceBuf).resize(rightW, rightH).png().toBuffer();
+    const leftBuf = await sharp(phoneDeviceBuffer).resize(leftW, leftH).png({ compressionLevel: 1 }).toBuffer();
+    const rightBuf = await sharp(secDeviceBuf).resize(rightW, rightH).png({ compressionLevel: 1 }).toBuffer();
 
     const spacing = Math.round(canvasWidth * 0.03);
     const totalW = leftW + rightW + spacing;
@@ -398,7 +421,7 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
   let finalBuffer: Buffer;
   if (outputFormat === 'webp') {
     finalBuffer = await pipeline
-      .webp({ quality: options.quality || 90, effort: 4 })
+      .webp({ quality: options.quality || 82, effort: 1 })
       .toBuffer();
   } else if (outputFormat === 'avif') {
     finalBuffer = await pipeline

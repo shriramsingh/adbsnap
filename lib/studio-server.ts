@@ -384,6 +384,8 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
           const result = await compositeFrame({
             screenshotBuffer: Buffer.from(rawBase64, 'base64'),
             secondaryScreenshotBuffer: secScreenBuf,
+            format: isPreview ? 'webp' : (body.format || 'png'),
+            quality: isPreview ? 82 : (body.quality || 90),
             secondaryBezelId: body.secondaryBezelId,
             bezelId: body.bezelId,
             gradientPreset: body.gradientPreset,
@@ -418,6 +420,7 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
           return sendJson({
             success: true,
             base64: result.buffer.toString('base64'),
+            mime: isPreview ? 'image/webp' : 'image/png',
             width: result.width,
             height: result.height,
             elapsedMs: result.elapsedMs,

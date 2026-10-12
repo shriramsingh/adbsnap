@@ -443,6 +443,7 @@ export default function StudioPage() {
   // Images & Screen Session History
   const [screenshotBase64, setScreenshotBase64] = useState<string | null>(null);
   const [previewBase64, setPreviewBase64] = useState<string | null>(null);
+  const [previewMime, setPreviewMime] = useState<string>('image/webp');
   const [screens, setScreens] = useState<SessionScreen[]>([]);
   const [activeScreenIndex, setActiveScreenIndex] = useState<number>(0);
   const [isFlashing, setIsFlashing] = useState(false);
@@ -669,6 +670,7 @@ export default function StudioPage() {
 
         const data = await res.json();
         if (data.success && data.base64) {
+          if (data.mime) setPreviewMime(data.mime);
           setPreviewBase64(data.base64);
         }
       } catch (err: any) {
@@ -714,6 +716,10 @@ export default function StudioPage() {
 
   // Debounced auto-preview when styling knobs change
   useEffect(() => {
+    if (isSelectingScreenRef.current) {
+      isSelectingScreenRef.current = false;
+      return;
+    }
     if (renderTimeoutRef.current) clearTimeout(renderTimeoutRef.current);
     renderTimeoutRef.current = setTimeout(() => {
       refreshPreview();
@@ -1080,6 +1086,10 @@ export default function StudioPage() {
   const setPhone1Screen = (idx: number) => {
     if (idx < 0 || idx >= screens.length) return;
     isSelectingScreenRef.current = true;
+    if (renderTimeoutRef.current) {
+      clearTimeout(renderTimeoutRef.current);
+      renderTimeoutRef.current = null;
+    }
 
     let newSecIdx = secondaryScreenIndex;
     // Smart Swap: If clicked index is currently Phone 2, swap them
@@ -1110,6 +1120,11 @@ export default function StudioPage() {
 
   const setPhone2Screen = (idx: number) => {
     if (idx < 0 || idx >= screens.length) return;
+    isSelectingScreenRef.current = true;
+    if (renderTimeoutRef.current) {
+      clearTimeout(renderTimeoutRef.current);
+      renderTimeoutRef.current = null;
+    }
 
     // Smart Swap: If user clicks P2 on current Phone 1, swap them
     if (idx === activeScreenIndex) {
@@ -1151,6 +1166,10 @@ export default function StudioPage() {
   const selectScreen = async (index: number) => {
     if (index < 0 || index >= screens.length) return;
     isSelectingScreenRef.current = true;
+    if (renderTimeoutRef.current) {
+      clearTimeout(renderTimeoutRef.current);
+      renderTimeoutRef.current = null;
+    }
     setActiveScreenIndex(index);
     const target = screens[index];
     if (target.customTitle !== undefined) setTitle(target.customTitle);
@@ -3299,7 +3318,7 @@ export default function StudioPage() {
                   )}
 
                   <img
-                    src={`data:image/png;base64,${previewBase64}`}
+                    src={`data:${previewMime};base64,${previewBase64}`}
                     alt="ADBSnap Canvas Preview"
                     draggable={false}
                     className="max-h-[52vh] w-auto object-contain rounded-xl select-none pointer-events-none"
