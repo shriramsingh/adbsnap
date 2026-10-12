@@ -456,6 +456,7 @@ export default function StudioPage() {
   const lastScreenBase64Ref = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const syncScreensTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isSelectingScreenRef = useRef(false);
   const screensRef = useRef<SessionScreen[]>(screens);
   screensRef.current = screens;
