@@ -456,8 +456,15 @@ export default function StudioPage() {
   const lastScreenBase64Ref = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const syncScreensTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isSelectingScreenRef = useRef(false);
+  const screensRef = useRef<SessionScreen[]>(screens);
+  screensRef.current = screens;
+  const activeScreenIndexRef = useRef<number>(activeScreenIndex);
+  activeScreenIndexRef.current = activeScreenIndex;
+  const secondaryScreenIndexRef = useRef<number | null>(secondaryScreenIndex);
+  secondaryScreenIndexRef.current = secondaryScreenIndex;
+  const layoutRef = useRef<'appstore' | 'social' | 'duo-overlap' | 'duo-split'>(layout);
+  layoutRef.current = layout;
 
   // Interactive on-canvas text dragging state & refs
   const [isDraggingText, setIsDraggingText] = useState<'top' | 'bottom' | null>(null);
@@ -608,14 +615,16 @@ export default function StudioPage() {
         const effPhoneOffset = overrides?.phoneOffset !== undefined ? overrides.phoneOffset : phoneOffset;
         const effAmbientGlow = overrides?.ambientGlow !== undefined ? overrides.ambientGlow : ambientGlow;
         const effSecIdx = overrides?.secondaryScreenIndex !== undefined ? overrides.secondaryScreenIndex : secondaryScreenIndex;
+        const currentScreens = screensRef.current.length > 0 ? screensRef.current : screens;
+        const currentActiveIdx = activeScreenIndexRef.current;
 
         let effSecondaryBase64: string | undefined = undefined;
         if (effLayout === 'duo-overlap' || effLayout === 'duo-split') {
-          if (effSecIdx !== null && effSecIdx !== undefined && screens[effSecIdx]) {
-            effSecondaryBase64 = screens[effSecIdx].base64;
-          } else if (screens.length > 1) {
-            const nextIdx = (activeScreenIndex + 1) % screens.length;
-            effSecondaryBase64 = screens[nextIdx].base64;
+          if (effSecIdx !== null && effSecIdx !== undefined && currentScreens[effSecIdx]) {
+            effSecondaryBase64 = currentScreens[effSecIdx].base64;
+          } else if (currentScreens.length > 1) {
+            const nextIdx = (currentActiveIdx + 1) % currentScreens.length;
+            effSecondaryBase64 = currentScreens[nextIdx].base64;
           } else {
             effSecondaryBase64 = rawScreenshot || overrides?.base64 || screenshotBase64 || undefined;
           }
@@ -677,6 +686,7 @@ export default function StudioPage() {
       bezelId,
       themeId,
       layout,
+      secondaryScreenIndex,
       headlineFont,
       subtitleFont,
       textAlign,
@@ -715,6 +725,7 @@ export default function StudioPage() {
     themeId,
     bezelId,
     layout,
+    secondaryScreenIndex,
     headlineFont,
     subtitleFont,
     textAlign,
@@ -1065,6 +1076,77 @@ export default function StudioPage() {
     }
   };
 
+  const setPhone1Screen = (idx: number) => {
+    if (idx < 0 || idx >= screens.length) return;
+    isSelectingScreenRef.current = true;
+
+    let newSecIdx = secondaryScreenIndex;
+    // Smart Swap: If clicked index is currently Phone 2, swap them
+    if (idx === secondaryScreenIndex) {
+      newSecIdx = activeScreenIndex;
+    } else if (newSecIdx === null && screens.length > 1) {
+      newSecIdx = (idx + 1) % screens.length;
+    }
+
+    setActiveScreenIndex(idx);
+    setScreenshotBase64(screens[idx].base64);
+    setSecondaryScreenIndex(newSecIdx);
+
+    setScreens((prev) => {
+      const copy = [...prev];
+      if (copy[idx]) {
+        copy[idx] = { ...copy[idx], secondaryScreenIndex: newSecIdx, layout };
+      }
+      return copy;
+    });
+
+    refreshPreview(screens[idx].base64, {
+      base64: screens[idx].base64,
+      secondaryScreenIndex: newSecIdx,
+      layout,
+    });
+  };
+
+  const setPhone2Screen = (idx: number) => {
+    if (idx < 0 || idx >= screens.length) return;
+
+    // Smart Swap: If user clicks P2 on current Phone 1, swap them
+    if (idx === activeScreenIndex) {
+      const oldSec = secondaryScreenIndex !== null ? secondaryScreenIndex : (activeScreenIndex + 1) % screens.length;
+      setActiveScreenIndex(oldSec);
+      setScreenshotBase64(screens[oldSec].base64);
+      setSecondaryScreenIndex(idx);
+
+      setScreens((prev) => {
+        const copy = [...prev];
+        if (copy[oldSec]) {
+          copy[oldSec] = { ...copy[oldSec], secondaryScreenIndex: idx, layout };
+        }
+        return copy;
+      });
+
+      refreshPreview(screens[oldSec].base64, {
+        base64: screens[oldSec].base64,
+        secondaryScreenIndex: idx,
+        layout,
+      });
+      return;
+    }
+
+    setSecondaryScreenIndex(idx);
+    setScreens((prev) => {
+      if (!prev[activeScreenIndex]) return prev;
+      const copy = [...prev];
+      copy[activeScreenIndex] = { ...copy[activeScreenIndex], secondaryScreenIndex: idx, layout };
+      return copy;
+    });
+
+    refreshPreview(undefined, {
+      secondaryScreenIndex: idx,
+      layout,
+    });
+  };
+
   const selectScreen = async (index: number) => {
     if (index < 0 || index >= screens.length) return;
     isSelectingScreenRef.current = true;
@@ -1074,8 +1156,25 @@ export default function StudioPage() {
     if (target.subtitle !== undefined) setSubtitle(target.subtitle);
     if (target.themeId) setThemeId(target.themeId);
     if (target.bezelId) setBezelId(target.bezelId);
-    if (target.layout) setLayout(target.layout);
-    setSecondaryScreenIndex(target.secondaryScreenIndex !== undefined ? target.secondaryScreenIndex : null);
+
+    // Protect duo layouts from being automatically reverted back to appstore
+    const currentIsDuo = layout.startsWith('duo');
+    if (!currentIsDuo && target.layout) {
+      setLayout(target.layout);
+    }
+
+    let nextSecIdx = secondaryScreenIndex;
+    if (!currentIsDuo) {
+      nextSecIdx = target.secondaryScreenIndex !== undefined ? target.secondaryScreenIndex : null;
+      setSecondaryScreenIndex(nextSecIdx);
+    } else {
+      // In duo mode, if the newly selected screen was the secondary screen, swap to the old primary
+      if (secondaryScreenIndex === index) {
+        nextSecIdx = activeScreenIndex;
+        setSecondaryScreenIndex(nextSecIdx);
+      }
+    }
+
     if (target.font) setFont(target.font);
     if (target.headlineFont) setHeadlineFont(target.headlineFont);
     if (target.subtitleFont) setSubtitleFont(target.subtitleFont);
@@ -1098,7 +1197,11 @@ export default function StudioPage() {
     if (target.typographyPosition) setTypographyPosition(target.typographyPosition);
 
     setScreenshotBase64(target.base64);
-    await refreshPreview(target.base64, target);
+    await refreshPreview(target.base64, {
+      ...target,
+      layout: currentIsDuo ? layout : (target.layout || layout),
+      secondaryScreenIndex: nextSecIdx,
+    });
   };
 
   const deleteScreen = (e: React.MouseEvent, index: number) => {
@@ -2444,6 +2547,7 @@ export default function StudioPage() {
                             copy[activeScreenIndex] = { ...copy[activeScreenIndex], secondaryScreenIndex: null };
                             return copy;
                           });
+                          refreshPreview(undefined, { secondaryScreenIndex: null, layout });
                         }}
                         className={`px-2 py-1 rounded text-[11px] border transition cursor-pointer whitespace-nowrap ${
                           secondaryScreenIndex === null
@@ -2458,13 +2562,7 @@ export default function StudioPage() {
                           key={scr.id}
                           type="button"
                           onClick={() => {
-                            setSecondaryScreenIndex(idx);
-                            setScreens((prev) => {
-                              if (!prev[activeScreenIndex]) return prev;
-                              const copy = [...prev];
-                              copy[activeScreenIndex] = { ...copy[activeScreenIndex], secondaryScreenIndex: idx };
-                              return copy;
-                            });
+                            setPhone2Screen(idx);
                           }}
                           className={`flex items-center gap-1 px-2 py-1 rounded text-[11px] border transition cursor-pointer whitespace-nowrap ${
                             secondaryScreenIndex === idx
@@ -3595,14 +3693,14 @@ export default function StudioPage() {
                               onMouseDown={(e) => e.stopPropagation()}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                selectScreen(idx);
+                                setPhone1Screen(idx);
                               }}
                               className={`flex-1 py-0.5 rounded text-[9px] font-black transition cursor-pointer text-center shadow-md ${
                                 isActive
                                   ? 'bg-cyan-400 text-slate-950 font-bold'
                                   : 'bg-black/85 text-slate-200 hover:text-white hover:bg-cyan-950 border border-white/20'
                               }`}
-                              title="Set as Phone 1 (Foreground)"
+                              title="Set as Phone 1 (Foreground / Left)"
                             >
                               P1
                             </button>
@@ -3612,21 +3710,14 @@ export default function StudioPage() {
                               onMouseDown={(e) => e.stopPropagation()}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setSecondaryScreenIndex(idx);
-                                setScreens((prev) => {
-                                  if (!prev[activeScreenIndex]) return prev;
-                                  const copy = [...prev];
-                                  copy[activeScreenIndex] = { ...copy[activeScreenIndex], secondaryScreenIndex: idx };
-                                  return copy;
-                                });
-                                refreshPreview(undefined, { secondaryScreenIndex: idx });
+                                setPhone2Screen(idx);
                               }}
                               className={`flex-1 py-0.5 rounded text-[9px] font-black transition cursor-pointer text-center shadow-md ${
                                 isSecondary
                                   ? 'bg-purple-500 text-white font-bold ring-1 ring-white/60'
                                   : 'bg-black/85 text-slate-200 hover:text-white hover:bg-purple-950 border border-white/20'
                               }`}
-                              title="Set as Phone 2 (Background)"
+                              title="Set as Phone 2 (Background / Right)"
                             >
                               P2
                             </button>

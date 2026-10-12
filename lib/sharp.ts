@@ -357,7 +357,18 @@ export async function compositeFrame(options: CompositeFrameOptions): Promise<Co
 
     const leftX = startX;
     const rightX = startX + leftW + spacing;
-    const splitY = phoneTop;
+    const splitH = Math.max(leftH, rightH);
+    let splitY: number;
+    if (typographyPosition === 'bottom') {
+      splitY = Math.round(canvasHeight * 0.06 + (options.phoneTopOffset ?? 0));
+    } else if (typographyPosition === 'both') {
+      splitY = Math.round((canvasHeight - splitH) / 2 + (options.phoneTopOffset ?? 0));
+    } else {
+      // Top typography (default)
+      const availableTop = Math.round(canvasHeight * 0.24);
+      const availableH = canvasHeight - availableTop;
+      splitY = Math.round(availableTop + (availableH - splitH) / 2 + (options.phoneTopOffset ?? 0));
+    }
 
     compositeLayers.push(
       { input: leftBuf, left: leftX, top: splitY },
