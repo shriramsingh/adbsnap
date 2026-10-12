@@ -10,6 +10,7 @@ import { compositeFrame, exportMultiStore } from '../lib/sharp';
 import { saveStoreZip, type ZipFileInput } from '../lib/zip';
 import { uiCrawler } from '../lib/crawler';
 import { exploreIosTabs } from '../lib/ios-explorer';
+import { recordDeviceScreen, hasFfmpeg, frameVideoWithFfmpeg } from '../lib/video';
 import { flowRunner, type FlowConfig } from '../lib/runner';
 import { logger } from '../utils/logger';
 import { STYLES } from '../constants/styles';
@@ -22,6 +23,7 @@ async function main() {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
     options: {
+      duration: { type: 'string', default: '10' },
       frame: { type: 'string', default: 'iphone-16-pro' },
       theme: { type: 'string', default: 'aurora' },
       layout: { type: 'string', default: 'appstore' },
@@ -93,6 +95,9 @@ async function main() {
       break;
     case 'snap':
       await handleSnap(values);
+      break;
+    case 'record':
+      await handleRecord(values);
       break;
     case 'export':
       await handleExport(values);
@@ -437,6 +442,75 @@ async function handleSnap(options: {
     console.log(STYLES.dim('⭐ Enjoying ADBSnap? Star on GitHub: ') + STYLES.info('https://github.com/shriramsingh/adbsnap'));
   }
   console.log('─'.repeat(50) + '\n');
+}
+
+async function handleRecord(options: {
+  duration?: string;
+  frame?: string;
+  theme?: string;
+  device?: string;
+  title?: string;
+  subtitle?: string;
+  out?: string;
+  raw?: boolean;
+}) {
+  logger.banner(APP_INFO.NAME, 'Mobile Screen Recording & Video Mockup');
+  const durationSec = Math.min(Math.max(Number(options.duration) || 10, 2), 30);
+
+  logger.info(`Starting screen recording (${durationSec} seconds)...`);
+  logger.info('Please interact with your connected mobile device or simulator now...');
+
+  let videoBuffer: Buffer;
+  try {
+    videoBuffer = await recordDeviceScreen({
+      durationSec,
+      deviceId: options.device,
+    });
+  } catch (err: any) {
+    logger.error('CAPTURE_FAILED', err.message || String(err));
+    return;
+  }
+
+  const outDir = CONFIG.DEFAULT_OUTPUT_DIR;
+  if (!fs.existsSync(outDir)) {
+    fs.mkdirSync(outDir, { recursive: true });
+  }
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+
+  if (options.raw) {
+    const rawPath = options.out || path.join(outDir, `raw-record-${timestamp}.mp4`);
+    fs.writeFileSync(rawPath, videoBuffer);
+    logger.success(`Raw screen recording saved to: ${rawPath} (${Math.round(videoBuffer.length / 1024)} KB)`);
+    return;
+  }
+
+  const ffmpegOk = await hasFfmpeg();
+  if (ffmpegOk) {
+    logger.info('FFmpeg detected. Compositing video inside 4K vector chassis...');
+    try {
+      const framedVideoBuffer = await frameVideoWithFfmpeg({
+        videoBuffer,
+        bezelId: options.frame || 'iphone-16-pro',
+        gradientPreset: options.theme || 'aurora',
+        title: options.title,
+        subtitle: options.subtitle,
+      });
+
+      const finalPath = options.out || path.join(outDir, `showcase-${timestamp}.mp4`);
+      fs.writeFileSync(finalPath, framedVideoBuffer);
+      logger.success(`Framed 4K video mockup saved to: ${finalPath} (${Math.round(framedVideoBuffer.length / 1024)} KB)`);
+      return;
+    } catch (err: any) {
+      logger.warn(`FFmpeg video framing error: ${err.message}. Saving uncompressed raw recording.`);
+    }
+  } else {
+    logger.warn('FFmpeg is not installed on PATH. Skipping automatic 4K video framing.');
+    logger.info('Tip: Install FFmpeg via "winget install ffmpeg" (Windows) or "brew install ffmpeg" (macOS).');
+  }
+
+  const rawPath = options.out || path.join(outDir, `raw-record-${timestamp}.mp4`);
+  fs.writeFileSync(rawPath, videoBuffer);
+  logger.success(`Raw screen recording saved to: ${rawPath} (${Math.round(videoBuffer.length / 1024)} KB)`);
 }
 
 async function handleExport(options: {

@@ -401,6 +401,14 @@ export default function StudioPage() {
   const [wifiModalError, setWifiModalError] = useState<string | null>(null);
   const [wifiModalSuccess, setWifiModalSuccess] = useState<string | null>(null);
 
+  // Screen Recording Video State
+  const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
+  const [isRecordingVideo, setIsRecordingVideo] = useState(false);
+  const [recordDurationSec, setRecordDurationSec] = useState<number>(10);
+  const [recordedVideoBase64, setRecordedVideoBase64] = useState<string | null>(null);
+  const [recordingCountdown, setRecordingCountdown] = useState<number>(0);
+  const [recordError, setRecordError] = useState<string | null>(null);
+
   // Customization Options
   const [themeId, setThemeId] = useState('studioLight');
   const [bezelId, setBezelId] = useState('iphone-16-pro');
@@ -1535,6 +1543,47 @@ export default function StudioPage() {
     setStatusMessage(`Applied ${aesthetic.name} style preset.`);
   };
 
+  const handleStartRecord = async () => {
+    setIsRecordingVideo(true);
+    setRecordError(null);
+    setRecordedVideoBase64(null);
+    setRecordingCountdown(recordDurationSec);
+
+    const timer = setInterval(() => {
+      setRecordingCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    try {
+      const res = await fetch('/api/record', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          seconds: recordDurationSec,
+          deviceId: selectedDevice || undefined,
+        }),
+      });
+      clearInterval(timer);
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Recording failed');
+      }
+      setRecordedVideoBase64(data.base64);
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+      setToastMessage(`🎬 Screen video recording complete (${data.duration}s)!`);
+      toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 3000);
+    } catch (err: any) {
+      setRecordError(err.message || 'Error recording device video');
+    } finally {
+      setIsRecordingVideo(false);
+    }
+  };
+
   const openIOSAppPicker = async () => {
     if (!selectedDevice) {
       setStatusMessage('Select a connected iOS simulator or device first.');
@@ -1991,6 +2040,20 @@ export default function StudioPage() {
           >
             <Upload className="w-3.5 h-3.5 text-cyan-400" />
             <span className="hidden sm:inline">Upload</span>
+          </button>
+
+          {/* Record Device Screen Video Action */}
+          <button
+            onClick={() => {
+              setIsRecordModalOpen(true);
+              setRecordedVideoBase64(null);
+              setRecordError(null);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs shadow-md shadow-rose-600/20 transition cursor-pointer shrink-0"
+            title="Record connected device screen (Android & iOS Simulator MP4)"
+          >
+            <Video className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">Record</span>
           </button>
 
           {/* Autonomous Crawl Action */}
@@ -3870,6 +3933,169 @@ export default function StudioPage() {
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Video Screen Recording Modal */}
+      {isRecordModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg bg-[#12151e] border border-[#232733] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#232733] bg-[#0c0e14]">
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                  <Video className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Device Screen Recording</h3>
+                  <p className="text-[11px] text-slate-400">Record live UI interaction to MP4 video</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  if (!isRecordingVideo) setIsRecordModalOpen(false);
+                }}
+                disabled={isRecordingVideo}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer disabled:opacity-40"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 space-y-4 overflow-y-auto">
+              {recordError && (
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <div className="flex-1 font-mono text-[11px] leading-relaxed break-all">
+                    {recordError}
+                  </div>
+                </div>
+              )}
+
+              {/* Recorded Video Preview if available */}
+              {recordedVideoBase64 ? (
+                <div className="space-y-4">
+                  <div className="flex flex-col items-center justify-center bg-[#090b10] rounded-xl border border-[#232733] p-3 overflow-hidden">
+                    <video
+                      controls
+                      autoPlay
+                      loop
+                      playsInline
+                      className="max-h-[48vh] w-auto rounded-lg shadow-lg"
+                      src={`data:video/mp4;base64,${recordedVideoBase64}`}
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRecordedVideoBase64(null);
+                        setRecordError(null);
+                      }}
+                      className="flex-1 py-2 px-3 rounded-lg bg-[#161922] hover:bg-[#1f2433] text-slate-300 text-xs font-medium border border-[#232733] transition cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Record Again</span>
+                    </button>
+                    <a
+                      href={`data:video/mp4;base64,${recordedVideoBase64}`}
+                      download={`adbsnap-recording-${Date.now()}.mp4`}
+                      className="flex-1 py-2 px-3 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-md shadow-rose-600/20 transition cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download MP4</span>
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Capture smooth 60fps screen recordings directly from your attached Android device or iOS Simulator.
+                  </p>
+
+                  {/* Duration Selector */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-slate-300 font-medium block">Recording Duration</label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[5, 10, 15, 30].map((sec) => (
+                        <button
+                          key={sec}
+                          type="button"
+                          disabled={isRecordingVideo}
+                          onClick={() => setRecordDurationSec(sec)}
+                          className={`py-2 px-2.5 rounded-lg text-xs font-medium border transition cursor-pointer text-center ${
+                            recordDurationSec === sec
+                              ? 'border-rose-500 bg-rose-500/20 text-white font-bold'
+                              : 'border-[#232733] bg-[#161922] text-slate-400 hover:text-slate-200'
+                          } disabled:opacity-50`}
+                        >
+                          {sec}s
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Active Device Info */}
+                  <div className="p-3 rounded-xl bg-[#0e1017] border border-[#232733] flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <Smartphone className="w-4 h-4 text-cyan-400" />
+                      <span className="text-slate-300">
+                        {activeDevice ? activeDevice.model || activeDevice.id : 'No device selected'}
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-slate-500 capitalize">
+                      {activeDevice?.platform || 'USB / Simulator'}
+                    </span>
+                  </div>
+
+                  {/* Recording Status / Countdown Indicator */}
+                  {isRecordingVideo && (
+                    <div className="p-4 rounded-xl bg-rose-950/30 border border-rose-500/40 text-center space-y-2 animate-pulse">
+                      <div className="flex items-center justify-center gap-2 text-rose-400 font-bold text-sm">
+                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
+                        <span>Recording Screen... {recordingCountdown}s remaining</span>
+                      </div>
+                      <p className="text-[11px] text-rose-300/80">
+                        Interact with your phone or simulator now to capture your app workflow.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 pt-2">
+                    <button
+                      type="button"
+                      disabled={isRecordingVideo}
+                      onClick={() => setIsRecordModalOpen(false)}
+                      className="flex-1 py-2 px-3 rounded-lg bg-[#161922] hover:bg-[#1f2433] text-slate-300 text-xs font-medium border border-[#232733] transition cursor-pointer disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleStartRecord}
+                      disabled={isRecordingVideo || !activeDevice}
+                      className="flex-1 py-2 px-3 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-md shadow-rose-600/20 transition cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
+                    >
+                      {isRecordingVideo ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>Recording ({recordingCountdown}s)...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Video className="w-3.5 h-3.5" />
+                          <span>Start Recording</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

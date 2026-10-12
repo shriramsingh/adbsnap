@@ -8,6 +8,7 @@ import { compositeFrame, exportMultiStore, createAnimatedGif } from './sharp';
 import { createStoreZip } from './zip';
 import { uiCrawler } from './crawler';
 import { exploreIosTabs, listIosDeviceApps, listIosSimulatorApps } from './ios-explorer';
+import { recordDeviceScreen } from './video';
 import type { LayoutMode } from '../constants/themes';
 
 export interface StudioServerOptions {
@@ -581,6 +582,28 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
             });
           }
           return sendJson({ success: true, tabsCount: screens.length, screens });
+        } catch (err) {
+          return sendJson({ success: false, error: String(err) }, 500);
+        }
+      }
+
+      // 9. API: /api/record (POST)
+      if (req.method === 'POST' && pathname === '/api/record') {
+        try {
+          const body = await readJson();
+          const duration = Math.min(Math.max(Number(body.seconds) || 5, 2), 30);
+          const deviceId = typeof body.deviceId === 'string' ? body.deviceId : undefined;
+
+          broadcast({ type: 'STATUS', message: `Recording screen for ${duration}s... Interact with device now.` });
+          const videoBuf = await recordDeviceScreen({ durationSec: duration, deviceId });
+
+          return sendJson({
+            success: true,
+            base64: videoBuf.toString('base64'),
+            duration,
+            sizeBytes: videoBuf.length,
+            mimeType: 'video/mp4',
+          });
         } catch (err) {
           return sendJson({ success: false, error: String(err) }, 500);
         }

@@ -14,6 +14,7 @@ USAGE:
 
 COMMANDS:
   snap                 Capture live screenshot and frame into showcase graphic (default)
+  record               Record mobile screen video and composite 4K vector mockup (MP4)
   explore [package]    Autonomous hands-free screen discovery & tab crawler
   explore-ios          Explore accessible screens in an installed iOS app (macOS/Xcode)
   crawl [package]      Tab crawler (auto-detects & captures all bottom tabs)
@@ -38,7 +39,8 @@ SNAP & EXPORT OPTIONS:
   --theme <preset>     Backdrop color gradient (default: aurora)
                        Available: aurora, studioLight, freshMint, sunset, midnight, royal, cleanDark, none
   --layout <mode>      Layout positioning mode (default: appstore)
-                       Available: appstore (bottom bleed), social (floating centered)
+                       Available: appstore (bottom bleed), social (floating centered),
+                       duo-overlap (Keynote hero), duo-split (twin comparison)
   --fit <mode>         Screenshot aspect ratio scaling (default: cover)
                        Available: cover (safe aspect ratio), contain, fill
   --font <preset|name> Typography font family (default: modern)
