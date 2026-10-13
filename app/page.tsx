@@ -636,10 +636,11 @@ export default function StudioPage() {
         const effPhoneScale = overrides?.phoneScale !== undefined ? overrides.phoneScale : phoneScale;
         const effPhoneOffset = overrides?.phoneOffset !== undefined ? overrides.phoneOffset : phoneOffset;
         const effAmbientGlow = overrides?.ambientGlow !== undefined ? overrides.ambientGlow : ambientGlow;
-        const effAspectRatio = overrides?.aspectRatio || currentScreen?.aspectRatio || aspectRatio;
-        const effSecIdx = overrides?.secondaryScreenIndex !== undefined ? overrides.secondaryScreenIndex : secondaryScreenIndex;
         const currentScreens = screensRef.current.length > 0 ? screensRef.current : screens;
         const currentActiveIdx = activeScreenIndexRef.current;
+        const currentScreen = currentScreens[currentActiveIdx];
+        const effAspectRatio = overrides?.aspectRatio || currentScreen?.aspectRatio || aspectRatio;
+        const effSecIdx = overrides?.secondaryScreenIndex !== undefined ? overrides.secondaryScreenIndex : secondaryScreenIndex;
 
         let effSecondaryBase64: string | undefined = undefined;
         if (effLayout === 'duo-overlap' || effLayout === 'duo-split') {
@@ -3585,6 +3586,7 @@ export default function StudioPage() {
                       }
                       return next;
                     });
+                    refreshPreview(undefined, { aspectRatio: mode });
                   }}
                   className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
                     isAct
