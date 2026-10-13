@@ -1,6 +1,6 @@
 {
   "name": "adbsnap",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Capture Android and iOS simulator/device screenshots, create 4K mockups, explore iOS apps with XCTest, and export store assets (CLI & VS Code)",
   "main": "dist/bin/cli.js",
   "bin": {

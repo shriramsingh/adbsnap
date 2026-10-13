@@ -17,12 +17,13 @@ import { STYLES } from '../constants/styles';
 import { MESSAGES } from '../constants/messages';
 import { APP_INFO, CLI_HELP } from '../constants/strings';
 import { CONFIG } from '../constants/config';
-import { BEZEL_PRESETS, GRADIENT_PRESETS, LAYOUT_PRESETS, type LayoutMode } from '../constants/themes';
+import { BEZEL_PRESETS, GRADIENT_PRESETS, LAYOUT_PRESETS, type LayoutMode, type CanvasAspectRatio } from '../constants/themes';
 
 async function main() {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
     options: {
+      aspect: { type: 'string', default: 'portrait' },
       duration: { type: 'string', default: '10' },
       frame: { type: 'string', default: 'iphone-16-pro' },
       theme: { type: 'string', default: 'aurora' },
@@ -83,6 +84,9 @@ async function main() {
   switch (command) {
     case 'devices':
       await handleDevices();
+      break;
+    case 'demo':
+      await handleDemo(positionals[1], values);
       break;
     case 'doctor':
       await handleDoctor();
@@ -267,6 +271,36 @@ async function handleDoctor() {
   console.log('');
 }
 
+async function handleDemo(action?: string, values?: { device?: string; off?: boolean }) {
+  logger.banner(APP_INFO.NAME, 'Android SystemUI Demo Mode');
+  const enable = !(action === 'off' || action === 'disable' || action === 'stop' || values?.off);
+
+  try {
+    const devices = await androidDriver.listDevices();
+    const ready = devices.filter((d) => d.isAuthorized);
+    if (ready.length === 0) {
+      logger.error('DEVICE_NOT_FOUND', 'No authorized Android devices connected.');
+      return;
+    }
+    const target = values?.device ? ready.find((d) => d.id === values.device) : ready[0];
+    if (!target) {
+      logger.error('DEVICE_NOT_FOUND', `Device "${values?.device}" not found.`);
+      return;
+    }
+
+    await androidDriver.setDemoMode(enable, target.id);
+    if (enable) {
+      logger.success(`Demo Mode ENABLED on ${STYLES.bold(target.model)} (${target.id})`);
+      logger.info('Status bar configured to pristine 9:41 AM, 100% battery, full Wi-Fi, and hidden notifications.');
+    } else {
+      logger.success(`Demo Mode DISABLED on ${STYLES.bold(target.model)} (${target.id})`);
+      logger.info('Status bar restored to normal state.');
+    }
+  } catch (err: any) {
+    logger.error('DEMO_MODE_FAILED', err.message || String(err));
+  }
+}
+
 async function handleWifi(actionOrIp?: string, values?: { off?: boolean }) {
   const isOff = actionOrIp === 'off' || actionOrIp === 'stop' || actionOrIp === 'disable' || values?.off;
 
@@ -367,6 +401,7 @@ async function handleSnap(options: {
   const font = options.font || 'modern';
   const fit = (options.fit as 'cover' | 'contain' | 'fill') || 'cover';
   const format = (options.format as 'png' | 'webp' | 'avif' | 'jpeg') || 'png';
+  const aspectRatio = (options.aspect as CanvasAspectRatio) || 'portrait';
   const quality = options.quality ? Number(options.quality) : undefined;
   const textPos = (options['text-pos'] as 'top' | 'bottom' | 'both') || 'top';
   const textAlign = (options.align as 'left' | 'center' | 'right') || 'center';
@@ -405,6 +440,7 @@ async function handleSnap(options: {
     bezelId: frame,
     gradientPreset: theme,
     layout,
+    aspectRatio,
     font,
     headlineFont,
     subtitleFont,

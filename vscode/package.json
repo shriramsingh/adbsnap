@@ -2,7 +2,7 @@
   "name": "adbsnap",
   "displayName": "ADBSnap — Mobile Screenshot & Asset Studio",
   "description": "Capture Android and iOS screenshots, create 4K device mockups, and export App Store / Google Play assets in VS Code.",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "publisher": "shriramsingh",
   "icon": "icon.png",
   "engines": {
@@ -161,6 +161,16 @@
         "icon": "$(file-media)"
       },
       {
+        "command": "adbsnap.selectAspectRatio",
+        "title": "ADBSnap: Change Default Aspect Ratio",
+        "icon": "$(screen-normal)"
+      },
+      {
+        "command": "adbsnap.toggleDemoMode",
+        "title": "ADBSnap: Toggle Android Demo Mode (9:41 AM, 100% Battery)",
+        "icon": "$(device-mobile)"
+      },
+      {
         "command": "adbsnap.explore",
         "title": "ADBSnap: Explore & Capture Android App Tabs",
         "icon": "$(compass)"
@@ -251,6 +261,21 @@
             "jpeg"
           ],
           "description": "Default screenshot and export image format"
+        },
+        "adbsnap.defaultAspectRatio": {
+          "type": "string",
+          "default": "portrait",
+          "enum": [
+            "portrait",
+            "landscape",
+            "square"
+          ],
+          "enumDescriptions": [
+            "Portrait 9:19.5 (1290x2796 App Store & Play Store)",
+            "Landscape 16:9 (1920x1080 Product Hunt & Social Banner)",
+            "Square 1:1 (1080x1080 Social Feed & Post)"
+          ],
+          "description": "Default canvas aspect ratio preset for framed captures"
         },
         "adbsnap.outputDirectory": {
           "type": "string",

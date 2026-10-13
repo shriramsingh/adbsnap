@@ -1,6 +1,6 @@
 export const APP_INFO = {
   NAME: 'ADBSnap',
-  VERSION: '1.3.0',
+  VERSION: '1.4.0',
   TAGLINE: 'Automated Mobile Showcase & App Store Asset Studio',
   DESCRIPTION: 'CLI tool to capture, frame, and export mobile screenshots directly via ADB.',
 } as const;
@@ -15,6 +15,7 @@ USAGE:
 COMMANDS:
   snap                 Capture live screenshot and frame into showcase graphic (default)
   record               Record mobile screen video and composite 4K vector mockup (MP4)
+  demo [on|off]        Toggle Android SystemUI Demo Mode (9:41 AM, 100% battery, no notifications)
   explore [package]    Autonomous hands-free screen discovery & tab crawler
   explore-ios          Explore accessible screens in an installed iOS app (macOS/Xcode)
   crawl [package]      Tab crawler (auto-detects & captures all bottom tabs)
@@ -36,6 +37,9 @@ SNAP & EXPORT OPTIONS:
                        android-tablet-11, frameless, minimal
   --format <ext>       Output image format (default: png)
                        Available: png, webp, avif, jpeg
+  --aspect <ratio>     Canvas aspect ratio preset (default: portrait)
+                       Available: portrait (1290x2796 Store), landscape (1920x1080 Banner),
+                       square (1080x1080 Post)
   --theme <preset>     Backdrop color gradient (default: aurora)
                        Available: aurora, studioLight, freshMint, sunset, midnight, royal, cleanDark, none
   --layout <mode>      Layout positioning mode (default: appstore)

@@ -34,9 +34,9 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 ));
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-// node_modules/detect-libc/lib/process.js
+// ../node_modules/detect-libc/lib/process.js
 var require_process = __commonJS({
-  "node_modules/detect-libc/lib/process.js"(exports2, module2) {
+  "../node_modules/detect-libc/lib/process.js"(exports2, module2) {
     "use strict";
     var isLinux = () => process.platform === "linux";
     var report = null;
@@ -57,9 +57,9 @@ var require_process = __commonJS({
   }
 });
 
-// node_modules/detect-libc/lib/filesystem.js
+// ../node_modules/detect-libc/lib/filesystem.js
 var require_filesystem = __commonJS({
-  "node_modules/detect-libc/lib/filesystem.js"(exports2, module2) {
+  "../node_modules/detect-libc/lib/filesystem.js"(exports2, module2) {
     "use strict";
     var fs7 = require("fs");
     var LDD_PATH = "/usr/bin/ldd";
@@ -96,9 +96,9 @@ var require_filesystem = __commonJS({
   }
 });
 
-// node_modules/detect-libc/lib/elf.js
+// ../node_modules/detect-libc/lib/elf.js
 var require_elf = __commonJS({
-  "node_modules/detect-libc/lib/elf.js"(exports2, module2) {
+  "../node_modules/detect-libc/lib/elf.js"(exports2, module2) {
     "use strict";
     var interpreterPath = (elf) => {
       if (elf.length < 64) {
@@ -133,9 +133,9 @@ var require_elf = __commonJS({
   }
 });
 
-// node_modules/detect-libc/lib/detect-libc.js
+// ../node_modules/detect-libc/lib/detect-libc.js
 var require_detect_libc = __commonJS({
-  "node_modules/detect-libc/lib/detect-libc.js"(exports2, module2) {
+  "../node_modules/detect-libc/lib/detect-libc.js"(exports2, module2) {
     "use strict";
     var childProcess = require("child_process");
     var { isLinux, getReport } = require_process();
@@ -388,9 +388,9 @@ var require_detect_libc = __commonJS({
   }
 });
 
-// node_modules/semver/internal/constants.js
+// ../node_modules/semver/internal/constants.js
 var require_constants = __commonJS({
-  "node_modules/semver/internal/constants.js"(exports2, module2) {
+  "../node_modules/semver/internal/constants.js"(exports2, module2) {
     "use strict";
     var SEMVER_SPEC_VERSION = "2.0.0";
     var MAX_LENGTH = 256;
@@ -420,9 +420,9 @@ var require_constants = __commonJS({
   }
 });
 
-// node_modules/semver/internal/debug.js
+// ../node_modules/semver/internal/debug.js
 var require_debug = __commonJS({
-  "node_modules/semver/internal/debug.js"(exports2, module2) {
+  "../node_modules/semver/internal/debug.js"(exports2, module2) {
     "use strict";
     var debug = typeof process === "object" && process.env && process.env.NODE_DEBUG && /\bsemver\b/i.test(process.env.NODE_DEBUG) ? (...args) => console.error("SEMVER", ...args) : () => {
     };
@@ -430,9 +430,9 @@ var require_debug = __commonJS({
   }
 });
 
-// node_modules/semver/internal/re.js
+// ../node_modules/semver/internal/re.js
 var require_re = __commonJS({
-  "node_modules/semver/internal/re.js"(exports2, module2) {
+  "../node_modules/semver/internal/re.js"(exports2, module2) {
     "use strict";
     var {
       MAX_SAFE_COMPONENT_LENGTH,
@@ -518,9 +518,9 @@ var require_re = __commonJS({
   }
 });
 
-// node_modules/semver/internal/parse-options.js
+// ../node_modules/semver/internal/parse-options.js
 var require_parse_options = __commonJS({
-  "node_modules/semver/internal/parse-options.js"(exports2, module2) {
+  "../node_modules/semver/internal/parse-options.js"(exports2, module2) {
     "use strict";
     var looseOption = Object.freeze({ loose: true });
     var emptyOpts = Object.freeze({});
@@ -537,9 +537,9 @@ var require_parse_options = __commonJS({
   }
 });
 
-// node_modules/semver/internal/identifiers.js
+// ../node_modules/semver/internal/identifiers.js
 var require_identifiers = __commonJS({
-  "node_modules/semver/internal/identifiers.js"(exports2, module2) {
+  "../node_modules/semver/internal/identifiers.js"(exports2, module2) {
     "use strict";
     var numeric = /^[0-9]+$/;
     var compareIdentifiers = (a, b) => {
@@ -562,9 +562,9 @@ var require_identifiers = __commonJS({
   }
 });
 
-// node_modules/semver/classes/semver.js
+// ../node_modules/semver/classes/semver.js
 var require_semver = __commonJS({
-  "node_modules/semver/classes/semver.js"(exports2, module2) {
+  "../node_modules/semver/classes/semver.js"(exports2, module2) {
     "use strict";
     var debug = require_debug();
     var { MAX_LENGTH, MAX_SAFE_INTEGER } = require_constants();
@@ -854,9 +854,9 @@ var require_semver = __commonJS({
   }
 });
 
-// node_modules/semver/functions/parse.js
+// ../node_modules/semver/functions/parse.js
 var require_parse = __commonJS({
-  "node_modules/semver/functions/parse.js"(exports2, module2) {
+  "../node_modules/semver/functions/parse.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
     var parse = (version2, options, throwErrors = false) => {
@@ -876,9 +876,9 @@ var require_parse = __commonJS({
   }
 });
 
-// node_modules/semver/functions/valid.js
+// ../node_modules/semver/functions/valid.js
 var require_valid = __commonJS({
-  "node_modules/semver/functions/valid.js"(exports2, module2) {
+  "../node_modules/semver/functions/valid.js"(exports2, module2) {
     "use strict";
     var parse = require_parse();
     var valid = (version2, options) => {
@@ -889,9 +889,9 @@ var require_valid = __commonJS({
   }
 });
 
-// node_modules/semver/functions/clean.js
+// ../node_modules/semver/functions/clean.js
 var require_clean = __commonJS({
-  "node_modules/semver/functions/clean.js"(exports2, module2) {
+  "../node_modules/semver/functions/clean.js"(exports2, module2) {
     "use strict";
     var parse = require_parse();
     var clean = (version2, options) => {
@@ -902,9 +902,9 @@ var require_clean = __commonJS({
   }
 });
 
-// node_modules/semver/functions/inc.js
+// ../node_modules/semver/functions/inc.js
 var require_inc = __commonJS({
-  "node_modules/semver/functions/inc.js"(exports2, module2) {
+  "../node_modules/semver/functions/inc.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
     var inc = (version2, release, options, identifier, identifierBase) => {
@@ -926,9 +926,9 @@ var require_inc = __commonJS({
   }
 });
 
-// node_modules/semver/functions/diff.js
+// ../node_modules/semver/functions/diff.js
 var require_diff = __commonJS({
-  "node_modules/semver/functions/diff.js"(exports2, module2) {
+  "../node_modules/semver/functions/diff.js"(exports2, module2) {
     "use strict";
     var parse = require_parse();
     var diff = (version1, version2) => {
@@ -970,9 +970,9 @@ var require_diff = __commonJS({
   }
 });
 
-// node_modules/semver/functions/major.js
+// ../node_modules/semver/functions/major.js
 var require_major = __commonJS({
-  "node_modules/semver/functions/major.js"(exports2, module2) {
+  "../node_modules/semver/functions/major.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
     var major = (a, loose) => new SemVer(a, loose).major;
@@ -980,9 +980,9 @@ var require_major = __commonJS({
   }
 });
 
-// node_modules/semver/functions/minor.js
+// ../node_modules/semver/functions/minor.js
 var require_minor = __commonJS({
-  "node_modules/semver/functions/minor.js"(exports2, module2) {
+  "../node_modules/semver/functions/minor.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
     var minor = (a, loose) => new SemVer(a, loose).minor;
@@ -990,9 +990,9 @@ var require_minor = __commonJS({
   }
 });
 
-// node_modules/semver/functions/patch.js
+// ../node_modules/semver/functions/patch.js
 var require_patch = __commonJS({
-  "node_modules/semver/functions/patch.js"(exports2, module2) {
+  "../node_modules/semver/functions/patch.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
     var patch = (a, loose) => new SemVer(a, loose).patch;
@@ -1000,9 +1000,9 @@ var require_patch = __commonJS({
   }
 });
 
-// node_modules/semver/functions/prerelease.js
+// ../node_modules/semver/functions/prerelease.js
 var require_prerelease = __commonJS({
-  "node_modules/semver/functions/prerelease.js"(exports2, module2) {
+  "../node_modules/semver/functions/prerelease.js"(exports2, module2) {
     "use strict";
     var parse = require_parse();
     var prerelease = (version2, options) => {
@@ -1013,9 +1013,9 @@ var require_prerelease = __commonJS({
   }
 });
 
-// node_modules/semver/functions/compare.js
+// ../node_modules/semver/functions/compare.js
 var require_compare = __commonJS({
-  "node_modules/semver/functions/compare.js"(exports2, module2) {
+  "../node_modules/semver/functions/compare.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
     var compare = (a, b, loose) => new SemVer(a, loose).compare(new SemVer(b, loose));
@@ -1023,9 +1023,9 @@ var require_compare = __commonJS({
   }
 });
 
-// node_modules/semver/functions/rcompare.js
+// ../node_modules/semver/functions/rcompare.js
 var require_rcompare = __commonJS({
-  "node_modules/semver/functions/rcompare.js"(exports2, module2) {
+  "../node_modules/semver/functions/rcompare.js"(exports2, module2) {
     "use strict";
     var compare = require_compare();
     var rcompare = (a, b, loose) => compare(b, a, loose);
@@ -1033,9 +1033,9 @@ var require_rcompare = __commonJS({
   }
 });
 
-// node_modules/semver/functions/compare-loose.js
+// ../node_modules/semver/functions/compare-loose.js
 var require_compare_loose = __commonJS({
-  "node_modules/semver/functions/compare-loose.js"(exports2, module2) {
+  "../node_modules/semver/functions/compare-loose.js"(exports2, module2) {
     "use strict";
     var compare = require_compare();
     var compareLoose = (a, b) => compare(a, b, true);
@@ -1043,9 +1043,9 @@ var require_compare_loose = __commonJS({
   }
 });
 
-// node_modules/semver/functions/compare-build.js
+// ../node_modules/semver/functions/compare-build.js
 var require_compare_build = __commonJS({
-  "node_modules/semver/functions/compare-build.js"(exports2, module2) {
+  "../node_modules/semver/functions/compare-build.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
     var compareBuild = (a, b, loose) => {
@@ -1057,9 +1057,9 @@ var require_compare_build = __commonJS({
   }
 });
 
-// node_modules/semver/functions/sort.js
+// ../node_modules/semver/functions/sort.js
 var require_sort = __commonJS({
-  "node_modules/semver/functions/sort.js"(exports2, module2) {
+  "../node_modules/semver/functions/sort.js"(exports2, module2) {
     "use strict";
     var compareBuild = require_compare_build();
     var sort = (list, loose) => list.sort((a, b) => compareBuild(a, b, loose));
@@ -1067,9 +1067,9 @@ var require_sort = __commonJS({
   }
 });
 
-// node_modules/semver/functions/rsort.js
+// ../node_modules/semver/functions/rsort.js
 var require_rsort = __commonJS({
-  "node_modules/semver/functions/rsort.js"(exports2, module2) {
+  "../node_modules/semver/functions/rsort.js"(exports2, module2) {
     "use strict";
     var compareBuild = require_compare_build();
     var rsort = (list, loose) => list.sort((a, b) => compareBuild(b, a, loose));
@@ -1077,9 +1077,9 @@ var require_rsort = __commonJS({
   }
 });
 
-// node_modules/semver/functions/gt.js
+// ../node_modules/semver/functions/gt.js
 var require_gt = __commonJS({
-  "node_modules/semver/functions/gt.js"(exports2, module2) {
+  "../node_modules/semver/functions/gt.js"(exports2, module2) {
     "use strict";
     var compare = require_compare();
     var gt = (a, b, loose) => compare(a, b, loose) > 0;
@@ -1087,9 +1087,9 @@ var require_gt = __commonJS({
   }
 });
 
-// node_modules/semver/functions/lt.js
+// ../node_modules/semver/functions/lt.js
 var require_lt = __commonJS({
-  "node_modules/semver/functions/lt.js"(exports2, module2) {
+  "../node_modules/semver/functions/lt.js"(exports2, module2) {
     "use strict";
     var compare = require_compare();
     var lt = (a, b, loose) => compare(a, b, loose) < 0;
@@ -1097,9 +1097,9 @@ var require_lt = __commonJS({
   }
 });
 
-// node_modules/semver/functions/eq.js
+// ../node_modules/semver/functions/eq.js
 var require_eq = __commonJS({
-  "node_modules/semver/functions/eq.js"(exports2, module2) {
+  "../node_modules/semver/functions/eq.js"(exports2, module2) {
     "use strict";
     var compare = require_compare();
     var eq = (a, b, loose) => compare(a, b, loose) === 0;
@@ -1107,9 +1107,9 @@ var require_eq = __commonJS({
   }
 });
 
-// node_modules/semver/functions/neq.js
+// ../node_modules/semver/functions/neq.js
 var require_neq = __commonJS({
-  "node_modules/semver/functions/neq.js"(exports2, module2) {
+  "../node_modules/semver/functions/neq.js"(exports2, module2) {
     "use strict";
     var compare = require_compare();
     var neq = (a, b, loose) => compare(a, b, loose) !== 0;
@@ -1117,9 +1117,9 @@ var require_neq = __commonJS({
   }
 });
 
-// node_modules/semver/functions/gte.js
+// ../node_modules/semver/functions/gte.js
 var require_gte = __commonJS({
-  "node_modules/semver/functions/gte.js"(exports2, module2) {
+  "../node_modules/semver/functions/gte.js"(exports2, module2) {
     "use strict";
     var compare = require_compare();
     var gte = (a, b, loose) => compare(a, b, loose) >= 0;
@@ -1127,9 +1127,9 @@ var require_gte = __commonJS({
   }
 });
 
-// node_modules/semver/functions/lte.js
+// ../node_modules/semver/functions/lte.js
 var require_lte = __commonJS({
-  "node_modules/semver/functions/lte.js"(exports2, module2) {
+  "../node_modules/semver/functions/lte.js"(exports2, module2) {
     "use strict";
     var compare = require_compare();
     var lte = (a, b, loose) => compare(a, b, loose) <= 0;
@@ -1137,9 +1137,9 @@ var require_lte = __commonJS({
   }
 });
 
-// node_modules/semver/functions/cmp.js
+// ../node_modules/semver/functions/cmp.js
 var require_cmp = __commonJS({
-  "node_modules/semver/functions/cmp.js"(exports2, module2) {
+  "../node_modules/semver/functions/cmp.js"(exports2, module2) {
     "use strict";
     var eq = require_eq();
     var neq = require_neq();
@@ -1187,9 +1187,9 @@ var require_cmp = __commonJS({
   }
 });
 
-// node_modules/semver/functions/coerce.js
+// ../node_modules/semver/functions/coerce.js
 var require_coerce = __commonJS({
-  "node_modules/semver/functions/coerce.js"(exports2, module2) {
+  "../node_modules/semver/functions/coerce.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
     var parse = require_parse();
@@ -1233,9 +1233,9 @@ var require_coerce = __commonJS({
   }
 });
 
-// node_modules/semver/functions/truncate.js
+// ../node_modules/semver/functions/truncate.js
 var require_truncate = __commonJS({
-  "node_modules/semver/functions/truncate.js"(exports2, module2) {
+  "../node_modules/semver/functions/truncate.js"(exports2, module2) {
     "use strict";
     var parse = require_parse();
     var constants = require_constants();
@@ -1274,9 +1274,9 @@ var require_truncate = __commonJS({
   }
 });
 
-// node_modules/semver/internal/lrucache.js
+// ../node_modules/semver/internal/lrucache.js
 var require_lrucache = __commonJS({
-  "node_modules/semver/internal/lrucache.js"(exports2, module2) {
+  "../node_modules/semver/internal/lrucache.js"(exports2, module2) {
     "use strict";
     var LRUCache = class {
       constructor() {
@@ -1312,9 +1312,9 @@ var require_lrucache = __commonJS({
   }
 });
 
-// node_modules/semver/classes/range.js
+// ../node_modules/semver/classes/range.js
 var require_range = __commonJS({
-  "node_modules/semver/classes/range.js"(exports2, module2) {
+  "../node_modules/semver/classes/range.js"(exports2, module2) {
     "use strict";
     var SPACE_CHARACTERS = /\s+/g;
     var Range = class _Range {
@@ -1697,9 +1697,9 @@ var require_range = __commonJS({
   }
 });
 
-// node_modules/semver/classes/comparator.js
+// ../node_modules/semver/classes/comparator.js
 var require_comparator = __commonJS({
-  "node_modules/semver/classes/comparator.js"(exports2, module2) {
+  "../node_modules/semver/classes/comparator.js"(exports2, module2) {
     "use strict";
     var ANY = /* @__PURE__ */ Symbol("SemVer ANY");
     var Comparator = class _Comparator {
@@ -1810,9 +1810,9 @@ var require_comparator = __commonJS({
   }
 });
 
-// node_modules/semver/functions/satisfies.js
+// ../node_modules/semver/functions/satisfies.js
 var require_satisfies = __commonJS({
-  "node_modules/semver/functions/satisfies.js"(exports2, module2) {
+  "../node_modules/semver/functions/satisfies.js"(exports2, module2) {
     "use strict";
     var Range = require_range();
     var satisfies = (version2, range, options) => {
@@ -1827,9 +1827,9 @@ var require_satisfies = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/to-comparators.js
+// ../node_modules/semver/ranges/to-comparators.js
 var require_to_comparators = __commonJS({
-  "node_modules/semver/ranges/to-comparators.js"(exports2, module2) {
+  "../node_modules/semver/ranges/to-comparators.js"(exports2, module2) {
     "use strict";
     var Range = require_range();
     var toComparators = (range, options) => new Range(range, options).set.map((comp) => comp.map((c) => c.value).join(" ").trim().split(" "));
@@ -1837,9 +1837,9 @@ var require_to_comparators = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/max-satisfying.js
+// ../node_modules/semver/ranges/max-satisfying.js
 var require_max_satisfying = __commonJS({
-  "node_modules/semver/ranges/max-satisfying.js"(exports2, module2) {
+  "../node_modules/semver/ranges/max-satisfying.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
     var Range = require_range();
@@ -1866,9 +1866,9 @@ var require_max_satisfying = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/min-satisfying.js
+// ../node_modules/semver/ranges/min-satisfying.js
 var require_min_satisfying = __commonJS({
-  "node_modules/semver/ranges/min-satisfying.js"(exports2, module2) {
+  "../node_modules/semver/ranges/min-satisfying.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
     var Range = require_range();
@@ -1895,9 +1895,9 @@ var require_min_satisfying = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/min-version.js
+// ../node_modules/semver/ranges/min-version.js
 var require_min_version = __commonJS({
-  "node_modules/semver/ranges/min-version.js"(exports2, module2) {
+  "../node_modules/semver/ranges/min-version.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
     var Range = require_range();
@@ -1954,9 +1954,9 @@ var require_min_version = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/valid.js
+// ../node_modules/semver/ranges/valid.js
 var require_valid2 = __commonJS({
-  "node_modules/semver/ranges/valid.js"(exports2, module2) {
+  "../node_modules/semver/ranges/valid.js"(exports2, module2) {
     "use strict";
     var Range = require_range();
     var validRange = (range, options) => {
@@ -1970,9 +1970,9 @@ var require_valid2 = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/outside.js
+// ../node_modules/semver/ranges/outside.js
 var require_outside = __commonJS({
-  "node_modules/semver/ranges/outside.js"(exports2, module2) {
+  "../node_modules/semver/ranges/outside.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
     var Comparator = require_comparator();
@@ -2039,9 +2039,9 @@ var require_outside = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/gtr.js
+// ../node_modules/semver/ranges/gtr.js
 var require_gtr = __commonJS({
-  "node_modules/semver/ranges/gtr.js"(exports2, module2) {
+  "../node_modules/semver/ranges/gtr.js"(exports2, module2) {
     "use strict";
     var outside = require_outside();
     var gtr = (version2, range, options) => outside(version2, range, ">", options);
@@ -2049,9 +2049,9 @@ var require_gtr = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/ltr.js
+// ../node_modules/semver/ranges/ltr.js
 var require_ltr = __commonJS({
-  "node_modules/semver/ranges/ltr.js"(exports2, module2) {
+  "../node_modules/semver/ranges/ltr.js"(exports2, module2) {
     "use strict";
     var outside = require_outside();
     var ltr = (version2, range, options) => outside(version2, range, "<", options);
@@ -2059,9 +2059,9 @@ var require_ltr = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/intersects.js
+// ../node_modules/semver/ranges/intersects.js
 var require_intersects = __commonJS({
-  "node_modules/semver/ranges/intersects.js"(exports2, module2) {
+  "../node_modules/semver/ranges/intersects.js"(exports2, module2) {
     "use strict";
     var Range = require_range();
     var intersects = (r1, r2, options) => {
@@ -2073,9 +2073,9 @@ var require_intersects = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/simplify.js
+// ../node_modules/semver/ranges/simplify.js
 var require_simplify = __commonJS({
-  "node_modules/semver/ranges/simplify.js"(exports2, module2) {
+  "../node_modules/semver/ranges/simplify.js"(exports2, module2) {
     "use strict";
     var satisfies = require_satisfies();
     var compare = require_compare();
@@ -2123,9 +2123,9 @@ var require_simplify = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/subset.js
+// ../node_modules/semver/ranges/subset.js
 var require_subset = __commonJS({
-  "node_modules/semver/ranges/subset.js"(exports2, module2) {
+  "../node_modules/semver/ranges/subset.js"(exports2, module2) {
     "use strict";
     var Range = require_range();
     var Comparator = require_comparator();
@@ -2285,9 +2285,9 @@ var require_subset = __commonJS({
   }
 });
 
-// node_modules/semver/index.js
+// ../node_modules/semver/index.js
 var require_semver2 = __commonJS({
-  "node_modules/semver/index.js"(exports2, module2) {
+  "../node_modules/semver/index.js"(exports2, module2) {
     "use strict";
     var internalRe = require_re();
     var constants = require_constants();
@@ -2382,9 +2382,9 @@ var require_semver2 = __commonJS({
   }
 });
 
-// node_modules/@img/colour/color.cjs
+// ../node_modules/@img/colour/color.cjs
 var require_color = __commonJS({
-  "node_modules/@img/colour/color.cjs"(exports2, module2) {
+  "../node_modules/@img/colour/color.cjs"(exports2, module2) {
     var __defProp2 = Object.defineProperty;
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
     var __getOwnPropNames2 = Object.getOwnPropertyNames;
@@ -3970,14 +3970,14 @@ var require_color = __commonJS({
   }
 });
 
-// node_modules/@img/colour/index.cjs
+// ../node_modules/@img/colour/index.cjs
 var require_colour = __commonJS({
-  "node_modules/@img/colour/index.cjs"(exports2, module2) {
+  "../node_modules/@img/colour/index.cjs"(exports2, module2) {
     module2.exports = require_color().default;
   }
 });
 
-// vscode/src/extension.ts
+// src/extension.ts
 var extension_exports = {};
 __export(extension_exports, {
   activate: () => activate,
@@ -3988,17 +3988,17 @@ var vscode5 = __toESM(require("vscode"));
 var import_node_path8 = __toESM(require("node:path"));
 var import_promises3 = __toESM(require("node:fs/promises"));
 
-// lib/adb.ts
+// ../lib/adb.ts
 var import_node_child_process2 = require("node:child_process");
 var import_node_fs = __toESM(require("node:fs"), 1);
 var import_node_path2 = __toESM(require("node:path"), 1);
 var import_node_os2 = __toESM(require("node:os"), 1);
 
-// node_modules/sharp/dist/constructor.mjs
+// ../node_modules/sharp/dist/constructor.mjs
 var import_node_util = __toESM(require("node:util"), 1);
 var import_node_stream = __toESM(require("node:stream"), 1);
 
-// node_modules/sharp/dist/is.mjs
+// ../node_modules/sharp/dist/is.mjs
 var defined = (val) => typeof val !== "undefined" && val !== null;
 var object = (val) => typeof val === "object";
 var plainObject = (val) => Object.prototype.toString.call(val) === "[object Object]";
@@ -4053,17 +4053,17 @@ var is_default = {
   nativeError
 };
 
-// node_modules/sharp/dist/sharp.mjs
+// ../node_modules/sharp/dist/sharp.mjs
 var import_node_module = require("node:module");
 var import_detect_libc2 = __toESM(require_detect_libc(), 1);
 
-// node_modules/sharp/dist/libvips.mjs
+// ../node_modules/sharp/dist/libvips.mjs
 var import_node_child_process = require("node:child_process");
 var import_node_crypto = require("node:crypto");
 var import_semver = __toESM(require_semver2(), 1);
 var import_detect_libc = __toESM(require_detect_libc(), 1);
 
-// node_modules/sharp/package.json
+// ../node_modules/sharp/package.json
 var package_default = {
   name: "sharp",
   description: "High performance Node.js image processing, the fastest module to resize JPEG, PNG, WebP, GIF, AVIF and TIFF images",
@@ -4292,7 +4292,7 @@ var package_default = {
   }
 };
 
-// node_modules/sharp/dist/libvips.mjs
+// ../node_modules/sharp/dist/libvips.mjs
 var minimumLibvipsVersionLabelled = process.env.npm_package_config_libvips || package_default.config.libvips;
 var minimumLibvipsVersion = import_semver.default.coerce(minimumLibvipsVersionLabelled).version;
 var prebuiltPlatforms = [
@@ -4478,7 +4478,7 @@ var libvips_default = {
   useGlobalLibvips
 };
 
-// node_modules/sharp/dist/sharp.mjs
+// ../node_modules/sharp/dist/sharp.mjs
 var import_meta = {};
 var require2 = (0, import_node_module.createRequire)(import_meta.url);
 var { version } = package_default;
@@ -4634,7 +4634,7 @@ if (!sharp) {
 }
 var sharp_default = sharp;
 
-// node_modules/sharp/dist/constructor.mjs
+// ../node_modules/sharp/dist/constructor.mjs
 var debuglog = import_node_util.default.debuglog("sharp");
 var queueListener = (queueLength) => {
   Sharp.queue.emit("change", queueLength);
@@ -4863,7 +4863,7 @@ function clone() {
 Object.assign(Sharp.prototype, { clone });
 var constructor_default = Sharp;
 
-// node_modules/sharp/dist/input.mjs
+// ../node_modules/sharp/dist/input.mjs
 var align = {
   left: "low",
   top: "low",
@@ -5477,7 +5477,7 @@ var input_default = (Sharp2) => {
   Sharp2.align = align;
 };
 
-// node_modules/sharp/dist/resize.mjs
+// ../node_modules/sharp/dist/resize.mjs
 var gravity = {
   center: 0,
   centre: 0,
@@ -5743,7 +5743,7 @@ var resize_default = (Sharp2) => {
   Sharp2.position = position;
 };
 
-// node_modules/sharp/dist/composite.mjs
+// ../node_modules/sharp/dist/composite.mjs
 var blend = {
   clear: "clear",
   source: "source",
@@ -5850,7 +5850,7 @@ var composite_default = (Sharp2) => {
   Sharp2.blend = blend;
 };
 
-// node_modules/sharp/dist/operation.mjs
+// ../node_modules/sharp/dist/operation.mjs
 var vipsPrecision = {
   integer: "integer",
   float: "float",
@@ -6299,7 +6299,7 @@ var operation_default = (Sharp2) => {
   });
 };
 
-// node_modules/sharp/dist/colour.mjs
+// ../node_modules/sharp/dist/colour.mjs
 var import_colour = __toESM(require_colour(), 1);
 var colourspace = {
   multiband: "multiband",
@@ -6379,7 +6379,7 @@ var colour_default = (Sharp2) => {
   Sharp2.colorspace = colourspace;
 };
 
-// node_modules/sharp/dist/channel.mjs
+// ../node_modules/sharp/dist/channel.mjs
 var bool2 = {
   and: "and",
   or: "or",
@@ -6443,7 +6443,7 @@ var channel_default = (Sharp2) => {
   Sharp2.bool = bool2;
 };
 
-// node_modules/sharp/dist/output.mjs
+// ../node_modules/sharp/dist/output.mjs
 var import_node_path = __toESM(require("node:path"), 1);
 var formats = /* @__PURE__ */ new Map([
   ["heic", "heif"],
@@ -7353,7 +7353,7 @@ var output_default = (Sharp2) => {
   });
 };
 
-// node_modules/sharp/dist/utility.mjs
+// ../node_modules/sharp/dist/utility.mjs
 var import_node_events = __toESM(require("node:events"), 1);
 var import_node_module2 = require("node:module");
 var import_node_os = require("node:os");
@@ -7476,7 +7476,7 @@ var utility_default = (Sharp2) => {
   Sharp2.unblock = unblock;
 };
 
-// node_modules/sharp/dist/index.mjs
+// ../node_modules/sharp/dist/index.mjs
 input_default(constructor_default);
 resize_default(constructor_default);
 composite_default(constructor_default);
@@ -7487,7 +7487,7 @@ output_default(constructor_default);
 utility_default(constructor_default);
 var dist_default = constructor_default;
 
-// constants/commands.ts
+// ../constants/commands.ts
 var ADB_COMMANDS = {
   DEVICES: ["devices", "-l"],
   SCREENCAP: ["exec-out", "screencap", "-p"],
@@ -7516,7 +7516,7 @@ var ADB_COMMANDS = {
   ]
 };
 
-// constants/config.ts
+// ../constants/config.ts
 var CONFIG = {
   DEFAULT_PORT: 5555,
   DEFAULT_OUTPUT_DIR: "./output",
@@ -7525,7 +7525,7 @@ var CONFIG = {
   ADB_DEFAULT_HOST: "127.0.0.1"
 };
 
-// lib/adb.ts
+// ../lib/adb.ts
 var cachedAdbPath = null;
 function resolveAdbPath() {
   if (cachedAdbPath) return cachedAdbPath;
@@ -7886,7 +7886,7 @@ var AndroidDriver = class {
 };
 var androidDriver = new AndroidDriver();
 
-// lib/ios.ts
+// ../lib/ios.ts
 var import_node_child_process3 = require("node:child_process");
 var import_promises = __toESM(require("node:fs/promises"), 1);
 var import_node_os3 = __toESM(require("node:os"), 1);
@@ -8032,7 +8032,7 @@ var IOSDriver = class {
 };
 var iosDriver = new IOSDriver();
 
-// lib/devices.ts
+// ../lib/devices.ts
 async function listAllDevices() {
   const [androidDevices, iosDevices] = await Promise.all([
     androidDriver.listDevices().catch(() => []),
@@ -8041,7 +8041,7 @@ async function listAllDevices() {
   return [...androidDevices, ...iosDevices];
 }
 
-// vscode/src/clipboard.ts
+// src/clipboard.ts
 var import_promises2 = __toESM(require("node:fs/promises"));
 var import_node_path4 = __toESM(require("node:path"));
 var import_node_os4 = __toESM(require("node:os"));
@@ -8109,7 +8109,7 @@ $img.Dispose();
   }
 }
 
-// vscode/src/statusBar.ts
+// src/statusBar.ts
 var vscode = __toESM(require("vscode"));
 var AdbStatusBarManager = class {
   statusBarItem;
@@ -8261,7 +8261,7 @@ Click to switch devices.`;
   }
 };
 
-// vscode/src/cli.ts
+// src/cli.ts
 var import_node_child_process5 = require("node:child_process");
 var import_node_path5 = __toESM(require("node:path"));
 var import_node_fs2 = __toESM(require("node:fs"));
@@ -8319,7 +8319,7 @@ function getCliRunnerLabel(extensionPath) {
   return resolveCliRunner(extensionPath).label;
 }
 
-// vscode/src/views/devicesProvider.ts
+// src/views/devicesProvider.ts
 var vscode2 = __toESM(require("vscode"));
 var DeviceTreeItem = class extends vscode2.TreeItem {
   constructor(device, isActive) {
@@ -8414,7 +8414,7 @@ var DevicesTreeDataProvider = class {
   }
 };
 
-// vscode/src/views/capturesProvider.ts
+// src/views/capturesProvider.ts
 var vscode3 = __toESM(require("vscode"));
 var import_node_fs3 = __toESM(require("node:fs"));
 var import_node_path6 = __toESM(require("node:path"));
@@ -8485,7 +8485,7 @@ var CapturesTreeDataProvider = class {
   }
 };
 
-// vscode/src/studio/studioWebview.ts
+// src/studio/studioWebview.ts
 var vscode4 = __toESM(require("vscode"));
 var import_node_path7 = __toESM(require("node:path"));
 var import_node_net = __toESM(require("node:net"));
@@ -8860,7 +8860,7 @@ async function fileExists(p) {
   }
 }
 
-// vscode/src/extension.ts
+// src/extension.ts
 var statusBarManager;
 var outputChannel;
 var devicesProvider;
@@ -9044,6 +9044,16 @@ function activate(context) {
     })
   );
   context.subscriptions.push(
+    vscode5.commands.registerCommand("adbsnap.selectAspectRatio", async () => {
+      await handleSelectAspectRatioCommand();
+    })
+  );
+  context.subscriptions.push(
+    vscode5.commands.registerCommand("adbsnap.toggleDemoMode", async () => {
+      await handleToggleDemoModeCommand(context);
+    })
+  );
+  context.subscriptions.push(
     vscode5.commands.registerCommand("adbsnap.explore", async () => {
       await handleExploreCommand(context);
     })
@@ -9127,11 +9137,12 @@ async function handleSnapCommand(context, options) {
         const theme = config.get("defaultTheme") || "aurora";
         const frame = config.get("defaultFrame") || "iphone-16-pro";
         const format2 = config.get("defaultFormat") || "png";
+        const aspect = config.get("defaultAspectRatio") || "portrait";
         const ext = format2 === "jpeg" ? "jpg" : format2;
         const outDir = resolveOutputDir();
         await import_promises3.default.mkdir(outDir, { recursive: true });
         const timestamp = (/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-").slice(0, 19);
-        const fileName = `adbsnap-${frame}-${theme}-${timestamp}.${ext}`;
+        const fileName = `adbsnap-${frame}-${theme}-${aspect}-${timestamp}.${ext}`;
         const filePath = import_node_path8.default.join(outDir, fileName);
         const cliArgs = [
           "snap",
@@ -9141,6 +9152,8 @@ async function handleSnapCommand(context, options) {
           theme,
           "--format",
           format2,
+          "--aspect",
+          aspect,
           "--device",
           device.id,
           "--out",
@@ -9752,6 +9765,71 @@ async function handleSelectFormatCommand() {
     await config.update("defaultFormat", pick.id, vscode5.ConfigurationTarget.Global);
     vscode5.window.showInformationMessage(`\u{1F4E6} ADBSnap: Export format set to "${pick.id.toUpperCase()}".`);
   }
+}
+async function handleSelectAspectRatioCommand() {
+  const config = vscode5.workspace.getConfiguration("adbsnap");
+  const currentAspect = config.get("defaultAspectRatio") || "portrait";
+  const ratios = [
+    { id: "portrait", label: "\u{1F4F1} Portrait 9:19.5 (1290\xD72796)", detail: "Apple App Store Connect & Google Play Console standard store mockup" },
+    { id: "landscape", label: "\u{1F5A5}\uFE0F Landscape 16:9 (1920\xD71080)", detail: "Product Hunt, Twitter/X, and social banner presentation card" },
+    { id: "square", label: "\u2B1B Square 1:1 (1080\xD71080)", detail: "Instagram, LinkedIn feed showcase, and square post preset" }
+  ];
+  const items = ratios.map((r) => ({
+    label: `${r.id === currentAspect ? "$(check) " : ""}${r.label}`,
+    description: r.id,
+    detail: r.detail,
+    id: r.id
+  }));
+  const pick = await vscode5.window.showQuickPick(items, {
+    placeHolder: `Select canvas aspect ratio (current: ${currentAspect})`
+  });
+  if (pick) {
+    await config.update("defaultAspectRatio", pick.id, vscode5.ConfigurationTarget.Global);
+    vscode5.window.showInformationMessage(`\u{1F4D0} ADBSnap: Aspect ratio set to "${pick.label}".`);
+  }
+}
+async function handleToggleDemoModeCommand(_context) {
+  const device = statusBarManager.getActiveDevice();
+  if (!device || device.platform !== "android") {
+    vscode5.window.showWarningMessage("ADBSnap: SystemUI Demo Mode requires an active Android device.");
+    return;
+  }
+  const choices = [
+    {
+      id: "enable",
+      label: "$(check) Enable Demo Mode",
+      detail: "Pristine 9:41 AM clock, 100% battery, full Wi-Fi signal, and notifications hidden."
+    },
+    {
+      id: "disable",
+      label: "$(x) Disable Demo Mode",
+      detail: "Exit demo mode and restore the real system status bar."
+    }
+  ];
+  const pick = await vscode5.window.showQuickPick(choices, {
+    placeHolder: `Configure SystemUI Demo Mode for ${device.model} (${device.id})`
+  });
+  if (!pick) return;
+  const enable = pick.id === "enable";
+  await vscode5.window.withProgress(
+    {
+      location: vscode5.ProgressLocation.Notification,
+      title: enable ? "ADBSnap: Enabling Demo Mode..." : "ADBSnap: Disabling Demo Mode...",
+      cancellable: false
+    },
+    async () => {
+      try {
+        await androidDriver.setDemoMode(enable, device.id);
+        if (enable) {
+          vscode5.window.showInformationMessage(`\u2728 Demo Mode ENABLED on ${device.model}! Status bar is now clean (9:41 AM, 100% battery).`);
+        } else {
+          vscode5.window.showInformationMessage(`\u{1F504} Demo Mode DISABLED on ${device.model}. Real status bar restored.`);
+        }
+      } catch (err) {
+        vscode5.window.showErrorMessage(`Demo Mode Error: ${err.message || err}`);
+      }
+    }
+  );
 }
 async function handleExploreCommand(context) {
   const device = statusBarManager.getActiveDevice();

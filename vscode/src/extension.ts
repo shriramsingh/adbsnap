@@ -248,6 +248,20 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  // 20b. Command: Select Default Aspect Ratio
+  context.subscriptions.push(
+    vscode.commands.registerCommand('adbsnap.selectAspectRatio', async () => {
+      await handleSelectAspectRatioCommand();
+    })
+  );
+
+  // 20c. Command: Toggle Android SystemUI Demo Mode
+  context.subscriptions.push(
+    vscode.commands.registerCommand('adbsnap.toggleDemoMode', async () => {
+      await handleToggleDemoModeCommand(context);
+    })
+  );
+
   // 21. Command: Autonomous Android Tab Crawler
   context.subscriptions.push(
     vscode.commands.registerCommand('adbsnap.explore', async () => {
@@ -374,13 +388,14 @@ async function handleSnapCommand(
         const theme = config.get<string>('defaultTheme') || 'aurora';
         const frame = config.get<string>('defaultFrame') || 'iphone-16-pro';
         const format = config.get<string>('defaultFormat') || 'png';
+        const aspect = config.get<string>('defaultAspectRatio') || 'portrait';
         const ext = format === 'jpeg' ? 'jpg' : format;
 
         const outDir = resolveOutputDir();
         await fs.mkdir(outDir, { recursive: true });
 
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-        const fileName = `adbsnap-${frame}-${theme}-${timestamp}.${ext}`;
+        const fileName = `adbsnap-${frame}-${theme}-${aspect}-${timestamp}.${ext}`;
         const filePath = path.join(outDir, fileName);
 
         // Delegate to the adbsnap CLI for compositing (avoids sharp native dependency)
@@ -389,6 +404,7 @@ async function handleSnapCommand(
           '--frame', frame,
           '--theme', theme,
           '--format', format,
+          '--aspect', aspect,
           '--device', device.id,
           '--out', filePath,
         ];
@@ -1143,6 +1159,88 @@ async function handleSelectFormatCommand(): Promise<void> {
     await config.update('defaultFormat', pick.id, vscode.ConfigurationTarget.Global);
     vscode.window.showInformationMessage(`📦 ADBSnap: Export format set to "${pick.id.toUpperCase()}".`);
   }
+}
+
+/**
+ * QuickPick: Select Default Aspect Ratio
+ */
+async function handleSelectAspectRatioCommand(): Promise<void> {
+  const config = vscode.workspace.getConfiguration('adbsnap');
+  const currentAspect = config.get<string>('defaultAspectRatio') || 'portrait';
+
+  const ratios = [
+    { id: 'portrait', label: '📱 Portrait 9:19.5 (1290×2796)', detail: 'Apple App Store Connect & Google Play Console standard store mockup' },
+    { id: 'landscape', label: '🖥️ Landscape 16:9 (1920×1080)', detail: 'Product Hunt, Twitter/X, and social banner presentation card' },
+    { id: 'square', label: '⬛ Square 1:1 (1080×1080)', detail: 'Instagram, LinkedIn feed showcase, and square post preset' },
+  ];
+
+  const items = ratios.map((r) => ({
+    label: `${r.id === currentAspect ? '$(check) ' : ''}${r.label}`,
+    description: r.id,
+    detail: r.detail,
+    id: r.id,
+  }));
+
+  const pick = await vscode.window.showQuickPick(items, {
+    placeHolder: `Select canvas aspect ratio (current: ${currentAspect})`,
+  });
+
+  if (pick) {
+    await config.update('defaultAspectRatio', pick.id, vscode.ConfigurationTarget.Global);
+    vscode.window.showInformationMessage(`📐 ADBSnap: Aspect ratio set to "${pick.label}".`);
+  }
+}
+
+/**
+ * Toggle Android SystemUI Demo Mode
+ */
+async function handleToggleDemoModeCommand(_context: vscode.ExtensionContext): Promise<void> {
+  const device = statusBarManager.getActiveDevice();
+  if (!device || device.platform !== 'android') {
+    vscode.window.showWarningMessage('ADBSnap: SystemUI Demo Mode requires an active Android device.');
+    return;
+  }
+
+  const choices = [
+    {
+      id: 'enable',
+      label: '$(check) Enable Demo Mode',
+      detail: 'Pristine 9:41 AM clock, 100% battery, full Wi-Fi signal, and notifications hidden.',
+    },
+    {
+      id: 'disable',
+      label: '$(x) Disable Demo Mode',
+      detail: 'Exit demo mode and restore the real system status bar.',
+    },
+  ];
+
+  const pick = await vscode.window.showQuickPick(choices, {
+    placeHolder: `Configure SystemUI Demo Mode for ${device.model} (${device.id})`,
+  });
+
+  if (!pick) return;
+
+  const enable = pick.id === 'enable';
+
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: enable ? 'ADBSnap: Enabling Demo Mode...' : 'ADBSnap: Disabling Demo Mode...',
+      cancellable: false,
+    },
+    async () => {
+      try {
+        await androidDriver.setDemoMode(enable, device.id);
+        if (enable) {
+          vscode.window.showInformationMessage(`✨ Demo Mode ENABLED on ${device.model}! Status bar is now clean (9:41 AM, 100% battery).`);
+        } else {
+          vscode.window.showInformationMessage(`🔄 Demo Mode DISABLED on ${device.model}. Real status bar restored.`);
+        }
+      } catch (err: any) {
+        vscode.window.showErrorMessage(`Demo Mode Error: ${err.message || err}`);
+      }
+    }
+  );
 }
 
 /**

@@ -111,8 +111,8 @@ flowchart TD
 ---
 
 ### Phase 6: Precision Typography, Font Pairing & Collision-Proof Layout
-**Status:** 🚀 In Active Development (`v1.4.0`)  
-**Target Files:** [`constants/themes.ts`](file:///f:/warmupWithTestingApps/adbsnap/constants/themes.ts), [`lib/backdrop-generator.ts`](file:///f:/warmupWithTestingApps/adbsnap/lib/backdrop-generator.ts), [`lib/sharp.ts`](file:///f:/warmupWithTestingApps/adbsnap/lib/sharp.ts), [`app/page.tsx`](file:///f:/warmupWithTestingApps/adbsnap/app/page.tsx)
+**Status:** ✅ Completed (`v1.4.0`)  
+**Core Implementation:** [`constants/themes.ts`](file:///f:/warmupWithTestingApps/adbsnap/constants/themes.ts), [`lib/backdrop-generator.ts`](file:///f:/warmupWithTestingApps/adbsnap/lib/backdrop-generator.ts), [`lib/sharp.ts`](file:///f:/warmupWithTestingApps/adbsnap/lib/sharp.ts), [`app/page.tsx`](file:///f:/warmupWithTestingApps/adbsnap/app/page.tsx)
 
 1. **Independent Font Pairing (Headline vs. Subtitle / Top vs. Bottom)**:
    - Primary Headline display font selector paired with an independent Subtitle body font selector (linked by default with `🔗 Match Headline`).
@@ -137,7 +137,7 @@ flowchart TD
 ---
 
 ## ⚡ Phase 7: Studio Superpowers (Workflow & Growth)
-**Status:** 📋 Planned (`v1.4.x`)  
+**Status:** ✅ Completed (`v1.4.0`)  
 
 1. **1-Click "Sync Styling to All Screens"**: ✅ Completed (`v1.4.0`)
    - Single button in the filmstrip that applies the active screen's Theme, Fonts, Alignment, Sizing, and Device Scale across all screens in the project.
@@ -147,8 +147,9 @@ flowchart TD
    - High-converting store copywriting starter formulas with 1-click insert, plus 1-click clear and reset default actions.
 4. **WYSIWYG On-Canvas Direct Dragging**: ✅ Completed (`v1.4.0`)
    - Click and drag text directly on the live preview canvas with real-time bidirectional slider synchronization.
-5. **Multi-Platform Canvas Aspect Ratios**:
-   - App Store/Play Store (Portrait 9:19.5), Product Hunt / Twitter / LinkedIn (16:9 Landscape 1920×1080), and Square Showcase (1:1 1080×1080).
+5. **Multi-Platform Canvas Aspect Ratios**: ✅ Completed (`v1.4.0`)
+   - App Store/Play Store (Portrait 9:19.5 1290×2796), Product Hunt / Twitter / LinkedIn (16:9 Landscape 1920×1080), and Square Showcase (1:1 1080×1080).
+   - Responsive auto-scaling typography and dual-axis phone layout anchoring.
 
 ---
 

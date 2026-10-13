@@ -5,6 +5,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.4.0] - 2026-10-13
+
+### 📐 Multi-Platform Canvas Aspect Ratios (16:9 & 1:1)
+- **Multi-Platform Canvas Presets**:
+  - Added Portrait 9:19.5 (`1290×2796`), Landscape 16:9 (`1920×1080`), and Square 1:1 (`1080×1080`) presets across the Sharp compositing engine (`lib/sharp.ts`), backdrop generator (`lib/backdrop-generator.ts`), and Studio server (`lib/studio-server.ts`).
+  - Added responsive typography auto-scaling and dual-axis phone layout anchoring for landscape banners and square feed posts.
+  - Added interactive segmented aspect ratio toolbar `[ 📱 9:19.5 Store | 🖥️ 16:9 Banner | ⬛ 1:1 Square ]` to the Studio canvas (`app/page.tsx`).
+  - Added `--aspect portrait|landscape|square` CLI flag to `adbsnap snap` in `bin/cli.ts`.
+  - Added `adbsnap.selectAspectRatio` QuickPick command to the VS Code extension.
+
+### ✨ Android SystemUI Demo Mode
+- **Clean Marketing Status Bar**:
+  - Added `adbsnap demo [on|off]` CLI command and `adbsnap.toggleDemoMode` VS Code command.
+  - Instantly forces connected Android status bar to pristine 9:41 AM clock, 100% battery, full Wi-Fi signal, and zero notification icons.
+
+### 💻 VS Code Extension Full Parity (v1.4.0)
+- **Embedded Asset Studio Webview**:
+  - Integrated full React 19 visual Studio directly inside VS Code via process isolation and background daemon management (`vscode/src/studio/studioWebview.ts`).
+- **Device Discovery & Auto-Reconnect**:
+  - Added 1-click wireless auto-reconnect, Android 11+ pairing code modal, and device switcher in status bar and tree views.
+- **Enhanced Productivity Commands**:
+  - Added `adbsnap.insertMarkdown` to snap and paste markdown image syntax directly into the active editor.
+  - Added QuickPicks for 15 Flagship Bezels, 16 Curated Themes, 4 Output Formats, and 3 Aspect Ratios.
+  - Added Autonomous Explorers (`adbsnap.explore`, `adbsnap.exploreIos`) and App Lifecycle controls (`adbsnap.resetAppData`, `adbsnap.relaunchApp`).
+
+### 🧪 Unified Test Suite
+- **Comprehensive Quality Assurance**:
+  - Added `scripts/test-suite.ts` and registered `npm test` script.
+  - 15/15 automated checks covering drivers, Sharp compositing, bezels, formats, and aspect ratios.
+
+---
+
 ## [1.3.0] - 2026-10-11
 
 ### 🎨 Studio 2.0 Canvas Drag, Typography & Aesthetics

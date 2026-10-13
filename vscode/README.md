@@ -61,6 +61,8 @@ Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`):
 | `ADBSnap: Change Default Bezel Frame` | — | QuickPick: Switch default bezel (iPhone 16 Pro Max, Pixel Fold, etc.) |
 | `ADBSnap: Change Default Canvas Theme` | — | QuickPick: Switch default backdrop gradient (Aurora, Cyberpunk, etc.) |
 | `ADBSnap: Change Default Export Format` | — | QuickPick: Switch output format (PNG, WebP, AVIF, JPEG) |
+| `ADBSnap: Change Default Aspect Ratio` | — | QuickPick: Switch canvas aspect ratio (Portrait 9:19.5, Landscape 16:9, Square 1:1) |
+| `ADBSnap: Toggle Android Demo Mode` | — | QuickPick: Enable/disable status bar 9:41 AM, 100% battery, no notifications |
 | `ADBSnap: Explore & Capture Android App Tabs` | — | Autonomous bottom-tab crawler |
 | `ADBSnap: Explore & Capture iOS App Views (XCTest)`| — | Autonomous iOS UI explorer (macOS) |
 | `ADBSnap: Reset App Data (Logout / Clear Cache)` | — | Instant `pm clear` application reset |
@@ -83,6 +85,7 @@ Configure in **Settings > Extensions > ADBSnap**:
   "adbsnap.defaultTheme": "aurora",
   "adbsnap.defaultFrame": "iphone-16-pro",
   "adbsnap.defaultFormat": "png",
+  "adbsnap.defaultAspectRatio": "portrait",
   "adbsnap.outputDirectory": "${workspaceFolder}/output",
   "adbsnap.customAdbPath": ""
 }
