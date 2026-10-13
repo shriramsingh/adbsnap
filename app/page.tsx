@@ -530,55 +530,73 @@ export default function StudioPage() {
     window.addEventListener('mouseup', handleMouseUp);
   };
 
-  // 1. Setup Server-Sent Events (SSE) for live device updates
+  // 1. Setup Live Device Discovery (Immediate REST fetch + SSE with polling fallback)
   useEffect(() => {
+    let fallbackInterval: NodeJS.Timeout | null = null;
+
+    const processDevicePayload = (data: { devices?: ConnectedDevice[]; activeApp?: string | null }) => {
+      if (data.devices) {
+        const newDevices: ConnectedDevice[] = data.devices;
+        setDevices(newDevices);
+        setSelectedDevice((prevSelected) => {
+          if (!newDevices || newDevices.length === 0) return '';
+          const usbDev = newDevices.find((d) => d.platform === 'android' && d.type === 'usb' && d.isAuthorized);
+          const currentDev = newDevices.find((d) => d.id === prevSelected);
+
+          if (!currentDev) {
+            return usbDev ? usbDev.id : newDevices[0].id;
+          }
+
+          if (currentDev.platform === 'android' && currentDev.type === 'wifi' && usbDev && usbDev.id !== prevSelected) {
+            return usbDev.id;
+          }
+
+          return prevSelected;
+        });
+      }
+      if (data.activeApp !== undefined) {
+        setActiveApp((prev) => {
+          if (prev && prev !== data.activeApp) {
+            setTimeout(() => handleSnap(true), 300);
+          }
+          return data.activeApp;
+        });
+      }
+    };
+
+    // Immediate REST discovery on mount (returns in ~10ms without waiting for SSE)
+    const fetchImmediateDevices = async () => {
+      try {
+        const res = await fetch('/api/devices');
+        if (res.ok) {
+          const data = await res.json();
+          processDevicePayload(data);
+        }
+      } catch {}
+    };
+    fetchImmediateDevices();
+
     const sse = new EventSource('/api/events');
 
     sse.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.devices) {
-          const newDevices: ConnectedDevice[] = data.devices;
-          setDevices(newDevices);
-          setSelectedDevice((prevSelected) => {
-            if (!newDevices || newDevices.length === 0) return '';
-
-            const usbDev = newDevices.find((d) => d.platform === 'android' && d.type === 'usb' && d.isAuthorized);
-            const currentDev = newDevices.find((d) => d.id === prevSelected);
-
-            // If no previous selection, or current selected device disconnected:
-            if (!currentDev) {
-              return usbDev ? usbDev.id : newDevices[0].id;
-            }
-
-            // Auto-prioritize USB: if currently on Wi-Fi and a USB connection appears (cable plugged in):
-            if (currentDev.platform === 'android' && currentDev.type === 'wifi' && usbDev && usbDev.id !== prevSelected) {
-              return usbDev.id;
-            }
-
-            return prevSelected;
-          });
-        }
-        if (data.activeApp !== undefined) {
-          setActiveApp((prev) => {
-            if (prev && prev !== data.activeApp) {
-              // App switched on phone -> pull fresh screen automatically
-              setTimeout(() => handleSnap(true), 300);
-            }
-            return data.activeApp;
-          });
-        }
+        processDevicePayload(data);
       } catch (err) {
         console.error('Failed to parse SSE payload:', err);
       }
     };
 
     sse.onerror = () => {
-      // Fallback polling if SSE disconnects
+      // Fallback polling if SSE disconnects or isn't supported in iframe
+      if (!fallbackInterval) {
+        fallbackInterval = setInterval(fetchImmediateDevices, 3000);
+      }
     };
 
     return () => {
       sse.close();
+      if (fallbackInterval) clearInterval(fallbackInterval);
     };
   }, [selectedDevice]);
 
@@ -922,6 +940,229 @@ export default function StudioPage() {
     },
     [selectedDevice, activeApp, refreshPreview]
   );
+
+  // 1-Click Load Crisp Mobile Demo Sample
+  const handleLoadDemoScreen = useCallback(async () => {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1080;
+      canvas.height = 2400;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      // Dark background
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, 2400);
+      bgGrad.addColorStop(0, '#0a0d14');
+      bgGrad.addColorStop(1, '#05070a');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, 1080, 2400);
+
+      // Status Bar (Top)
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '600 44px -apple-system, sans-serif';
+      ctx.fillText('9:41', 70, 100);
+
+      // Top icons (Wi-Fi, Battery)
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(930, 70, 70, 36);
+      ctx.fillRect(936, 76, 50, 24);
+      ctx.fillRect(1002, 82, 6, 12);
+
+      // App Bar
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '500 36px -apple-system, sans-serif';
+      ctx.fillText('FINANCE PULSE', 70, 210);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 64px -apple-system, sans-serif';
+      ctx.fillText('Alex Morgan', 70, 285);
+
+      // Profile Avatar circle
+      ctx.beginPath();
+      ctx.arc(970, 245, 50, 0, Math.PI * 2);
+      const avatarGrad = ctx.createLinearGradient(920, 195, 1020, 295);
+      avatarGrad.addColorStop(0, '#38bdf8');
+      avatarGrad.addColorStop(1, '#6366f1');
+      ctx.fillStyle = avatarGrad;
+      ctx.fill();
+
+      // Hero Card
+      const heroGrad = ctx.createLinearGradient(70, 360, 1010, 840);
+      heroGrad.addColorStop(0, '#1e1b4b');
+      heroGrad.addColorStop(0.5, '#312e81');
+      heroGrad.addColorStop(1, '#4338ca');
+      ctx.fillStyle = heroGrad;
+      ctx.beginPath();
+      ctx.roundRect(70, 360, 940, 500, 48);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Hero Card Content
+      ctx.fillStyle = '#a5b4fc';
+      ctx.font = '600 38px -apple-system, sans-serif';
+      ctx.fillText('Total Portfolio Value', 130, 445);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 96px -apple-system, sans-serif';
+      ctx.fillText('$84,290.40', 130, 560);
+
+      // Badge pill
+      ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+      ctx.beginPath();
+      ctx.roundRect(130, 610, 280, 60, 30);
+      ctx.fill();
+      ctx.fillStyle = '#34d399';
+      ctx.font = 'bold 34px -apple-system, sans-serif';
+      ctx.fillText('▲ +14.8% this week', 150, 652);
+
+      // Action Pills
+      const actions = ['Send', 'Receive', 'Swap', 'Vault'];
+      actions.forEach((act, i) => {
+        const x = 70 + i * 242;
+        ctx.fillStyle = '#161b26';
+        ctx.beginPath();
+        ctx.roundRect(x, 910, 212, 130, 32);
+        ctx.fill();
+        ctx.strokeStyle = '#273142';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 38px -apple-system, sans-serif';
+        ctx.fillText('●', x + 92, 965);
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = '600 32px -apple-system, sans-serif';
+        ctx.fillText(act, x + 62, 1010);
+      });
+
+      // Section: Highlights
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 48px -apple-system, sans-serif';
+      ctx.fillText('Market Highlights', 70, 1130);
+
+      // 4 Feature Cards
+      const items = [
+        { title: 'Ethereum Staking', sub: 'Yield reward distributed', amt: '+$420.00', color: '#6366f1' },
+        { title: 'Apple Inc. (AAPL)', sub: 'Dividend payout received', amt: '+$84.50', color: '#10b981' },
+        { title: 'Cloud Infrastructure', sub: 'Monthly subscription', amt: '-$12.00', color: '#f43f5e' },
+        { title: 'Solana Network', sub: 'Validator fee earned', amt: '+$190.20', color: '#8b5cf6' },
+      ];
+
+      items.forEach((item, idx) => {
+        const y = 1180 + idx * 200;
+        ctx.fillStyle = '#11151f';
+        ctx.beginPath();
+        ctx.roundRect(70, y, 940, 170, 32);
+        ctx.fill();
+        ctx.strokeStyle = '#202636';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(150, y + 85, 42, 0, Math.PI * 2);
+        ctx.fillStyle = item.color;
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 40px -apple-system, sans-serif';
+        ctx.fillText(item.title, 220, y + 78);
+
+        ctx.fillStyle = '#64748b';
+        ctx.font = '400 32px -apple-system, sans-serif';
+        ctx.fillText(item.sub, 220, y + 124);
+
+        ctx.fillStyle = item.amt.startsWith('+') ? '#34d399' : '#f87171';
+        ctx.font = 'bold 40px -apple-system, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(item.amt, 950, y + 100);
+        ctx.textAlign = 'left';
+      });
+
+      // Bottom Navigation Bar
+      ctx.fillStyle = '#0d111a';
+      ctx.fillRect(0, 2200, 1080, 200);
+      ctx.strokeStyle = '#1e2535';
+      ctx.beginPath();
+      ctx.moveTo(0, 2200);
+      ctx.lineTo(1080, 2200);
+      ctx.stroke();
+
+      // Home indicator pill
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.roundRect(380, 2360, 320, 12, 6);
+      ctx.fill();
+
+      const demoBase64 = canvas.toDataURL('image/png').replace(/^data:image\/png;base64,/, '');
+      setScreenshotBase64(demoBase64);
+      lastScreenBase64Ref.current = demoBase64;
+
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const newScreen: SessionScreen = {
+        id: `demo-${Date.now()}`,
+        index: screens.length + 1,
+        label: `Sample #${screens.length + 1}`,
+        base64: demoBase64,
+        timestamp: timeStr,
+        themeId,
+        bezelId,
+        layout,
+        font: headlineFont,
+        headlineFont,
+        subtitleFont,
+        textAlign,
+        titleScale,
+        subtitleScale,
+        titleWeight,
+        isItalic,
+        textOffset,
+        showStars,
+        ambientGlow,
+        phoneScale,
+        phoneOffset,
+        customColor1,
+        customColor2,
+        useCustomColors,
+        typographyPosition,
+      };
+
+      setScreens((prev) => {
+        setActiveScreenIndex(prev.length);
+        return [...prev, newScreen];
+      });
+
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+      setToastMessage('🎨 Loaded sample mobile screen!');
+      toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2500);
+
+      await refreshPreview(demoBase64);
+    } catch (err) {
+      console.error('Failed to generate demo sample:', err);
+    }
+  }, [
+    screens.length,
+    themeId,
+    bezelId,
+    layout,
+    headlineFont,
+    subtitleFont,
+    textAlign,
+    titleScale,
+    subtitleScale,
+    titleWeight,
+    isItalic,
+    textOffset,
+    showStars,
+    ambientGlow,
+    phoneScale,
+    phoneOffset,
+    customColor1,
+    customColor2,
+    useCustomColors,
+    typographyPosition,
+    refreshPreview,
+  ]);
 
   // 1-Click Switch: Puts USB device in TCP mode and connects over Wi-Fi
   const handleSwitchToWifi = async () => {
@@ -3285,7 +3526,7 @@ export default function StudioPage() {
               handleImportFiles(e.dataTransfer.files);
             }
           }}
-          className="flex-1 bg-[#0a0b0e] flex flex-col items-center justify-center p-6 relative overflow-hidden"
+          className="flex-1 bg-[#0a0b0e] flex flex-col items-center p-3 sm:p-5 relative overflow-y-auto overflow-x-hidden min-h-0"
         >
           {/* Subtle Studio Background Grid */}
           <div
@@ -3346,7 +3587,7 @@ export default function StudioPage() {
           </div>
 
           {/* Canvas Wrapper */}
-          <div className="relative max-h-[72vh] max-w-[85vw] flex flex-col items-center justify-center">
+          <div className="relative max-h-[72vh] max-w-[85vw] flex flex-col items-center justify-center my-auto shrink-0">
             {previewBase64 ? (
               <>
                 <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-black/80 border border-white/10 group transition duration-300">
@@ -3359,7 +3600,7 @@ export default function StudioPage() {
                     src={`data:${previewMime};base64,${previewBase64}`}
                     alt="ADBSnap Canvas Preview"
                     draggable={false}
-                    className="max-h-[52vh] w-auto object-contain rounded-xl select-none pointer-events-none"
+                    className="max-h-[min(48vh,480px)] w-auto object-contain rounded-xl select-none pointer-events-none"
                   />
 
                   {/* Direct On-Canvas Draggable Text Zone (Top Headline Area) */}
@@ -3540,7 +3781,7 @@ export default function StudioPage() {
                 <p className="text-xs text-slate-400 mb-4 max-w-xs">
                   Drag &amp; drop screenshots here, browse local files, or press <kbd className="px-1.5 py-0.5 bg-slate-800 text-cyan-300 rounded font-mono text-[10px]">Space</kbd> to sync from phone.
                 </p>
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2.5 flex-wrap justify-center">
                   <button
                     type="button"
                     onClick={(e) => {
@@ -3551,6 +3792,18 @@ export default function StudioPage() {
                   >
                     <RefreshCw className="w-3 h-3" />
                     <span>Sync Phone (Space)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleLoadDemoScreen();
+                    }}
+                    className="px-3.5 py-1.5 rounded-lg bg-indigo-600/90 hover:bg-indigo-500 border border-indigo-400/30 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/20"
+                    title="Load an instant sample mobile screen to test mockups and themes"
+                  >
+                    <Sparkles className="w-3 h-3 text-indigo-200" />
+                    <span>Sample Screen</span>
                   </button>
                   <button
                     type="button"
@@ -3570,7 +3823,7 @@ export default function StudioPage() {
 
           {/* Session Screens Filmstrip Tray */}
           {screens.length > 0 && (
-            <div className="mt-3 flex flex-col items-center z-20 w-full max-w-3xl px-4">
+            <div className="mt-4 flex flex-col items-center z-20 w-full max-w-3xl px-2 sm:px-4 shrink-0 pb-6">
               <div className="flex items-center justify-between w-full mb-1.5 px-1">
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] font-semibold text-slate-300 tracking-wide flex items-center gap-1.5">

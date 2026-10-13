@@ -2180,6 +2180,7 @@ var StudioWebviewManager = class _StudioWebviewManager {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; frame-src http://127.0.0.1:* http://localhost:*; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: https: http://127.0.0.1:* http://localhost:*; connect-src http://127.0.0.1:* http://localhost:*; font-src data: https:;">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ADBSnap Studio</title>
   <style>
