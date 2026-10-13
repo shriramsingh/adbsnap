@@ -1469,6 +1469,14 @@ var ControlCenterViewProvider = class {
       localResourceRoots: [vscode4.Uri.file(this.context.extensionPath)]
     };
     webviewView.webview.html = this.getHtmlContent();
+    webviewView.onDidChangeVisibility(() => {
+      if (webviewView.visible) {
+        this.refresh();
+      }
+    });
+    webviewView.onDidDispose(() => {
+      this._view = void 0;
+    });
     webviewView.webview.onDidReceiveMessage(async (message) => {
       switch (message.command) {
         case "snap":
@@ -1558,6 +1566,7 @@ var ControlCenterViewProvider = class {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' https:; script-src 'unsafe-inline' https:; img-src 'self' data: https:;">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ADBSnap Control Center</title>
   <style>
