@@ -9,6 +9,7 @@ import { AdbStatusBarManager } from './statusBar';
 import { runAdbSnapCli, getCliRunnerLabel } from './cli';
 import { DevicesTreeDataProvider, DeviceTreeItem } from './views/devicesProvider';
 import { CapturesTreeDataProvider, CaptureTreeItem } from './views/capturesProvider';
+import { ControlCenterViewProvider } from './views/controlCenterProvider';
 import { StudioWebviewManager } from './studio/studioWebview';
 import type { ConnectedDevice } from '../../lib/driver';
 
@@ -16,6 +17,7 @@ let statusBarManager: AdbStatusBarManager;
 let outputChannel: vscode.OutputChannel;
 let devicesProvider: DevicesTreeDataProvider;
 let capturesProvider: CapturesTreeDataProvider;
+let controlCenterProvider: ControlCenterViewProvider;
 
 export function activate(context: vscode.ExtensionContext) {
   outputChannel = vscode.window.createOutputChannel('ADBSnap');
@@ -106,13 +108,34 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // Tree View Data Providers (Phase 2)
+  // Tree & Webview Providers
   devicesProvider = new DevicesTreeDataProvider(statusBarManager);
   capturesProvider = new CapturesTreeDataProvider(() => resolveOutputDir());
+  controlCenterProvider = new ControlCenterViewProvider(
+    context,
+    statusBarManager,
+    resolveOutputDir
+  );
 
   context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      ControlCenterViewProvider.viewType,
+      controlCenterProvider
+    ),
     vscode.window.registerTreeDataProvider('adbsnap.devicesView', devicesProvider),
     vscode.window.registerTreeDataProvider('adbsnap.recentCapturesView', capturesProvider)
+  );
+
+  statusBarManager.onDidDeviceChange.event(() => {
+    controlCenterProvider.refresh();
+  });
+
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration('adbsnap')) {
+        controlCenterProvider.refresh();
+      }
+    })
   );
 
   // 8. Command: Open Asset Studio Webview (Phase 2)
@@ -877,9 +900,25 @@ async function handleSelectDeviceCommand(): Promise<void> {
 }
 
 /**
+ * Persists known Wi-Fi endpoints in memory and global storage so they are never lost.
+ */
+function rememberWifiEndpoint(context: vscode.ExtensionContext | undefined, endpoint: string): void {
+  statusBarManager.setLastWirelessEndpoint(endpoint);
+  if (context) {
+    const list = context.globalState.get<string[]>('adbsnap.recentWifiEndpoints') || [];
+    const updated = [endpoint, ...list.filter((e) => e !== endpoint)].slice(0, 10);
+    context.globalState.update('adbsnap.recentWifiEndpoints', updated);
+    context.globalState.update('adbsnap.lastWifiEndpoint', endpoint);
+  }
+  if (controlCenterProvider) {
+    controlCenterProvider.refresh();
+  }
+}
+
+/**
  * Switch to Wireless ADB (WiFi)
  */
-async function handleWifiCommand(): Promise<void> {
+async function handleWifiCommand(context?: vscode.ExtensionContext): Promise<void> {
   const devices = await listAllDevices();
   const usbDevices = devices.filter((d) => d.platform === 'android' && d.type === 'usb' && d.isAuthorized);
 
@@ -907,7 +946,7 @@ async function handleWifiCommand(): Promise<void> {
     async () => {
       try {
         const address = await androidDriver.enableWireless(targetId);
-        statusBarManager.setLastWirelessEndpoint(address);
+        rememberWifiEndpoint(context, address);
         await statusBarManager.refresh();
         if (devicesProvider) {
           devicesProvider.refresh();
@@ -949,10 +988,7 @@ async function handleConnectIpCommand(context?: vscode.ExtensionContext): Promis
       try {
         const res = await androidDriver.connectWifi(ip, port);
         if (res.success) {
-          statusBarManager.setLastWirelessEndpoint(endpoint);
-          if (context) {
-            context.globalState.update('adbsnap.lastWifiEndpoint', endpoint);
-          }
+          rememberWifiEndpoint(context, endpoint);
           await statusBarManager.refresh();
           if (devicesProvider) devicesProvider.refresh();
           vscode.window.showInformationMessage(`📶 Connected to Android device at ${endpoint}!`);
@@ -1009,10 +1045,7 @@ async function handlePairWifiCommand(context?: vscode.ExtensionContext): Promise
           await new Promise((r) => setTimeout(r, 1200));
           const connRes = await androidDriver.connectWifi(ip.trim(), 5555);
           const fullEndpoint = `${ip.trim()}:5555`;
-          statusBarManager.setLastWirelessEndpoint(fullEndpoint);
-          if (context) {
-            context.globalState.update('adbsnap.lastWifiEndpoint', fullEndpoint);
-          }
+          rememberWifiEndpoint(context, fullEndpoint);
           await statusBarManager.refresh();
           if (devicesProvider) devicesProvider.refresh();
           if (connRes.success) {
@@ -1032,13 +1065,47 @@ async function handlePairWifiCommand(context?: vscode.ExtensionContext): Promise
  * 1-Click Reconnect to known or offline wireless device
  */
 async function handleReconnectCommand(context?: vscode.ExtensionContext, target?: any): Promise<void> {
-  const endpoint = typeof target === 'string'
+  let endpoint = typeof target === 'string'
     ? target
-    : target?.endpoint || target?.device?.id || statusBarManager.getLastWirelessEndpoint();
+    : target?.endpoint || target?.device?.id;
+
+  if (!endpoint && context) {
+    const recent = context.globalState.get<string[]>('adbsnap.recentWifiEndpoints') || [];
+    const lastEp = statusBarManager.getLastWirelessEndpoint() || context.globalState.get<string>('adbsnap.lastWifiEndpoint');
+
+    if (recent.length === 1) {
+      endpoint = recent[0];
+    } else if (recent.length > 1) {
+      const picks = recent.map((ep) => ({
+        label: `$(radio-tower) ${ep}`,
+        description: ep === lastEp ? '(Most Recent)' : '',
+        endpoint: ep,
+      }));
+      picks.push({
+        label: '$(plus) Connect to New IP...',
+        description: '',
+        endpoint: 'NEW',
+      });
+      const chosen = await vscode.window.showQuickPick(picks, {
+        placeHolder: 'Select wireless device to reconnect',
+      });
+      if (!chosen) return;
+      if (chosen.endpoint === 'NEW') {
+        await handleConnectIpCommand(context);
+        return;
+      }
+      endpoint = chosen.endpoint;
+    } else if (lastEp) {
+      endpoint = lastEp;
+    }
+  }
 
   if (!endpoint || !endpoint.includes(':')) {
-    await handleConnectIpCommand(context);
-    return;
+    endpoint = statusBarManager.getLastWirelessEndpoint();
+    if (!endpoint) {
+      await handleConnectIpCommand(context);
+      return;
+    }
   }
 
   const [ip, portStr] = endpoint.split(':');
@@ -1054,10 +1121,7 @@ async function handleReconnectCommand(context?: vscode.ExtensionContext, target?
       try {
         const res = await androidDriver.connectWifi(ip, port);
         if (res.success) {
-          statusBarManager.setLastWirelessEndpoint(endpoint);
-          if (context) {
-            context.globalState.update('adbsnap.lastWifiEndpoint', endpoint);
-          }
+          rememberWifiEndpoint(context, endpoint);
           await statusBarManager.refresh();
           if (devicesProvider) devicesProvider.refresh();
           vscode.window.showInformationMessage(`📶 Reconnected to ${endpoint}!`);
@@ -1081,7 +1145,7 @@ async function handleDisconnectWifiCommand(context?: vscode.ExtensionContext, ta
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      title: 'ADBSnap: Reverting ADB to USB mode...',
+      title: 'ADBSnap: Disconnecting Wi-Fi session...',
       cancellable: false,
     },
     async () => {
@@ -1089,15 +1153,18 @@ async function handleDisconnectWifiCommand(context?: vscode.ExtensionContext, ta
         if (androidDriver.disableWireless) {
           await androidDriver.disableWireless(deviceId);
         }
-        statusBarManager.setLastWirelessEndpoint(null);
-        if (context) {
-          context.globalState.update('adbsnap.lastWifiEndpoint', undefined);
+        // Preserve remembered Wi-Fi endpoint in memory & storage so user can 1-click reconnect!
+        if (deviceId && deviceId.includes(':')) {
+          rememberWifiEndpoint(context, deviceId);
         }
         await statusBarManager.refresh();
         if (devicesProvider) {
           devicesProvider.refresh();
         }
-        vscode.window.showInformationMessage('🔌 ADBSnap: Wi-Fi mode turned off. Switched back to USB mode.');
+        if (controlCenterProvider) {
+          controlCenterProvider.refresh();
+        }
+        vscode.window.showInformationMessage(`🔌 Disconnected from ${deviceId || 'device'}. (Click 'Reconnect' in ADBSnap anytime to restore Wi-Fi)`);
       } catch (err: any) {
         vscode.window.showErrorMessage(`Disconnect Wi-Fi Failed: ${err.message || err}`);
       }
@@ -1716,6 +1783,19 @@ async function handleOpenMenuCommand(context: vscode.ExtensionContext): Promise<
       detail: 'Click to select or switch active target device',
       action: () => vscode.commands.executeCommand('adbsnap.devices'),
     },
+  ];
+
+  const lastWifi = statusBarManager.getLastWirelessEndpoint() || context.globalState.get<string>('adbsnap.lastWifiEndpoint');
+  if (lastWifi && (!activeDevice || activeDevice.id !== lastWifi)) {
+    items.push({
+      label: `$(sync) Reconnect to ${lastWifi}`,
+      description: '1-click reconnect to saved Wi-Fi phone',
+      detail: 'Restore wireless debugging link without retyping IP',
+      action: () => vscode.commands.executeCommand('adbsnap.reconnectDevice', lastWifi),
+    });
+  }
+
+  items.push(
     { label: '', kind: vscode.QuickPickItemKind.Separator },
     {
       label: '$(camera) Quick Capture (Framed)',
@@ -1853,8 +1933,8 @@ async function handleOpenMenuCommand(context: vscode.ExtensionContext): Promise<
       label: '$(pulse) Run ADB Doctor Diagnostics',
       detail: 'Check adb path, daemon state, and device authorization',
       action: () => vscode.commands.executeCommand('adbsnap.doctor'),
-    },
-  ];
+    }
+  );
 
   const pick = await vscode.window.showQuickPick(items, {
     placeHolder: 'ADBSnap Mobile Command Center',

@@ -356,6 +356,11 @@
     "views": {
       "adbsnap-sidebar": [
         {
+          "type": "webview",
+          "id": "adbsnap.controlCenterView",
+          "name": "Mobile Control Center"
+        },
+        {
           "id": "adbsnap.devicesView",
           "name": "Connected Devices"
         },

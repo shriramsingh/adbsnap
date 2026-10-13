@@ -64,11 +64,13 @@ export class AdbStatusBarManager implements vscode.Disposable {
         if (!this.isAutoReconnecting) {
           this.activeDevice = null;
           if (this.lastWirelessEndpoint) {
-            this.statusBarItem.text = `$(radio-tower) ${this.lastWirelessEndpoint} (Offline)`;
-            this.statusBarItem.tooltip = `Wi-Fi device ${this.lastWirelessEndpoint} is disconnected. Click to reconnect.`;
+            this.statusBarItem.text = `$(sync) Reconnect ${this.lastWirelessEndpoint}`;
+            this.statusBarItem.tooltip = `Wi-Fi device (${this.lastWirelessEndpoint}) is disconnected.\nClick to reconnect.`;
+            this.statusBarItem.command = 'adbsnap.reconnectDevice';
           } else {
             this.statusBarItem.text = '$(device-mobile) No Device';
-            this.statusBarItem.tooltip = 'No mobile devices found. Click to refresh connected devices or connect over Wi-Fi.';
+            this.statusBarItem.tooltip = 'No mobile devices found. Click to open Command Center or connect over Wi-Fi.';
+            this.statusBarItem.command = 'adbsnap.openMenu';
           }
           this.statusBarItem.backgroundColor = undefined;
           this.onDidDeviceChange.fire(null);
