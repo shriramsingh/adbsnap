@@ -44,5 +44,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 150);
       }
     });
+  // Use Case Tab Switcher
+  const useCaseTabs = document.querySelectorAll('.usecase-tab');
+  const useCasePanels = document.querySelectorAll('.usecase-panel');
+
+  useCaseTabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      useCaseTabs.forEach((t) => t.classList.remove('active'));
+      useCasePanels.forEach((p) => p.classList.remove('active'));
+
+      tab.classList.add('active');
+      const targetId = tab.getAttribute('data-tab');
+      const targetPanel = document.getElementById(targetId);
+      if (targetPanel) {
+        targetPanel.classList.add('active');
+      }
+    });
   });
 });

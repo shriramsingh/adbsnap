@@ -133,6 +133,131 @@ Check out **[PromptTest Studio](https://shriramsingh.github.io/prompttest-studio
 
 ---
 
+## 🎯 Real-World Use Cases
+
+ADBSnap bridges the gap between raw device screens and publication-grade visuals across your entire mobile development lifecycle:
+
+### 1. 📱 1-Click App Store & Google Play Asset Generation (CI/CD & Releases)
+- **Problem**: Manually resizing screenshots for Apple's strict display requirements (6.9", 6.7", 6.5") and Google Play's 7-inch/10-inch tablets plus feature graphics takes hours in design tools.
+- **Solution**: One CLI command or Studio click generates an entire store-compliant asset pack packaged into a neat ZIP archive.
+```bash
+# Headless store pack generation for release scripts & CI/CD
+npx adbsnap export --store apple --zip --format webp
+```
+
+### 2. 🚀 Frictionless Pull Request Reviews & Visual QA
+- **Problem**: Reviewing mobile PRs often involves guessing what visual UI changes look like or uploading low-res, unformatted phone screenshots.
+- **Solution**: Capture pixel-accurate 4K framed screenshots directly into your clipboard (<kbd>Ctrl+Alt+C</kbd> / <kbd>Cmd+Alt+C</kbd>) or auto-insert markdown links (`![ADBSnap](./output/...)`) into PR descriptions, Linear tickets, or Slack discussions.
+```bash
+# In VS Code: Ctrl+Alt+S (Quick Capture) or Ctrl+Alt+C (Copy Framed PNG to Clipboard)
+# Headless CLI:
+npx adbsnap snap --title="Refactored Checkout Screen" --theme=midnight
+```
+
+### 3. 🐛 Instant Bug Reporting with Logcat Crash Dumps
+- **Problem**: When QA testers find a visual bug or crash, they often send an unhelpful screenshot without logs, forcing devs to reproduce the issue from scratch.
+- **Solution**: Use `ADBSnap: Capture Bug Report` in VS Code or CLI to bundle a framed screenshot of the exact error state together with the fatal exception Logcat stack trace into a unified Markdown bug report.
+
+### 4. 🎨 Instant Designer Hand-offs & Client Pitch Decks
+- **Problem**: Marketing teams and designers need clean mockups for keynote slides, pitch decks, and Notion docs, but extracting clean device mockups is tedious.
+- **Solution**: Launch `npx adbsnap studio`, select a designer recipe (*Neon Cyber*, *Gradient Luxe*, *Bold Minimalist*), adjust headlines with live on-canvas drag repositioning, and hit <kbd>Ctrl+C</kbd> to paste directly into Figma or Keynote.
+
+### 5. 📢 Multi-Format Marketing Banners & Social Launches
+- **Problem**: Marketing channels require different aspect ratios: vertical for App Store (9:19.5), landscape for Product Hunt and Twitter headers (16:9), and square for Instagram and LinkedIn feeds (1:1).
+- **Solution**: Toggle between **Portrait (9:19.5)**, **Landscape (16:9)**, and **Square (1:1)** in the Studio or CLI. Use **Duo-Phone Mode** (Overlap or Split) to showcase Light vs. Dark themes side-by-side.
+```bash
+# Generate 16:9 Product Hunt / Twitter header
+npx adbsnap snap --aspect landscape --title="Discover Your Next Workout" --theme aurora
+
+# Generate 1:1 Instagram / LinkedIn square showcase
+npx adbsnap snap --aspect square --title="Real-Time Analytics" --theme studioLight
+```
+
+### 6. 🔒 Air-Gapped Enterprise Privacy ("Zero-Cloud" Guarantee)
+- **Problem**: Fintech, healthcare, and enterprise apps cannot upload staging screenshots or unreleased designs containing test PII or confidential IP to cloud mockup generators.
+- **Solution**: ADBSnap is **100% local-first and air-gapped**. All Sharp vector compositing, framebuffer processing, and framing execute strictly in local machine RAM with **zero network telemetry or cloud uploads**.
+
+### 7. 🧹 The "Dirty Status Bar" Fix (Android Demo Mode)
+- **Problem**: Screenshots captured with low battery (18%), weak Wi-Fi bars, 20 unread notification icons, and arbitrary times look unpolished and amateur.
+- **Solution**: Toggle Android Demo Mode to sanitize the status bar to pristine marketing standards (**9:41 AM, 100% battery, full LTE/Wi-Fi, zero notification badges**).
+```bash
+# Sanitize device status bar before capturing
+npx adbsnap demo on
+npx adbsnap snap
+npx adbsnap demo off
+```
+
+---
+
+## 🏗️ Architecture & Core Components
+
+ADBSnap is engineered as a high-performance modular pipeline built on top of native OS tools and Sharp's high-speed C++ libvips bindings:
+
+```
+┌────────────────────────────────────────────────────────┐
+│             Mobile Target Discovery & Stream           │
+│  Android: adb exec-out screencap (~52ms RGBA Stream)   │
+│  iOS: xcrun simctl (Simulator) / devicectl (Physical)  │
+└──────────────────────────┬─────────────────────────────┘
+                           │ Direct RAM Framebuffer
+                           ▼
+┌────────────────────────────────────────────────────────┐
+│            4K Vector Chassis & Bezel Engine            │
+│  • Mathematical SVG Bezels (iPhone 16 Pro Max, Fold)   │
+│  • Dynamic Island / Camera Cutouts & Glass Reflections │
+│  • Multi-radius Gaussian Drop Shadows                  │
+└──────────────────────────┬─────────────────────────────┘
+                           │ Pre-composited Buffer in RAM
+                           ▼
+┌────────────────────────────────────────────────────────┐
+│             Studio 2.0 & Canvas Compositor             │
+│  • Zero-dependency Node HTTP server (<15ms boot)       │
+│  • Figma-style On-Canvas Drag (120 FPS ghost snapping) │
+│  • Granular Zoom Stepper ([-] % [+], Pinch, Hotkeys)   │
+│  • Dynamic SVG Typography & Auto-Wrap Engine           │
+└──────────────────────────┬─────────────────────────────┘
+                           │
+             ┌─────────────┴─────────────┐
+             ▼                           ▼
+┌──────────────────────────┐┌──────────────────────────┐
+│ Parallel Store Bundler   ││ VS Code Extension Bridge │
+│ • App Store (6.9", 6.7") ││ • Ctrl+Alt+S / Ctrl+Alt+C│
+│ • Google Play + Banner   ││ • Native <canvas> PNG    │
+│ • Parallel Promise.all   ││ • Markdown Link Cursor   │
+│ • AVIF (-95%) & WebP     ││ • Demo Mode & Logcat     │
+└──────────────────────────┘└──────────────────────────┘
+```
+
+### Component Breakdown:
+
+1. **Direct Framebuffer & Transport Engine (`lib/adb.ts`, `lib/devices.ts`, `lib/ios.ts`)**
+   - **Direct RAM Streaming**: Bypasses slow on-device PNG encoding and SD-card writes by streaming raw uncompressed RGBA pixel buffers directly from `adb exec-out screencap`.
+   - **Cross-Platform Parity**: Manages Android devices (USB, wireless TCP/IP, Android 11+ pairing PINs) and macOS iOS targets (`xcrun simctl` / `xcrun devicectl`) through a single unified device router.
+
+2. **4K Vector Bezel Framing Engine (`lib/bezel-generator.ts`, `lib/sharp.ts`)**
+   - **Mathematical SVG Modeling**: Generates razor-sharp device chassis for flagship 2026 hardware (iPhone 16 Pro Max 6.9", Pixel 9 Pro Fold 8", Galaxy S25 Ultra, iPad Pro 13", Android Tablets, Frameless).
+   - **Multi-Layer Vector Compositing**: Assembles screen textures, photorealistic glass bevel reflections, camera punch-holes/islands, and multi-radius drop shadows without external raster assets.
+
+3. **Studio 2.0 Canvas & Workspace (`app/page.tsx`, `dist/studio/`)**
+   - **Zero-Dependency Native Server**: Replaced bulky runtimes with an ultra-lightweight Node HTTP engine booting in **<15ms** serving a pre-compiled React 19 SPA.
+   - **Direct Drag Repositioning**: Figma-style drag-and-drop for top headlines and bottom callouts with 120 FPS ghost snapping guides.
+   - **Granular Zoom Engine**: Fine-grained `[ − ]` `{zoom}%` `[ + ]` stepper with `[ 🔍 Fit ]` auto-scaling, trackpad pinch zoom, and keyboard hotkeys.
+   - **Fast-Preview Loopback**: Half-resolution preview endpoint (`format: 'preview'`) cuts Base64 loopback payloads by **83%** for seamless 60fps real-time re-renders.
+
+4. **Parallel Store Bundler & Chassis Cache (`lib/store-bundler.ts`)**
+   - **Single-Pass Assembly**: Pre-assembles the framed device chassis once in memory, caching the composited buffer.
+   - **Concurrent Export Engine**: Generates all required App Store and Google Play resolutions in parallel via `Promise.all`, cutting bundle export time from **>8.1s down to ~2.5s** (3x speedup).
+   - **Next-Gen Compression**: Compiles ultra-lean AVIF (95% smaller than PNG, ~7.3 KB) and WebP (42% smaller, ~86 KB) images.
+
+5. **Animated Story Maker (`lib/sharp.ts`, `gifenc`)**
+   - **Multi-Frame Compiler**: Stitches captured multi-screen user journeys into high-framerate, looping animated GIFs with customizable slide pacing (500ms – 4000ms).
+
+6. **VS Code Extension Native Bridge (`vscode/src/`)**
+   - **In-Editor Command Suite**: Direct keyboard shortcuts (<kbd>Ctrl+Alt+S</kbd>, <kbd>Ctrl+Alt+C</kbd>), Status Bar mobile quick-switchers, and document cursor insertion.
+   - **Canvas PNG Normalizer**: Solves Chromium clipboard limitations by normalizing WebP preview streams into genuine PNG Blobs via offscreen `<canvas>`, guaranteeing instant pasting into Figma, Slack, and Notion.
+
+---
+
 ## 📦 Quick Start
 
 ### Launch Interactive Web Studio (Recommended)

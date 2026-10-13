@@ -90,6 +90,8 @@
         </a>
         <ul class="nav-links">
           <li><a class="nav-link" href="#features">Features</a></li>
+          <li><a class="nav-link" href="#use-cases">Use Cases</a></li>
+          <li><a class="nav-link" href="#architecture">Architecture</a></li>
           <li><a class="nav-link" href="#quickstart">Quick Start</a></li>
           <li><a class="nav-link" href="#cli">CLI Reference</a></li>
           <li><a class="nav-link" href="#vscode">VS Code</a></li>
@@ -213,6 +215,234 @@
               Direct Figma-style text repositioning right on the canvas with 120 FPS preview ghosts. Features dual visible headline and bottom callout textareas, 1-click Designer Aesthetics style recipes, fast-preview loopback, and multi-screen filmstrip management.
             </p>
             <div class="code-snippet">npx adbsnap studio # Boots instantly at http://localhost:3000</div>
+          </div>
+        </div>
+      </div>
+    <!-- Real-World Use Cases Section -->
+    <section class="section" id="use-cases" style="background: rgba(15, 23, 42, 0.3); border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle);">
+      <div class="shell">
+        <div class="section-head">
+          <div class="badge" style="margin-bottom: 12px;">
+            <span class="badge-dot"></span>
+            <span>Production Playbooks</span>
+          </div>
+          <h2>Real-World Developer &amp; Designer Use Cases</h2>
+          <p>From automated release engineering and PR visual QA to keynote pitch decks and marketing launches.</p>
+        </div>
+
+        <!-- Interactive Use Case Tabs -->
+        <div class="usecase-tabs">
+          <button class="usecase-tab active" data-tab="tab-store">📱 Store Release</button>
+          <button class="usecase-tab" data-tab="tab-pr">🚀 PRs &amp; Visual QA</button>
+          <button class="usecase-tab" data-tab="tab-bug">🐛 Bug Reporting</button>
+          <button class="usecase-tab" data-tab="tab-design">🎨 Designer Handoff</button>
+          <button class="usecase-tab" data-tab="tab-marketing">📢 Marketing &amp; Social</button>
+          <button class="usecase-tab" data-tab="tab-privacy">🔒 Air-Gapped Privacy</button>
+          <button class="usecase-tab" data-tab="tab-demo">🧹 Clean Status Bar</button>
+        </div>
+
+        <div class="usecase-content-box">
+          <!-- Panel 1: Store Release -->
+          <div class="usecase-panel active" id="tab-store">
+            <div class="usecase-header">
+              <div class="usecase-title"><span>📱</span> 1-Click App Store &amp; Google Play Asset Generation</div>
+              <span class="usecase-meta-tag">CI/CD &bull; Release Automation &bull; ZIP Pack</span>
+            </div>
+            <div class="usecase-problem-solution">
+              <div class="usecase-box problem">
+                <h4>The Problem</h4>
+                <p>Apple and Google demand strict, conflicting resolution standards (6.9", 6.7", 6.5", 7"/10" tablets, plus 1024×500 feature graphics). Manually resizing and framing dozens of screenshots takes hours in design apps.</p>
+              </div>
+              <div class="usecase-box solution">
+                <h4>The ADBSnap Solution</h4>
+                <p>One headless command or Studio click generates an entire store-compliant asset pack with 4K vector bezels, rendered concurrently and packaged into an organized ZIP bundle.</p>
+              </div>
+            </div>
+            <div class="code-snippet">npx adbsnap export --store apple --zip --format webp</div>
+          </div>
+
+          <!-- Panel 2: PRs & Visual QA -->
+          <div class="usecase-panel" id="tab-pr">
+            <div class="usecase-header">
+              <div class="usecase-title"><span>🚀</span> Frictionless Pull Request Reviews &amp; Visual QA</div>
+              <span class="usecase-meta-tag">VS Code Shortcut &bull; Markdown Cursor Tag</span>
+            </div>
+            <div class="usecase-problem-solution">
+              <div class="usecase-box problem">
+                <h4>The Problem</h4>
+                <p>Reviewing mobile PRs without visuals leads to guesswork. Taking screenshots on a physical device, uploading them to cloud drives, and formatting links disrupts developer flow.</p>
+              </div>
+              <div class="usecase-box solution">
+                <h4>The ADBSnap Solution</h4>
+                <p>Press <code>Ctrl+Alt+S</code> for instant framed capture, <code>Ctrl+Alt+C</code> to copy directly to clipboard, or use <strong>Capture and Insert into Document</strong> to write <code>![ADBSnap](./output/...)</code> right at your editor cursor.</p>
+              </div>
+            </div>
+            <div class="code-snippet"># In VS Code: Ctrl+Alt+S (Quick Capture) or Ctrl+Alt+C (Copy Framed PNG)</div>
+          </div>
+
+          <!-- Panel 3: Bug Reporting -->
+          <div class="usecase-panel" id="tab-bug">
+            <div class="usecase-header">
+              <div class="usecase-title"><span>🐛</span> Instant Bug Reproduction with Logcat Crash Dumps</div>
+              <span class="usecase-meta-tag">QA &bull; Bug Tracking &bull; Linear / Jira / GitHub</span>
+            </div>
+            <div class="usecase-problem-solution">
+              <div class="usecase-box problem">
+                <h4>The Problem</h4>
+                <p>QA testers often submit unhelpful screenshots without logs, forcing mobile engineers to reproduce crashes from scratch to inspect stack traces.</p>
+              </div>
+              <div class="usecase-box solution">
+                <h4>The ADBSnap Solution</h4>
+                <p>Run <strong>ADBSnap: Capture Bug Report</strong> to automatically pair a 4K framed snapshot of the active error state with the fatal exception Logcat stack trace into a unified Markdown bug report.</p>
+              </div>
+            </div>
+            <div class="code-snippet"># VS Code Command Palette: ADBSnap: Capture Bug Report (Screenshot + Logcat)</div>
+          </div>
+
+          <!-- Panel 4: Designer Handoff -->
+          <div class="usecase-panel" id="tab-design">
+            <div class="usecase-header">
+              <div class="usecase-title"><span>🎨</span> Designer Hand-offs &amp; Client Pitch Decks</div>
+              <span class="usecase-meta-tag">Studio 2.0 &bull; 1-Click Aesthetic Recipes &bull; Figma Paste</span>
+            </div>
+            <div class="usecase-problem-solution">
+              <div class="usecase-box problem">
+                <h4>The Problem</h4>
+                <p>Marketers and designers need sleek device mockups for keynote slides, Figma reviews, and Notion docs, but maintaining Figma device templates is tedious.</p>
+              </div>
+              <div class="usecase-box solution">
+                <h4>The ADBSnap Solution</h4>
+                <p>Launch Studio 2.0, pick a designer recipe (<em>Bold Minimalist</em>, <em>Neon Cyber</em>, <em>Gradient Luxe</em>), drag headlines with 120 FPS ghost snapping, and press <kbd>Ctrl+C</kbd> to paste directly into Figma or Keynote.</p>
+              </div>
+            </div>
+            <div class="code-snippet">npx adbsnap studio # Drag text, customize typography, press Ctrl+C to copy</div>
+          </div>
+
+          <!-- Panel 5: Marketing & Social -->
+          <div class="usecase-panel" id="tab-marketing">
+            <div class="usecase-header">
+              <div class="usecase-title"><span>📢</span> Multi-Format Marketing Banners &amp; Social Launches</div>
+              <span class="usecase-meta-tag">16:9 Landscape &bull; 1:1 Square &bull; Duo-Phone Overlap</span>
+            </div>
+            <div class="usecase-problem-solution">
+              <div class="usecase-box problem">
+                <h4>The Problem</h4>
+                <p>Product Hunt, Twitter/X, LinkedIn, and Instagram each require completely different aspect ratios and device compositions (landscape banners, square cards, dual-device comparisons).</p>
+              </div>
+              <div class="usecase-box solution">
+                <h4>The ADBSnap Solution</h4>
+                <p>Switch aspect ratios seamlessly: <strong>16:9 Landscape</strong> for Product Hunt headers, <strong>1:1 Square</strong> for Instagram, and <strong>Duo-Phone Overlap/Split</strong> to showcase Light vs. Dark modes side-by-side.</p>
+              </div>
+            </div>
+            <div class="code-snippet">adbsnap snap --aspect landscape --title="Discover Your Next Workout" --theme aurora</div>
+          </div>
+
+          <!-- Panel 6: Air-Gapped Privacy -->
+          <div class="usecase-panel" id="tab-privacy">
+            <div class="usecase-header">
+              <div class="usecase-title"><span>🔒</span> 100% Local-First &amp; Air-Gapped Enterprise Privacy</div>
+              <span class="usecase-meta-tag">Zero Cloud &bull; Fintech &bull; Healthcare &bull; Compliance</span>
+            </div>
+            <div class="usecase-problem-solution">
+              <div class="usecase-box problem">
+                <h4>The Problem</h4>
+                <p>Financial, healthcare, and enterprise apps cannot upload staging screenshots or unreleased designs containing test PII or confidential IP to cloud mockup tools.</p>
+              </div>
+              <div class="usecase-box solution">
+                <h4>The ADBSnap Solution</h4>
+                <p>ADBSnap executes 100% locally in machine RAM via local ADB, Xcode tools, and Sharp C++ binaries. Zero network telemetry, zero third-party APIs, zero cloud uploads.</p>
+              </div>
+            </div>
+            <div class="code-snippet"># 100% offline, local machine execution with zero cloud network calls</div>
+          </div>
+
+          <!-- Panel 7: Clean Status Bar -->
+          <div class="usecase-panel" id="tab-demo">
+            <div class="usecase-header">
+              <div class="usecase-title"><span>🧹</span> The "Dirty Status Bar" Fix (Android Demo Mode)</div>
+              <span class="usecase-meta-tag">SystemUI Demo &bull; 9:41 AM &bull; 100% Battery</span>
+            </div>
+            <div class="usecase-problem-solution">
+              <div class="usecase-box problem">
+                <h4>The Problem</h4>
+                <p>Screenshots with 14% battery, spotty Wi-Fi bars, 25 notification icons, and arbitrary times look unpolished and immediately signal low quality to users.</p>
+              </div>
+              <div class="usecase-box solution">
+                <h4>The ADBSnap Solution</h4>
+                <p>ADBSnap sends native SystemUI commands to sanitize the status bar to official marketing standards: <strong>9:41 AM, 100% battery, full LTE/Wi-Fi, and zero notifications</strong>.</p>
+              </div>
+            </div>
+            <div class="code-snippet">adbsnap demo on && adbsnap snap && adbsnap demo off</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Architecture & Core Components Section -->
+    <section class="section" id="architecture">
+      <div class="shell">
+        <div class="section-head">
+          <div class="badge" style="margin-bottom: 12px;">
+            <span class="badge-dot"></span>
+            <span>Under the Hood</span>
+          </div>
+          <h2>Architecture &amp; Core Components</h2>
+          <p>Engineered for sub-second execution, zero disk latency, and publication-grade 4K vector fidelity.</p>
+        </div>
+
+        <div class="arch-grid">
+          <!-- Component 1 -->
+          <div class="arch-card">
+            <span class="arch-badge">ENGINE // IO</span>
+            <h3 style="font-size: 19px; font-weight: 700; margin-bottom: 10px;">Direct Framebuffer &amp; Transport</h3>
+            <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">
+              Streams uncompressed RGBA pixel buffers directly from <code>adb exec-out screencap</code> into host RAM in <strong>~52ms</strong> with zero on-device disk writes. Auto-detects Android USB/Wi-Fi and macOS iOS simulators (<code>xcrun simctl</code>) and iPhones (<code>devicectl</code>).
+            </p>
+          </div>
+
+          <!-- Component 2 -->
+          <div class="arch-card">
+            <span class="arch-badge">COMPOSITOR // SVG</span>
+            <h3 style="font-size: 19px; font-weight: 700; margin-bottom: 10px;">4K Vector Bezel Framing</h3>
+            <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">
+              Mathematical SVG chassis modeling for 2026 flagships (iPhone 16 Pro Max 6.9", Pixel 9 Pro Fold 8", Galaxy S25 Ultra, iPad Pro 13"). Features multi-radius drop shadows, Dynamic Island cutouts, and photorealistic glass edge reflections.
+            </p>
+          </div>
+
+          <!-- Component 3 -->
+          <div class="arch-card">
+            <span class="arch-badge">STUDIO // SPA</span>
+            <h3 style="font-size: 19px; font-weight: 700; margin-bottom: 10px;">Studio 2.0 Canvas Engine</h3>
+            <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">
+              Ultra-lightweight native Node HTTP engine booting in <strong>&lt;15ms</strong>. Supports direct on-canvas drag repositioning with 120 FPS ghost snapping, granular zoom stepper (<code>[ − ]</code> <code>%</code> <code>[ + ]</code> <code>[ 🔍 Fit ]</code>), and multi-aspect artboards.
+            </p>
+          </div>
+
+          <!-- Component 4 -->
+          <div class="arch-card">
+            <span class="arch-badge">EXPORT // PARALLEL</span>
+            <h3 style="font-size: 19px; font-weight: 700; margin-bottom: 10px;">Parallel Store Bundler &amp; Cache</h3>
+            <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">
+              Pre-assembles framed phone chassis once in RAM and caches the buffer. Concurrently renders all App Store and Google Play resolutions via <code>Promise.all</code>, slashing export durations from <strong>>8.1s to ~2.5s</strong> (over 3x speedup).
+            </p>
+          </div>
+
+          <!-- Component 5 -->
+          <div class="arch-card">
+            <span class="arch-badge">MOTION // GIF</span>
+            <h3 style="font-size: 19px; font-weight: 700; margin-bottom: 10px;">Animated Story Maker</h3>
+            <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">
+              Compiles multi-screen flows from the filmstrip into high-framerate, smoothly looping animated GIFs with custom step delays (500ms – 4000ms) for animated PR walkthroughs and marketing docs.
+            </p>
+          </div>
+
+          <!-- Component 6 -->
+          <div class="arch-card">
+            <span class="arch-badge">IDE // BRIDGE</span>
+            <h3 style="font-size: 19px; font-weight: 700; margin-bottom: 10px;">VS Code Native Bridge</h3>
+            <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">
+              Deep editor integration with <code>Ctrl+Alt+S</code> quick capture, cursor markdown insertion, Demo Mode status bar toggling, and an offscreen <code>&lt;canvas&gt;</code> PNG normalizer for flawless pasting into Slack and Figma.
+            </p>
           </div>
         </div>
       </div>

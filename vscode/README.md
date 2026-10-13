@@ -25,6 +25,23 @@ ADBSnap for VS Code captures connected Android devices and, on macOS, iOS simula
 
 The VS Code extension provides device discovery, capture, markdown document insertion, autonomous app exploration, app lifecycle controls, the embedded asset Studio, and multi-store asset pack export.
 
+## 🎯 Real-World Developer Workflows
+
+### 1. 🚀 Instant PR Reviews & Markdown Documentation
+Never context-switch to desktop file managers or Figma again. Press `Ctrl+Alt+S` (`Cmd+Alt+S`) to quick-capture a framed screen directly into your `./output` directory, or run **ADBSnap: Capture and Insert into Document** to automatically write `![ADBSnap](./output/...)` at your editor cursor position.
+
+### 2. 📋 1-Click Clipboard Sharing (<kbd>Ctrl+Alt+C</kbd>)
+Press `Ctrl+Alt+C` (`Cmd+Alt+C`) to capture, frame, and copy directly to your system clipboard. The extension's offscreen `<canvas>` normalizer guarantees instant, error-free pasting into Slack, Figma, Linear, Discord, Notion, or GitHub comments.
+
+### 3. 🐛 Reproduce Bugs with Logcat Crash Dumps
+Run **ADBSnap: Capture Bug Report** to capture the exact UI bug state alongside the fatal Logcat exception stack trace, bundling them into a complete bug report.
+
+### 4. 🧹 Status Bar Sanitation (Android Demo Mode)
+Clean up messy status bars (low battery, 20 unread notifications, arbitrary time) with **ADBSnap: Toggle Android Demo Mode**. Instantly locks the clock to 9:41 AM, battery to 100%, and hides all notification clutter.
+
+### 5. 🔒 100% Local-First & Air-Gapped Privacy
+Zero cloud dependencies or network telemetry. All screen capturing and Sharp vector compositing execute locally in RAM on your machine. Confidential staging builds, test credentials, and unreleased designs never leave your workstation.
+
 ## Features
 
 ### Capture and device management
