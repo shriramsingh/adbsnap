@@ -457,6 +457,51 @@ export class AndroidDriver implements DeviceDriver {
 
     return buffer;
   }
+
+  /**
+   * Dispatches a native hardware keyevent (e.g. Back = 4, Home = 3, Recents = 187, Power = 26).
+   */
+  async sendKeyEvent(keyCode: number | string, deviceId?: string): Promise<void> {
+    const prefix = deviceId ? ['-s', deviceId] : [];
+    await this.exec([...prefix, 'shell', 'input', 'keyevent', String(keyCode)]);
+  }
+
+  /**
+   * Injects text into active focused input field on device with special character escaping.
+   */
+  async inputText(text: string, deviceId?: string): Promise<void> {
+    const prefix = deviceId ? ['-s', deviceId] : [];
+    const sanitized = text
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/\s/g, '%s')
+      .replace(/&/g, '\\&')
+      .replace(/\|/g, '\\|')
+      .replace(/\$/g, '\\$')
+      .replace(/`/g, '\\`');
+    await this.exec([...prefix, 'shell', 'input', 'text', sanitized]);
+  }
+
+  /**
+   * Dispatches an Android intent to open a deep link or URI in the default application.
+   */
+  async openDeepLink(uri: string, deviceId?: string): Promise<void> {
+    const prefix = deviceId ? ['-s', deviceId] : [];
+    await this.exec([...prefix, 'shell', 'am', 'start', '-a', 'android.intent.action.VIEW', '-d', uri]);
+  }
+
+  /**
+   * Captures the last N lines of fatal exception / error logcat traces.
+   */
+  async getLogcatErrors(lines: number = 50, deviceId?: string): Promise<string> {
+    const prefix = deviceId ? ['-s', deviceId] : [];
+    try {
+      const output = await this.exec([...prefix, 'shell', 'logcat', '-d', '-t', String(lines), '*:E']);
+      return output.trim();
+    } catch (err: any) {
+      return `Failed to fetch logcat: ${err.message || err}`;
+    }
+  }
 }
 
 export const androidDriver = new AndroidDriver();

@@ -22,9 +22,9 @@ export class AdbStatusBarManager implements vscode.Disposable {
       vscode.StatusBarAlignment.Left,
       100
     );
-    this.statusBarItem.command = 'adbsnap.devices';
+    this.statusBarItem.command = 'adbsnap.openMenu';
     this.statusBarItem.text = '$(device-mobile) ADBSnap: Initializing...';
-    this.statusBarItem.tooltip = 'ADBSnap: Click to select device or refresh';
+    this.statusBarItem.tooltip = 'ADBSnap: Click to open Mobile Command Center';
     this.statusBarItem.show();
 
     this.refresh();

@@ -290,6 +290,52 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  // 25. Command: Open Mobile Command Center
+  context.subscriptions.push(
+    vscode.commands.registerCommand('adbsnap.openMenu', async () => {
+      await handleOpenMenuCommand(context);
+    })
+  );
+
+  // 26. Remote Key Commands: Back, Home, Recents, Power
+  context.subscriptions.push(
+    vscode.commands.registerCommand('adbsnap.keyHome', () => handleSendKeyEventCommand(3, 'Home')),
+    vscode.commands.registerCommand('adbsnap.keyBack', () => handleSendKeyEventCommand(4, 'Back')),
+    vscode.commands.registerCommand('adbsnap.keyRecents', () => handleSendKeyEventCommand(187, 'Recents')),
+    vscode.commands.registerCommand('adbsnap.keyPower', () => handleSendKeyEventCommand(26, 'Power'))
+  );
+
+  // 27. Command: Send Text to Phone
+  context.subscriptions.push(
+    vscode.commands.registerCommand('adbsnap.sendText', async () => {
+      await handleSendTextCommand();
+    })
+  );
+
+  // 28. Command: Open Deep Link on Device
+  context.subscriptions.push(
+    vscode.commands.registerCommand('adbsnap.openDeepLink', async () => {
+      await handleOpenDeepLinkCommand();
+    })
+  );
+
+  // 29. Command: Record Screen (GIF / MP4)
+  context.subscriptions.push(
+    vscode.commands.registerCommand('adbsnap.recordScreen', async () => {
+      await handleRecordScreenCommand(context);
+    })
+  );
+
+  // 30. Command: Capture Bug Report (Screenshot + Logcat)
+  context.subscriptions.push(
+    vscode.commands.registerCommand('adbsnap.bugReport', async () => {
+      await handleBugReportCommand(context);
+    })
+  );
+
+  // 31. Markdown Hover Provider for Visual Tooltip Preview
+  registerMarkdownHoverProvider(context);
+
   // Restore known Wi-Fi endpoint and attempt background auto-reconnect if no active device is connected
   const savedWifi = context.globalState.get<string>('adbsnap.lastWifiEndpoint');
   if (savedWifi) {
@@ -1461,4 +1507,429 @@ async function handleRelaunchAppCommand(_context: vscode.ExtensionContext): Prom
       }
     }
   );
+}
+
+/**
+ * Mobile Command Center Menu (triggered from Status Bar or Command Palette)
+ */
+async function handleOpenMenuCommand(context: vscode.ExtensionContext): Promise<void> {
+  const activeDevice = statusBarManager.getActiveDevice();
+  const deviceLabel = activeDevice
+    ? `${activeDevice.model} (${activeDevice.id}) [${activeDevice.platform.toUpperCase()} ${activeDevice.type.toUpperCase()}]`
+    : 'No active device connected';
+
+  const items: (vscode.QuickPickItem & { action?: () => Promise<void> | void })[] = [
+    {
+      label: `📱 Active Device: ${deviceLabel}`,
+      description: activeDevice?.isAuthorized ? '$(check) READY' : '$(alert) UNAUTHORIZED',
+      detail: 'Click to select or switch active target device',
+      action: () => vscode.commands.executeCommand('adbsnap.devices'),
+    },
+    { label: '', kind: vscode.QuickPickItemKind.Separator },
+    {
+      label: '$(camera) Quick Capture (Framed)',
+      description: 'Ctrl+Alt+S',
+      detail: 'Capture and composite into active device frame and gradient theme',
+      action: () => vscode.commands.executeCommand('adbsnap.snap'),
+    },
+    {
+      label: '$(copy) Capture & Copy to Clipboard',
+      description: 'Ctrl+Alt+C',
+      detail: 'Capture framed image and copy directly to system clipboard',
+      action: () => vscode.commands.executeCommand('adbsnap.snapClipboard'),
+    },
+    {
+      label: '$(markdown) Capture & Insert into Document',
+      detail: 'Capture screen and write ![ADBSnap](path) markdown tag at cursor position',
+      action: () => vscode.commands.executeCommand('adbsnap.insertMarkdown'),
+    },
+    {
+      label: '$(device-mobile) Capture Raw Screenshot',
+      detail: 'Save raw device pixel buffer without framing or backdrops',
+      action: () => vscode.commands.executeCommand('adbsnap.snapRaw'),
+    },
+    {
+      label: '$(record) Record Screen (MP4 / Video)',
+      detail: 'Record mobile screen video and composite inside 4K vector chassis',
+      action: () => vscode.commands.executeCommand('adbsnap.recordScreen'),
+    },
+    {
+      label: '$(bug) Capture Bug Report (Screenshot + Logcat)',
+      detail: 'Snap screen and bundle with recent crash exception logs into Markdown',
+      action: () => vscode.commands.executeCommand('adbsnap.bugReport'),
+    },
+    { label: '', kind: vscode.QuickPickItemKind.Separator },
+    {
+      label: '$(paintcan) Open Asset Studio',
+      detail: 'Open the visual WYSIWYG studio canvas in an embedded tab',
+      action: () => vscode.commands.executeCommand('adbsnap.openStudio'),
+    },
+    {
+      label: '$(edit) Send Selected Text to Phone',
+      detail: 'Type editor selection or input text into active phone input field',
+      action: () => vscode.commands.executeCommand('adbsnap.sendText'),
+    },
+    {
+      label: '$(link-external) Open Deep Link on Device',
+      detail: 'Open selected URL or deep-link URI intent on connected device',
+      action: () => vscode.commands.executeCommand('adbsnap.openDeepLink'),
+    },
+    { label: '', kind: vscode.QuickPickItemKind.Separator },
+    {
+      label: '$(arrow-left) Remote Key: Back',
+      detail: 'Dispatch hardware Back button (KEYCODE_BACK)',
+      action: () => vscode.commands.executeCommand('adbsnap.keyBack'),
+    },
+    {
+      label: '$(home) Remote Key: Home',
+      detail: 'Dispatch hardware Home button (KEYCODE_HOME)',
+      action: () => vscode.commands.executeCommand('adbsnap.keyHome'),
+    },
+    {
+      label: '$(versions) Remote Key: Recent Apps',
+      detail: 'Dispatch app switcher / recent tasks (KEYCODE_APP_SWITCH)',
+      action: () => vscode.commands.executeCommand('adbsnap.keyRecents'),
+    },
+    {
+      label: '$(lock) Remote Key: Power / Lock',
+      detail: 'Dispatch hardware Power key to lock or wake device (KEYCODE_POWER)',
+      action: () => vscode.commands.executeCommand('adbsnap.keyPower'),
+    },
+    { label: '', kind: vscode.QuickPickItemKind.Separator },
+    {
+      label: '$(screen-normal) Change Default Aspect Ratio',
+      detail: 'Switch canvas aspect ratio preset (Portrait 9:19.5, Landscape 16:9, Square 1:1)',
+      action: () => vscode.commands.executeCommand('adbsnap.selectAspectRatio'),
+    },
+    {
+      label: '$(device-mobile) Change Default Bezel Frame',
+      detail: 'Switch default chassis (iPhone 16 Pro Max, Pixel 9 Fold, Galaxy S25...)',
+      action: () => vscode.commands.executeCommand('adbsnap.selectFrame'),
+    },
+    {
+      label: '$(color-mode) Change Default Canvas Theme',
+      detail: 'Switch default backdrop gradient (Aurora, Studio Light, Sunset...)',
+      action: () => vscode.commands.executeCommand('adbsnap.selectTheme'),
+    },
+    {
+      label: '$(file-media) Change Default Export Format',
+      detail: 'Switch export format: PNG, WebP (42% smaller), AVIF (95% smaller), JPEG',
+      action: () => vscode.commands.executeCommand('adbsnap.selectFormat'),
+    },
+    { label: '', kind: vscode.QuickPickItemKind.Separator },
+    {
+      label: '$(radio-tower) Switch to Wireless ADB (WiFi)',
+      detail: '1-click switch USB phone to wireless TCP/IP mode',
+      action: () => vscode.commands.executeCommand('adbsnap.wifi'),
+    },
+    {
+      label: '$(plug) Revert Wi-Fi to USB Mode',
+      detail: 'Disconnect wireless session and reset device port to USB',
+      action: () => vscode.commands.executeCommand('adbsnap.disconnectWifi'),
+    },
+    {
+      label: '$(key) Pair Wireless Device (Android 11+ PIN)',
+      detail: 'Pair device using 6-digit wireless debugging code and pairing port',
+      action: () => vscode.commands.executeCommand('adbsnap.pairWifi'),
+    },
+    {
+      label: '$(clock) Toggle Android SystemUI Demo Mode',
+      detail: 'Force status bar to clean 9:41 AM, 100% battery, no notification icons',
+      action: () => vscode.commands.executeCommand('adbsnap.toggleDemoMode'),
+    },
+    {
+      label: '$(clear-all) Reset App Data (pm clear)',
+      detail: 'Wipe tokens, database, and cache in <100ms for fresh onboarding test',
+      action: () => vscode.commands.executeCommand('adbsnap.resetAppData'),
+    },
+    {
+      label: '$(debug-restart) Relaunch Mobile App',
+      detail: 'Force-stop and restart active application from cold start',
+      action: () => vscode.commands.executeCommand('adbsnap.relaunchApp'),
+    },
+    {
+      label: '$(pulse) Run ADB Doctor Diagnostics',
+      detail: 'Check adb path, daemon state, and device authorization',
+      action: () => vscode.commands.executeCommand('adbsnap.doctor'),
+    },
+  ];
+
+  const pick = await vscode.window.showQuickPick(items, {
+    placeHolder: 'ADBSnap Mobile Command Center',
+    matchOnDetail: true,
+    matchOnDescription: true,
+  });
+
+  if (pick && pick.action) {
+    await pick.action();
+  }
+}
+
+/**
+ * Dispatch hardware key event to connected Android device
+ */
+async function handleSendKeyEventCommand(keyCode: number, keyName: string): Promise<void> {
+  const device = statusBarManager.getActiveDevice();
+  if (!device || device.platform !== 'android') {
+    vscode.window.showWarningMessage(`ADBSnap: Remote ${keyName} key requires an active Android device.`);
+    return;
+  }
+  try {
+    await androidDriver.sendKeyEvent(keyCode, device.id);
+    vscode.window.setStatusBarMessage(`📱 Key ${keyName} dispatched to ${device.model}`, 2000);
+  } catch (err: any) {
+    vscode.window.showErrorMessage(`Failed to send key ${keyName}: ${err.message || err}`);
+  }
+}
+
+/**
+ * Type text from editor or input box directly into active text field on phone
+ */
+async function handleSendTextCommand(): Promise<void> {
+  const device = statusBarManager.getActiveDevice();
+  if (!device || device.platform !== 'android') {
+    vscode.window.showWarningMessage('ADBSnap: Send Text requires an active Android device.');
+    return;
+  }
+
+  const editor = vscode.window.activeTextEditor;
+  let initialText = '';
+  if (editor && !editor.selection.isEmpty) {
+    initialText = editor.document.getText(editor.selection);
+  }
+
+  const text = await vscode.window.showInputBox({
+    title: 'ADBSnap: Send Text to Phone',
+    prompt: 'Enter text to type into the focused input field on the device',
+    value: initialText,
+    ignoreFocusOut: true,
+  });
+
+  if (!text) return;
+
+  try {
+    await androidDriver.inputText(text, device.id);
+    vscode.window.showInformationMessage(`⌨️ Typed "${text.length > 25 ? text.slice(0, 25) + '...' : text}" onto ${device.model}!`);
+  } catch (err: any) {
+    vscode.window.showErrorMessage(`Failed to type text: ${err.message || err}`);
+  }
+}
+
+/**
+ * Open deep link or URL intent directly on mobile device
+ */
+async function handleOpenDeepLinkCommand(): Promise<void> {
+  const device = statusBarManager.getActiveDevice();
+  if (!device || device.platform !== 'android') {
+    vscode.window.showWarningMessage('ADBSnap: Open Deep Link requires an active Android device.');
+    return;
+  }
+
+  const editor = vscode.window.activeTextEditor;
+  let initialUri = '';
+  if (editor && !editor.selection.isEmpty) {
+    initialUri = editor.document.getText(editor.selection).trim();
+  }
+
+  const uri = await vscode.window.showInputBox({
+    title: 'ADBSnap: Open Deep Link on Device',
+    prompt: 'Enter deep link URI or URL (e.g. myapp://checkout?id=123 or https://...)',
+    value: initialUri,
+    ignoreFocusOut: true,
+  });
+
+  if (!uri || !uri.trim()) return;
+
+  try {
+    await androidDriver.openDeepLink(uri.trim(), device.id);
+    vscode.window.showInformationMessage(`🔗 Dispatched intent for "${uri.trim()}" on ${device.model}!`);
+  } catch (err: any) {
+    vscode.window.showErrorMessage(`Failed to open deep link: ${err.message || err}`);
+  }
+}
+
+/**
+ * Record screen video directly from VS Code
+ */
+async function handleRecordScreenCommand(context: vscode.ExtensionContext): Promise<void> {
+  const device = statusBarManager.getActiveDevice();
+  if (!device) {
+    vscode.window.showWarningMessage('ADBSnap: Screen Recording requires a connected device.');
+    return;
+  }
+
+  const durationPick = await vscode.window.showQuickPick(
+    [
+      { id: '5', label: '5 seconds', detail: 'Fast, compact demo clip (great for PRs and bug reports)' },
+      { id: '10', label: '10 seconds (Recommended)', detail: 'Standard user interaction walkthrough' },
+      { id: '15', label: '15 seconds', detail: 'Extended flow demonstration' },
+    ],
+    { placeHolder: 'Select recording duration' }
+  );
+
+  if (!durationPick) return;
+  const duration = durationPick.id;
+
+  outputChannel.clear();
+  outputChannel.show(true);
+  outputChannel.appendLine(`🎥 Starting screen recording on ${device.model} (${duration} seconds)...`);
+
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: `ADBSnap: 🔴 Recording screen on ${device.model} (${duration}s)... Please interact with the device.`,
+      cancellable: false,
+    },
+    async () => {
+      try {
+        const outDir = resolveOutputDir();
+        await fs.mkdir(outDir, { recursive: true });
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const outPath = path.join(outDir, `record-${device.model.replace(/\s+/g, '-').toLowerCase()}-${timestamp}.mp4`);
+
+        const cliArgs = [
+          'record',
+          '--duration', duration,
+          '--device', device.id,
+          '--out', outPath,
+        ];
+
+        const res = await runAdbSnapCli(context.extensionPath, cliArgs, 60000);
+        outputChannel.appendLine(res.stdout || '');
+        if (res.stderr) outputChannel.appendLine(res.stderr);
+
+        if (res.exitCode === 0 && (await fs.stat(outPath).catch(() => null))) {
+          if (capturesProvider) capturesProvider.refresh();
+          const action = await vscode.window.showInformationMessage(
+            `🎬 Screen recording saved: ${path.basename(outPath)}`,
+            'Open Video',
+            'Reveal in Explorer'
+          );
+          if (action === 'Open Video') {
+            await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(outPath));
+          } else if (action === 'Reveal in Explorer') {
+            await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(outPath));
+          }
+        } else {
+          vscode.window.showErrorMessage(`Screen recording failed: ${res.stderr || res.stdout}`);
+        }
+      } catch (err: any) {
+        vscode.window.showErrorMessage(`Recording error: ${err.message || err}`);
+      }
+    }
+  );
+}
+
+/**
+ * Capture Bug Report bundle (Screenshot + Logcat Crash Snippet) into structured Markdown
+ */
+async function handleBugReportCommand(context: vscode.ExtensionContext): Promise<void> {
+  const device = statusBarManager.getActiveDevice();
+  if (!device) {
+    vscode.window.showWarningMessage('ADBSnap: Bug Report capture requires a connected device.');
+    return;
+  }
+
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: 'ADBSnap: Generating Bug Report (Screenshot + Logcat)...',
+      cancellable: false,
+    },
+    async () => {
+      try {
+        // 1. Capture framed screenshot
+        const snap = await handleSnapCommand(context, { copyToClipboard: false, returnResult: true });
+        if (!snap) throw new Error('Failed to capture bug screenshot');
+
+        // 2. Query logcat crash snippet if Android
+        let logcat = 'Logcat not applicable for iOS.';
+        if (device.platform === 'android') {
+          logcat = await androidDriver.getLogcatErrors(60, device.id);
+          if (!logcat || logcat.trim().length === 0) {
+            logcat = 'No recent fatal exception logs detected in logcat (*:E).';
+          }
+        }
+
+        const outDir = resolveOutputDir();
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const mdFileName = `bug-report-${timestamp}.md`;
+        const mdFilePath = path.join(outDir, mdFileName);
+
+        const markdownContent = `# 🐛 Mobile Bug Report
+**Device**: ${device.model} (\`${device.id}\`)  
+**Platform**: ${device.platform.toUpperCase()} (${device.type})  
+**Captured At**: ${new Date().toLocaleString()}  
+
+---
+
+### 📸 Visual Evidence
+![Bug Screenshot](./${snap.fileName})
+
+---
+
+### 💥 Recent Fatal Exceptions & Crash Logs
+\`\`\`log
+${logcat}
+\`\`\`
+`;
+
+        await fs.writeFile(mdFilePath, markdownContent, 'utf-8');
+        await vscode.env.clipboard.writeText(markdownContent);
+
+        if (capturesProvider) capturesProvider.refresh();
+
+        const action = await vscode.window.showInformationMessage(
+          `🐛 Bug report created & copied to clipboard! (${mdFileName})`,
+          'Open Markdown',
+          'Reveal in Explorer'
+        );
+
+        if (action === 'Open Markdown') {
+          const doc = await vscode.workspace.openTextDocument(mdFilePath);
+          await vscode.window.showTextDocument(doc);
+        } else if (action === 'Reveal in Explorer') {
+          await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(mdFilePath));
+        }
+      } catch (err: any) {
+        vscode.window.showErrorMessage(`Bug Report Failed: ${err.message || err}`);
+      }
+    }
+  );
+}
+
+/**
+ * Register HoverProvider for Markdown documents to show rich image preview tooltips
+ */
+function registerMarkdownHoverProvider(context: vscode.ExtensionContext): void {
+  const provider = vscode.languages.registerHoverProvider('markdown', {
+    provideHover(document, position) {
+      const lineText = document.lineAt(position.line).text;
+      const regex = /!\[(.*?)\]\((.*?)\)/g;
+      let match;
+      while ((match = regex.exec(lineText)) !== null) {
+        const linkStart = match.index;
+        const linkEnd = match.index + match[0].length;
+        if (position.character >= linkStart && position.character <= linkEnd) {
+          const label = match[1] || 'ADBSnap Image';
+          const rawPath = match[2];
+          const resolvedUri = rawPath.startsWith('http')
+            ? rawPath
+            : vscode.Uri.file(path.resolve(path.dirname(document.uri.fsPath), rawPath));
+
+          const hoverContent = new vscode.MarkdownString();
+          hoverContent.isTrusted = true;
+          hoverContent.supportHtml = true;
+          hoverContent.appendMarkdown(`**📸 ${label}**\n\n`);
+          hoverContent.appendMarkdown(`![](${resolvedUri.toString()}|width=280)\n\n`);
+          hoverContent.appendMarkdown(`[🎨 Open Studio](command:adbsnap.openStudio) &nbsp;|&nbsp; [📂 Reveal Folder](command:revealFileInOS?${encodeURIComponent(JSON.stringify(resolvedUri))})`);
+
+          return new vscode.Hover(hoverContent, new vscode.Range(position.line, linkStart, position.line, linkEnd));
+        }
+      }
+      return null;
+    },
+  });
+
+  context.subscriptions.push(provider);
 }

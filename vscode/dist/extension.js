@@ -1317,7 +1317,7 @@ var require_range = __commonJS({
   "../node_modules/semver/classes/range.js"(exports2, module2) {
     "use strict";
     var SPACE_CHARACTERS = /\s+/g;
-    var Range = class _Range {
+    var Range2 = class _Range {
       constructor(range, options) {
         options = parseOptions(options);
         if (range instanceof _Range) {
@@ -1456,7 +1456,7 @@ var require_range = __commonJS({
         return false;
       }
     };
-    module2.exports = Range;
+    module2.exports = Range2;
     var LRU = require_lrucache();
     var cache2 = new LRU();
     var parseOptions = require_parse_options();
@@ -1768,12 +1768,12 @@ var require_comparator = __commonJS({
           if (this.value === "") {
             return true;
           }
-          return new Range(comp.value, options).test(this.value);
+          return new Range2(comp.value, options).test(this.value);
         } else if (comp.operator === "") {
           if (comp.value === "") {
             return true;
           }
-          return new Range(this.value, options).test(comp.semver);
+          return new Range2(this.value, options).test(comp.semver);
         }
         options = parseOptions(options);
         if (options.includePrerelease && (this.value === "<0.0.0-0" || comp.value === "<0.0.0-0")) {
@@ -1806,7 +1806,7 @@ var require_comparator = __commonJS({
     var cmp = require_cmp();
     var debug = require_debug();
     var SemVer = require_semver();
-    var Range = require_range();
+    var Range2 = require_range();
   }
 });
 
@@ -1814,10 +1814,10 @@ var require_comparator = __commonJS({
 var require_satisfies = __commonJS({
   "../node_modules/semver/functions/satisfies.js"(exports2, module2) {
     "use strict";
-    var Range = require_range();
+    var Range2 = require_range();
     var satisfies = (version2, range, options) => {
       try {
-        range = new Range(range, options);
+        range = new Range2(range, options);
       } catch (er) {
         return false;
       }
@@ -1831,8 +1831,8 @@ var require_satisfies = __commonJS({
 var require_to_comparators = __commonJS({
   "../node_modules/semver/ranges/to-comparators.js"(exports2, module2) {
     "use strict";
-    var Range = require_range();
-    var toComparators = (range, options) => new Range(range, options).set.map((comp) => comp.map((c) => c.value).join(" ").trim().split(" "));
+    var Range2 = require_range();
+    var toComparators = (range, options) => new Range2(range, options).set.map((comp) => comp.map((c) => c.value).join(" ").trim().split(" "));
     module2.exports = toComparators;
   }
 });
@@ -1842,13 +1842,13 @@ var require_max_satisfying = __commonJS({
   "../node_modules/semver/ranges/max-satisfying.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
-    var Range = require_range();
+    var Range2 = require_range();
     var maxSatisfying = (versions2, range, options) => {
       let max = null;
       let maxSV = null;
       let rangeObj = null;
       try {
-        rangeObj = new Range(range, options);
+        rangeObj = new Range2(range, options);
       } catch (er) {
         return null;
       }
@@ -1871,13 +1871,13 @@ var require_min_satisfying = __commonJS({
   "../node_modules/semver/ranges/min-satisfying.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
-    var Range = require_range();
+    var Range2 = require_range();
     var minSatisfying = (versions2, range, options) => {
       let min = null;
       let minSV = null;
       let rangeObj = null;
       try {
-        rangeObj = new Range(range, options);
+        rangeObj = new Range2(range, options);
       } catch (er) {
         return null;
       }
@@ -1900,10 +1900,10 @@ var require_min_version = __commonJS({
   "../node_modules/semver/ranges/min-version.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
-    var Range = require_range();
+    var Range2 = require_range();
     var gt = require_gt();
     var minVersion = (range, loose) => {
-      range = new Range(range, loose);
+      range = new Range2(range, loose);
       let minver = new SemVer("0.0.0");
       if (range.test(minver)) {
         return minver;
@@ -1958,10 +1958,10 @@ var require_min_version = __commonJS({
 var require_valid2 = __commonJS({
   "../node_modules/semver/ranges/valid.js"(exports2, module2) {
     "use strict";
-    var Range = require_range();
+    var Range2 = require_range();
     var validRange = (range, options) => {
       try {
-        return new Range(range, options).range || "*";
+        return new Range2(range, options).range || "*";
       } catch (er) {
         return null;
       }
@@ -1977,7 +1977,7 @@ var require_outside = __commonJS({
     var SemVer = require_semver();
     var Comparator = require_comparator();
     var { ANY } = Comparator;
-    var Range = require_range();
+    var Range2 = require_range();
     var satisfies = require_satisfies();
     var gt = require_gt();
     var lt = require_lt();
@@ -1985,7 +1985,7 @@ var require_outside = __commonJS({
     var gte = require_gte();
     var outside = (version2, range, hilo, options) => {
       version2 = new SemVer(version2, options);
-      range = new Range(range, options);
+      range = new Range2(range, options);
       let gtfn, ltefn, ltfn, comp, ecomp;
       switch (hilo) {
         case ">":
@@ -2063,10 +2063,10 @@ var require_ltr = __commonJS({
 var require_intersects = __commonJS({
   "../node_modules/semver/ranges/intersects.js"(exports2, module2) {
     "use strict";
-    var Range = require_range();
+    var Range2 = require_range();
     var intersects = (r1, r2, options) => {
-      r1 = new Range(r1, options);
-      r2 = new Range(r2, options);
+      r1 = new Range2(r1, options);
+      r2 = new Range2(r2, options);
       return r1.intersects(r2, options);
     };
     module2.exports = intersects;
@@ -2127,7 +2127,7 @@ var require_simplify = __commonJS({
 var require_subset = __commonJS({
   "../node_modules/semver/ranges/subset.js"(exports2, module2) {
     "use strict";
-    var Range = require_range();
+    var Range2 = require_range();
     var Comparator = require_comparator();
     var { ANY } = Comparator;
     var satisfies = require_satisfies();
@@ -2136,8 +2136,8 @@ var require_subset = __commonJS({
       if (sub === dom) {
         return true;
       }
-      sub = new Range(sub, options);
-      dom = new Range(dom, options);
+      sub = new Range2(sub, options);
+      dom = new Range2(dom, options);
       let sawNonNull = false;
       OUTER: for (const simpleSub of sub.set) {
         for (const simpleDom of dom.set) {
@@ -2318,7 +2318,7 @@ var require_semver2 = __commonJS({
     var coerce = require_coerce();
     var truncate = require_truncate();
     var Comparator = require_comparator();
-    var Range = require_range();
+    var Range2 = require_range();
     var satisfies = require_satisfies();
     var toComparators = require_to_comparators();
     var maxSatisfying = require_max_satisfying();
@@ -2357,7 +2357,7 @@ var require_semver2 = __commonJS({
       coerce,
       truncate,
       Comparator,
-      Range,
+      Range: Range2,
       satisfies,
       toComparators,
       maxSatisfying,
@@ -7883,6 +7883,40 @@ var AndroidDriver = class {
     }
     return buffer2;
   }
+  /**
+   * Dispatches a native hardware keyevent (e.g. Back = 4, Home = 3, Recents = 187, Power = 26).
+   */
+  async sendKeyEvent(keyCode, deviceId) {
+    const prefix = deviceId ? ["-s", deviceId] : [];
+    await this.exec([...prefix, "shell", "input", "keyevent", String(keyCode)]);
+  }
+  /**
+   * Injects text into active focused input field on device with special character escaping.
+   */
+  async inputText(text, deviceId) {
+    const prefix = deviceId ? ["-s", deviceId] : [];
+    const sanitized = text.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\s/g, "%s").replace(/&/g, "\\&").replace(/\|/g, "\\|").replace(/\$/g, "\\$").replace(/`/g, "\\`");
+    await this.exec([...prefix, "shell", "input", "text", sanitized]);
+  }
+  /**
+   * Dispatches an Android intent to open a deep link or URI in the default application.
+   */
+  async openDeepLink(uri, deviceId) {
+    const prefix = deviceId ? ["-s", deviceId] : [];
+    await this.exec([...prefix, "shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", uri]);
+  }
+  /**
+   * Captures the last N lines of fatal exception / error logcat traces.
+   */
+  async getLogcatErrors(lines = 50, deviceId) {
+    const prefix = deviceId ? ["-s", deviceId] : [];
+    try {
+      const output = await this.exec([...prefix, "shell", "logcat", "-d", "-t", String(lines), "*:E"]);
+      return output.trim();
+    } catch (err) {
+      return `Failed to fetch logcat: ${err.message || err}`;
+    }
+  }
 };
 var androidDriver = new AndroidDriver();
 
@@ -8127,9 +8161,9 @@ var AdbStatusBarManager = class {
       vscode.StatusBarAlignment.Left,
       100
     );
-    this.statusBarItem.command = "adbsnap.devices";
+    this.statusBarItem.command = "adbsnap.openMenu";
     this.statusBarItem.text = "$(device-mobile) ADBSnap: Initializing...";
-    this.statusBarItem.tooltip = "ADBSnap: Click to select device or refresh";
+    this.statusBarItem.tooltip = "ADBSnap: Click to open Mobile Command Center";
     this.statusBarItem.show();
     this.refresh();
     this.pollInterval = setInterval(() => this.refresh(), 8e3);
@@ -9073,6 +9107,38 @@ function activate(context) {
       await handleRelaunchAppCommand(context);
     })
   );
+  context.subscriptions.push(
+    vscode5.commands.registerCommand("adbsnap.openMenu", async () => {
+      await handleOpenMenuCommand(context);
+    })
+  );
+  context.subscriptions.push(
+    vscode5.commands.registerCommand("adbsnap.keyHome", () => handleSendKeyEventCommand(3, "Home")),
+    vscode5.commands.registerCommand("adbsnap.keyBack", () => handleSendKeyEventCommand(4, "Back")),
+    vscode5.commands.registerCommand("adbsnap.keyRecents", () => handleSendKeyEventCommand(187, "Recents")),
+    vscode5.commands.registerCommand("adbsnap.keyPower", () => handleSendKeyEventCommand(26, "Power"))
+  );
+  context.subscriptions.push(
+    vscode5.commands.registerCommand("adbsnap.sendText", async () => {
+      await handleSendTextCommand();
+    })
+  );
+  context.subscriptions.push(
+    vscode5.commands.registerCommand("adbsnap.openDeepLink", async () => {
+      await handleOpenDeepLinkCommand();
+    })
+  );
+  context.subscriptions.push(
+    vscode5.commands.registerCommand("adbsnap.recordScreen", async () => {
+      await handleRecordScreenCommand(context);
+    })
+  );
+  context.subscriptions.push(
+    vscode5.commands.registerCommand("adbsnap.bugReport", async () => {
+      await handleBugReportCommand(context);
+    })
+  );
+  registerMarkdownHoverProvider(context);
   const savedWifi = context.globalState.get("adbsnap.lastWifiEndpoint");
   if (savedWifi) {
     statusBarManager.setLastWirelessEndpoint(savedWifi);
@@ -10014,6 +10080,375 @@ async function handleRelaunchAppCommand(_context) {
       }
     }
   );
+}
+async function handleOpenMenuCommand(context) {
+  const activeDevice = statusBarManager.getActiveDevice();
+  const deviceLabel = activeDevice ? `${activeDevice.model} (${activeDevice.id}) [${activeDevice.platform.toUpperCase()} ${activeDevice.type.toUpperCase()}]` : "No active device connected";
+  const items = [
+    {
+      label: `\u{1F4F1} Active Device: ${deviceLabel}`,
+      description: activeDevice?.isAuthorized ? "$(check) READY" : "$(alert) UNAUTHORIZED",
+      detail: "Click to select or switch active target device",
+      action: () => vscode5.commands.executeCommand("adbsnap.devices")
+    },
+    { label: "", kind: vscode5.QuickPickItemKind.Separator },
+    {
+      label: "$(camera) Quick Capture (Framed)",
+      description: "Ctrl+Alt+S",
+      detail: "Capture and composite into active device frame and gradient theme",
+      action: () => vscode5.commands.executeCommand("adbsnap.snap")
+    },
+    {
+      label: "$(copy) Capture & Copy to Clipboard",
+      description: "Ctrl+Alt+C",
+      detail: "Capture framed image and copy directly to system clipboard",
+      action: () => vscode5.commands.executeCommand("adbsnap.snapClipboard")
+    },
+    {
+      label: "$(markdown) Capture & Insert into Document",
+      detail: "Capture screen and write ![ADBSnap](path) markdown tag at cursor position",
+      action: () => vscode5.commands.executeCommand("adbsnap.insertMarkdown")
+    },
+    {
+      label: "$(device-mobile) Capture Raw Screenshot",
+      detail: "Save raw device pixel buffer without framing or backdrops",
+      action: () => vscode5.commands.executeCommand("adbsnap.snapRaw")
+    },
+    {
+      label: "$(record) Record Screen (MP4 / Video)",
+      detail: "Record mobile screen video and composite inside 4K vector chassis",
+      action: () => vscode5.commands.executeCommand("adbsnap.recordScreen")
+    },
+    {
+      label: "$(bug) Capture Bug Report (Screenshot + Logcat)",
+      detail: "Snap screen and bundle with recent crash exception logs into Markdown",
+      action: () => vscode5.commands.executeCommand("adbsnap.bugReport")
+    },
+    { label: "", kind: vscode5.QuickPickItemKind.Separator },
+    {
+      label: "$(paintcan) Open Asset Studio",
+      detail: "Open the visual WYSIWYG studio canvas in an embedded tab",
+      action: () => vscode5.commands.executeCommand("adbsnap.openStudio")
+    },
+    {
+      label: "$(edit) Send Selected Text to Phone",
+      detail: "Type editor selection or input text into active phone input field",
+      action: () => vscode5.commands.executeCommand("adbsnap.sendText")
+    },
+    {
+      label: "$(link-external) Open Deep Link on Device",
+      detail: "Open selected URL or deep-link URI intent on connected device",
+      action: () => vscode5.commands.executeCommand("adbsnap.openDeepLink")
+    },
+    { label: "", kind: vscode5.QuickPickItemKind.Separator },
+    {
+      label: "$(arrow-left) Remote Key: Back",
+      detail: "Dispatch hardware Back button (KEYCODE_BACK)",
+      action: () => vscode5.commands.executeCommand("adbsnap.keyBack")
+    },
+    {
+      label: "$(home) Remote Key: Home",
+      detail: "Dispatch hardware Home button (KEYCODE_HOME)",
+      action: () => vscode5.commands.executeCommand("adbsnap.keyHome")
+    },
+    {
+      label: "$(versions) Remote Key: Recent Apps",
+      detail: "Dispatch app switcher / recent tasks (KEYCODE_APP_SWITCH)",
+      action: () => vscode5.commands.executeCommand("adbsnap.keyRecents")
+    },
+    {
+      label: "$(lock) Remote Key: Power / Lock",
+      detail: "Dispatch hardware Power key to lock or wake device (KEYCODE_POWER)",
+      action: () => vscode5.commands.executeCommand("adbsnap.keyPower")
+    },
+    { label: "", kind: vscode5.QuickPickItemKind.Separator },
+    {
+      label: "$(screen-normal) Change Default Aspect Ratio",
+      detail: "Switch canvas aspect ratio preset (Portrait 9:19.5, Landscape 16:9, Square 1:1)",
+      action: () => vscode5.commands.executeCommand("adbsnap.selectAspectRatio")
+    },
+    {
+      label: "$(device-mobile) Change Default Bezel Frame",
+      detail: "Switch default chassis (iPhone 16 Pro Max, Pixel 9 Fold, Galaxy S25...)",
+      action: () => vscode5.commands.executeCommand("adbsnap.selectFrame")
+    },
+    {
+      label: "$(color-mode) Change Default Canvas Theme",
+      detail: "Switch default backdrop gradient (Aurora, Studio Light, Sunset...)",
+      action: () => vscode5.commands.executeCommand("adbsnap.selectTheme")
+    },
+    {
+      label: "$(file-media) Change Default Export Format",
+      detail: "Switch export format: PNG, WebP (42% smaller), AVIF (95% smaller), JPEG",
+      action: () => vscode5.commands.executeCommand("adbsnap.selectFormat")
+    },
+    { label: "", kind: vscode5.QuickPickItemKind.Separator },
+    {
+      label: "$(radio-tower) Switch to Wireless ADB (WiFi)",
+      detail: "1-click switch USB phone to wireless TCP/IP mode",
+      action: () => vscode5.commands.executeCommand("adbsnap.wifi")
+    },
+    {
+      label: "$(plug) Revert Wi-Fi to USB Mode",
+      detail: "Disconnect wireless session and reset device port to USB",
+      action: () => vscode5.commands.executeCommand("adbsnap.disconnectWifi")
+    },
+    {
+      label: "$(key) Pair Wireless Device (Android 11+ PIN)",
+      detail: "Pair device using 6-digit wireless debugging code and pairing port",
+      action: () => vscode5.commands.executeCommand("adbsnap.pairWifi")
+    },
+    {
+      label: "$(clock) Toggle Android SystemUI Demo Mode",
+      detail: "Force status bar to clean 9:41 AM, 100% battery, no notification icons",
+      action: () => vscode5.commands.executeCommand("adbsnap.toggleDemoMode")
+    },
+    {
+      label: "$(clear-all) Reset App Data (pm clear)",
+      detail: "Wipe tokens, database, and cache in <100ms for fresh onboarding test",
+      action: () => vscode5.commands.executeCommand("adbsnap.resetAppData")
+    },
+    {
+      label: "$(debug-restart) Relaunch Mobile App",
+      detail: "Force-stop and restart active application from cold start",
+      action: () => vscode5.commands.executeCommand("adbsnap.relaunchApp")
+    },
+    {
+      label: "$(pulse) Run ADB Doctor Diagnostics",
+      detail: "Check adb path, daemon state, and device authorization",
+      action: () => vscode5.commands.executeCommand("adbsnap.doctor")
+    }
+  ];
+  const pick = await vscode5.window.showQuickPick(items, {
+    placeHolder: "ADBSnap Mobile Command Center",
+    matchOnDetail: true,
+    matchOnDescription: true
+  });
+  if (pick && pick.action) {
+    await pick.action();
+  }
+}
+async function handleSendKeyEventCommand(keyCode, keyName) {
+  const device = statusBarManager.getActiveDevice();
+  if (!device || device.platform !== "android") {
+    vscode5.window.showWarningMessage(`ADBSnap: Remote ${keyName} key requires an active Android device.`);
+    return;
+  }
+  try {
+    await androidDriver.sendKeyEvent(keyCode, device.id);
+    vscode5.window.setStatusBarMessage(`\u{1F4F1} Key ${keyName} dispatched to ${device.model}`, 2e3);
+  } catch (err) {
+    vscode5.window.showErrorMessage(`Failed to send key ${keyName}: ${err.message || err}`);
+  }
+}
+async function handleSendTextCommand() {
+  const device = statusBarManager.getActiveDevice();
+  if (!device || device.platform !== "android") {
+    vscode5.window.showWarningMessage("ADBSnap: Send Text requires an active Android device.");
+    return;
+  }
+  const editor = vscode5.window.activeTextEditor;
+  let initialText = "";
+  if (editor && !editor.selection.isEmpty) {
+    initialText = editor.document.getText(editor.selection);
+  }
+  const text = await vscode5.window.showInputBox({
+    title: "ADBSnap: Send Text to Phone",
+    prompt: "Enter text to type into the focused input field on the device",
+    value: initialText,
+    ignoreFocusOut: true
+  });
+  if (!text) return;
+  try {
+    await androidDriver.inputText(text, device.id);
+    vscode5.window.showInformationMessage(`\u2328\uFE0F Typed "${text.length > 25 ? text.slice(0, 25) + "..." : text}" onto ${device.model}!`);
+  } catch (err) {
+    vscode5.window.showErrorMessage(`Failed to type text: ${err.message || err}`);
+  }
+}
+async function handleOpenDeepLinkCommand() {
+  const device = statusBarManager.getActiveDevice();
+  if (!device || device.platform !== "android") {
+    vscode5.window.showWarningMessage("ADBSnap: Open Deep Link requires an active Android device.");
+    return;
+  }
+  const editor = vscode5.window.activeTextEditor;
+  let initialUri = "";
+  if (editor && !editor.selection.isEmpty) {
+    initialUri = editor.document.getText(editor.selection).trim();
+  }
+  const uri = await vscode5.window.showInputBox({
+    title: "ADBSnap: Open Deep Link on Device",
+    prompt: "Enter deep link URI or URL (e.g. myapp://checkout?id=123 or https://...)",
+    value: initialUri,
+    ignoreFocusOut: true
+  });
+  if (!uri || !uri.trim()) return;
+  try {
+    await androidDriver.openDeepLink(uri.trim(), device.id);
+    vscode5.window.showInformationMessage(`\u{1F517} Dispatched intent for "${uri.trim()}" on ${device.model}!`);
+  } catch (err) {
+    vscode5.window.showErrorMessage(`Failed to open deep link: ${err.message || err}`);
+  }
+}
+async function handleRecordScreenCommand(context) {
+  const device = statusBarManager.getActiveDevice();
+  if (!device) {
+    vscode5.window.showWarningMessage("ADBSnap: Screen Recording requires a connected device.");
+    return;
+  }
+  const durationPick = await vscode5.window.showQuickPick(
+    [
+      { id: "5", label: "5 seconds", detail: "Fast, compact demo clip (great for PRs and bug reports)" },
+      { id: "10", label: "10 seconds (Recommended)", detail: "Standard user interaction walkthrough" },
+      { id: "15", label: "15 seconds", detail: "Extended flow demonstration" }
+    ],
+    { placeHolder: "Select recording duration" }
+  );
+  if (!durationPick) return;
+  const duration = durationPick.id;
+  outputChannel.clear();
+  outputChannel.show(true);
+  outputChannel.appendLine(`\u{1F3A5} Starting screen recording on ${device.model} (${duration} seconds)...`);
+  await vscode5.window.withProgress(
+    {
+      location: vscode5.ProgressLocation.Notification,
+      title: `ADBSnap: \u{1F534} Recording screen on ${device.model} (${duration}s)... Please interact with the device.`,
+      cancellable: false
+    },
+    async () => {
+      try {
+        const outDir = resolveOutputDir();
+        await import_promises3.default.mkdir(outDir, { recursive: true });
+        const timestamp = (/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-").slice(0, 19);
+        const outPath = import_node_path8.default.join(outDir, `record-${device.model.replace(/\s+/g, "-").toLowerCase()}-${timestamp}.mp4`);
+        const cliArgs = [
+          "record",
+          "--duration",
+          duration,
+          "--device",
+          device.id,
+          "--out",
+          outPath
+        ];
+        const res = await runAdbSnapCli(context.extensionPath, cliArgs, 6e4);
+        outputChannel.appendLine(res.stdout || "");
+        if (res.stderr) outputChannel.appendLine(res.stderr);
+        if (res.exitCode === 0 && await import_promises3.default.stat(outPath).catch(() => null)) {
+          if (capturesProvider) capturesProvider.refresh();
+          const action = await vscode5.window.showInformationMessage(
+            `\u{1F3AC} Screen recording saved: ${import_node_path8.default.basename(outPath)}`,
+            "Open Video",
+            "Reveal in Explorer"
+          );
+          if (action === "Open Video") {
+            await vscode5.commands.executeCommand("vscode.open", vscode5.Uri.file(outPath));
+          } else if (action === "Reveal in Explorer") {
+            await vscode5.commands.executeCommand("revealFileInOS", vscode5.Uri.file(outPath));
+          }
+        } else {
+          vscode5.window.showErrorMessage(`Screen recording failed: ${res.stderr || res.stdout}`);
+        }
+      } catch (err) {
+        vscode5.window.showErrorMessage(`Recording error: ${err.message || err}`);
+      }
+    }
+  );
+}
+async function handleBugReportCommand(context) {
+  const device = statusBarManager.getActiveDevice();
+  if (!device) {
+    vscode5.window.showWarningMessage("ADBSnap: Bug Report capture requires a connected device.");
+    return;
+  }
+  await vscode5.window.withProgress(
+    {
+      location: vscode5.ProgressLocation.Notification,
+      title: "ADBSnap: Generating Bug Report (Screenshot + Logcat)...",
+      cancellable: false
+    },
+    async () => {
+      try {
+        const snap = await handleSnapCommand(context, { copyToClipboard: false, returnResult: true });
+        if (!snap) throw new Error("Failed to capture bug screenshot");
+        let logcat = "Logcat not applicable for iOS.";
+        if (device.platform === "android") {
+          logcat = await androidDriver.getLogcatErrors(60, device.id);
+          if (!logcat || logcat.trim().length === 0) {
+            logcat = "No recent fatal exception logs detected in logcat (*:E).";
+          }
+        }
+        const outDir = resolveOutputDir();
+        const timestamp = (/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-").slice(0, 19);
+        const mdFileName = `bug-report-${timestamp}.md`;
+        const mdFilePath = import_node_path8.default.join(outDir, mdFileName);
+        const markdownContent = `# \u{1F41B} Mobile Bug Report
+**Device**: ${device.model} (\`${device.id}\`)  
+**Platform**: ${device.platform.toUpperCase()} (${device.type})  
+**Captured At**: ${(/* @__PURE__ */ new Date()).toLocaleString()}  
+
+---
+
+### \u{1F4F8} Visual Evidence
+![Bug Screenshot](./${snap.fileName})
+
+---
+
+### \u{1F4A5} Recent Fatal Exceptions & Crash Logs
+\`\`\`log
+${logcat}
+\`\`\`
+`;
+        await import_promises3.default.writeFile(mdFilePath, markdownContent, "utf-8");
+        await vscode5.env.clipboard.writeText(markdownContent);
+        if (capturesProvider) capturesProvider.refresh();
+        const action = await vscode5.window.showInformationMessage(
+          `\u{1F41B} Bug report created & copied to clipboard! (${mdFileName})`,
+          "Open Markdown",
+          "Reveal in Explorer"
+        );
+        if (action === "Open Markdown") {
+          const doc = await vscode5.workspace.openTextDocument(mdFilePath);
+          await vscode5.window.showTextDocument(doc);
+        } else if (action === "Reveal in Explorer") {
+          await vscode5.commands.executeCommand("revealFileInOS", vscode5.Uri.file(mdFilePath));
+        }
+      } catch (err) {
+        vscode5.window.showErrorMessage(`Bug Report Failed: ${err.message || err}`);
+      }
+    }
+  );
+}
+function registerMarkdownHoverProvider(context) {
+  const provider = vscode5.languages.registerHoverProvider("markdown", {
+    provideHover(document, position2) {
+      const lineText = document.lineAt(position2.line).text;
+      const regex = /!\[(.*?)\]\((.*?)\)/g;
+      let match;
+      while ((match = regex.exec(lineText)) !== null) {
+        const linkStart = match.index;
+        const linkEnd = match.index + match[0].length;
+        if (position2.character >= linkStart && position2.character <= linkEnd) {
+          const label = match[1] || "ADBSnap Image";
+          const rawPath = match[2];
+          const resolvedUri = rawPath.startsWith("http") ? rawPath : vscode5.Uri.file(import_node_path8.default.resolve(import_node_path8.default.dirname(document.uri.fsPath), rawPath));
+          const hoverContent = new vscode5.MarkdownString();
+          hoverContent.isTrusted = true;
+          hoverContent.supportHtml = true;
+          hoverContent.appendMarkdown(`**\u{1F4F8} ${label}**
+
+`);
+          hoverContent.appendMarkdown(`![](${resolvedUri.toString()}|width=280)
+
+`);
+          hoverContent.appendMarkdown(`[\u{1F3A8} Open Studio](command:adbsnap.openStudio) &nbsp;|&nbsp; [\u{1F4C2} Reveal Folder](command:revealFileInOS?${encodeURIComponent(JSON.stringify(resolvedUri))})`);
+          return new vscode5.Hover(hoverContent, new vscode5.Range(position2.line, linkStart, position2.line, linkEnd));
+        }
+      }
+      return null;
+    }
+  });
+  context.subscriptions.push(provider);
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {

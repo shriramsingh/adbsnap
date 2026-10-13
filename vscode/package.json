@@ -189,6 +189,51 @@
         "command": "adbsnap.relaunchApp",
         "title": "ADBSnap: Relaunch Mobile App",
         "icon": "$(debug-restart)"
+      },
+      {
+        "command": "adbsnap.openMenu",
+        "title": "ADBSnap: Open Mobile Command Center",
+        "icon": "$(menu)"
+      },
+      {
+        "command": "adbsnap.recordScreen",
+        "title": "ADBSnap: Record Screen (MP4 / Video)",
+        "icon": "$(record)"
+      },
+      {
+        "command": "adbsnap.bugReport",
+        "title": "ADBSnap: Capture Bug Report (Screenshot + Logcat)",
+        "icon": "$(bug)"
+      },
+      {
+        "command": "adbsnap.sendText",
+        "title": "ADBSnap: Send Selected Text to Device",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "adbsnap.openDeepLink",
+        "title": "ADBSnap: Open Deep Link on Device",
+        "icon": "$(link-external)"
+      },
+      {
+        "command": "adbsnap.keyBack",
+        "title": "ADBSnap: Remote Key - Back",
+        "icon": "$(arrow-left)"
+      },
+      {
+        "command": "adbsnap.keyHome",
+        "title": "ADBSnap: Remote Key - Home",
+        "icon": "$(home)"
+      },
+      {
+        "command": "adbsnap.keyRecents",
+        "title": "ADBSnap: Remote Key - Recent Apps",
+        "icon": "$(versions)"
+      },
+      {
+        "command": "adbsnap.keyPower",
+        "title": "ADBSnap: Remote Key - Power / Lock",
+        "icon": "$(lock)"
       }
     ],
     "keybindings": [
@@ -316,13 +361,28 @@
           "command": "adbsnap.insertMarkdown",
           "when": "editorTextFocus",
           "group": "modification@10"
+        },
+        {
+          "command": "adbsnap.sendText",
+          "when": "editorHasSelection",
+          "group": "modification@11"
+        },
+        {
+          "command": "adbsnap.openDeepLink",
+          "when": "editorHasSelection",
+          "group": "modification@12"
         }
       ],
       "view/title": [
         {
+          "command": "adbsnap.openMenu",
+          "when": "view == adbsnap.devicesView",
+          "group": "navigation@0"
+        },
+        {
           "command": "adbsnap.openStudio",
           "when": "view == adbsnap.devicesView",
-          "group": "navigation"
+          "group": "navigation@1"
         },
         {
           "command": "adbsnap.connectIp",

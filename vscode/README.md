@@ -53,10 +53,16 @@ Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`):
 
 | Command | Shortcut | Description |
 | :--- | :--- | :--- |
+| `ADBSnap: Open Mobile Command Center` | — | All-in-one QuickPick mobile command center |
 | `ADBSnap: Quick Capture (Framed)` | `Ctrl+Alt+S` | Capture and frame the active device screen |
 | `ADBSnap: Capture & Copy to Clipboard` | `Ctrl+Alt+C` | Capture, frame, and copy to system clipboard |
 | `ADBSnap: Capture and Insert into Document` | — | Capture and insert `![ADBSnap](path)` markdown tag at cursor |
 | `ADBSnap: Capture Raw Screenshot` | — | Save unframed device pixels |
+| `ADBSnap: Record Screen (MP4 / Video)` | — | Record device screen (5s–15s) framed into 4K mockup |
+| `ADBSnap: Capture Bug Report (Screenshot + Logcat)` | — | Bundle framed bug snapshot + fatal exception crash logs |
+| `ADBSnap: Send Selected Text to Device` | — | Type highlighted editor text or custom input into phone |
+| `ADBSnap: Open Deep Link on Device` | — | Open selected URL or deep-link URI on mobile device |
+| `ADBSnap: Remote Key - Back / Home / Recents / Lock` | — | Hardware navigation keys dispatched directly to device |
 | `ADBSnap: Open Asset Studio` | — | Open the interactive Studio tab |
 | `ADBSnap: Change Default Bezel Frame` | — | QuickPick: Switch default bezel (iPhone 16 Pro Max, Pixel Fold, etc.) |
 | `ADBSnap: Change Default Canvas Theme` | — | QuickPick: Switch default backdrop gradient (Aurora, Cyberpunk, etc.) |
