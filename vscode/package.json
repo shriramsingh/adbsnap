@@ -116,6 +116,21 @@
         "icon": "$(copy)"
       },
       {
+        "command": "adbsnap.connectIp",
+        "title": "ADBSnap: Connect Device via Wi-Fi IP",
+        "icon": "$(broadcast)"
+      },
+      {
+        "command": "adbsnap.pairWifi",
+        "title": "ADBSnap: Pair Wireless Device (Android 11+ Code)",
+        "icon": "$(key)"
+      },
+      {
+        "command": "adbsnap.reconnectDevice",
+        "title": "Reconnect Wireless Device",
+        "icon": "$(sync)"
+      },
+      {
         "command": "adbsnap.deleteCapture",
         "title": "Delete Screenshot",
         "icon": "$(trash)"
@@ -201,9 +216,14 @@
           "group": "navigation"
         },
         {
+          "command": "adbsnap.connectIp",
+          "when": "view == adbsnap.devicesView",
+          "group": "navigation@2"
+        },
+        {
           "command": "adbsnap.refreshDevices",
           "when": "view == adbsnap.devicesView",
-          "group": "navigation"
+          "group": "navigation@3"
         },
         {
           "command": "adbsnap.refreshCaptures",
@@ -213,8 +233,18 @@
       ],
       "view/item/context": [
         {
+          "command": "adbsnap.reconnectDevice",
+          "when": "view == adbsnap.devicesView && viewItem == device-wifi-offline",
+          "group": "inline"
+        },
+        {
           "command": "adbsnap.snapDeviceFromTree",
           "when": "view == adbsnap.devicesView && viewItem =~ /^device-(ready|active|wifi)/",
+          "group": "inline"
+        },
+        {
+          "command": "adbsnap.reconnectDevice",
+          "when": "view == adbsnap.devicesView && viewItem =~ /^device-wifi/",
           "group": "inline"
         },
         {

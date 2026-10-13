@@ -43,36 +43,61 @@ export class DeviceTreeItem extends vscode.TreeItem {
   }
 }
 
-export class DevicesTreeDataProvider implements vscode.TreeDataProvider<DeviceTreeItem> {
-  private _onDidChangeTreeData: vscode.EventEmitter<DeviceTreeItem | undefined | null | void> =
-    new vscode.EventEmitter<DeviceTreeItem | undefined | null | void>();
-  readonly onDidChangeTreeData: vscode.Event<DeviceTreeItem | undefined | null | void> =
+export class DisconnectedDeviceTreeItem extends vscode.TreeItem {
+  constructor(public readonly endpoint: string) {
+    super(`Android Device (${endpoint})`, vscode.TreeItemCollapsibleState.None);
+    this.description = `${endpoint} • Wi-Fi (Offline - Click to Reconnect)`;
+    this.tooltip = `Known wireless device at ${endpoint}.\nClick to reconnect over Wi-Fi.`;
+    this.iconPath = new vscode.ThemeIcon('radio-tower', new vscode.ThemeColor('disabledForeground'));
+    this.contextValue = 'device-wifi-offline';
+    this.command = {
+      command: 'adbsnap.reconnectDevice',
+      title: 'Reconnect Wireless Device',
+      arguments: [endpoint],
+    };
+  }
+}
+
+export class DevicesTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
+  private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | undefined | null | void> =
+    new vscode.EventEmitter<vscode.TreeItem | undefined | null | void>();
+  readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | undefined | null | void> =
     this._onDidChangeTreeData.event;
 
   private devices: ConnectedDevice[] = [];
 
-  constructor(private statusBarManager: AdbStatusBarManager) {}
+  constructor(private statusBarManager: AdbStatusBarManager) {
+    // Automatically re-render tree when status bar detects connection or device switch
+    statusBarManager.onDidDeviceChange.event(() => {
+      this.refresh();
+    });
+  }
 
   public refresh(): void {
     this._onDidChangeTreeData.fire();
   }
 
-  getTreeItem(element: DeviceTreeItem): vscode.TreeItem {
+  getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
     return element;
   }
 
-  async getChildren(): Promise<DeviceTreeItem[]> {
+  async getChildren(): Promise<vscode.TreeItem[]> {
     try {
       this.devices = await listAllDevices();
       const activeDevice = this.statusBarManager.getActiveDevice();
+      const items: vscode.TreeItem[] = [];
 
-      if (this.devices.length === 0) {
-        return [];
+      for (const dev of this.devices) {
+        items.push(new DeviceTreeItem(dev, activeDevice?.id === dev.id));
       }
 
-      return this.devices.map(
-        (dev) => new DeviceTreeItem(dev, activeDevice?.id === dev.id)
-      );
+      // If a known wireless device is disconnected, surface it with 1-click reconnect
+      const lastEndpoint = this.statusBarManager.getLastWirelessEndpoint();
+      if (lastEndpoint && !this.devices.some((d) => d.id === lastEndpoint)) {
+        items.push(new DisconnectedDeviceTreeItem(lastEndpoint));
+      }
+
+      return items;
     } catch {
       return [];
     }

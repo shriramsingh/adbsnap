@@ -65,8 +65,29 @@ export function activate(context: vscode.ExtensionContext) {
 
   // 5b. Command: Turn Off Wi-Fi Mode (Revert to USB)
   context.subscriptions.push(
-    vscode.commands.registerCommand('adbsnap.disconnectWifi', async (item?: DeviceTreeItem | ConnectedDevice) => {
-      await handleDisconnectWifiCommand(item);
+    vscode.commands.registerCommand('adbsnap.disconnectWifi', async (item?: any) => {
+      await handleDisconnectWifiCommand(context, item);
+    })
+  );
+
+  // 5c. Command: Connect via Wi-Fi IP
+  context.subscriptions.push(
+    vscode.commands.registerCommand('adbsnap.connectIp', async () => {
+      await handleConnectIpCommand(context);
+    })
+  );
+
+  // 5d. Command: Pair Android 11+ via Wireless Pairing Code
+  context.subscriptions.push(
+    vscode.commands.registerCommand('adbsnap.pairWifi', async () => {
+      await handlePairWifiCommand(context);
+    })
+  );
+
+  // 5e. Command: Reconnect Wireless Device
+  context.subscriptions.push(
+    vscode.commands.registerCommand('adbsnap.reconnectDevice', async (item?: any) => {
+      await handleReconnectCommand(context, item);
     })
   );
 
@@ -186,9 +207,23 @@ export function activate(context: vscode.ExtensionContext) {
       }
     })
   );
+
+  // Restore known Wi-Fi endpoint and attempt background auto-reconnect if no active device is connected
+  const savedWifi = context.globalState.get<string>('adbsnap.lastWifiEndpoint');
+  if (savedWifi) {
+    statusBarManager.setLastWirelessEndpoint(savedWifi);
+    setTimeout(async () => {
+      const active = statusBarManager.getActiveDevice();
+      if (!active || !active.isAuthorized) {
+        await statusBarManager.attemptAutoReconnect();
+        devicesProvider.refresh();
+      }
+    }, 2000);
+  }
 }
 
 export function deactivate() {
+  StudioWebviewManager.dispose();
   if (statusBarManager) {
     statusBarManager.dispose();
   }
@@ -452,8 +487,26 @@ async function handleSelectDeviceCommand(): Promise<void> {
     action: 'refresh',
   });
   items.push({
+    label: '$(broadcast) Connect Device via Wi-Fi IP',
+    description: 'Direct connect to phone IP (e.g. 192.168.1.45:5555)',
+    action: 'connectIp',
+  });
+  items.push({
+    label: '$(key) Pair Wireless Device (Android 11+)',
+    description: 'Pair with 6-digit Wi-Fi pairing code and port from developer options',
+    action: 'pairWifi',
+  });
+  const offlineEp = statusBarManager.getLastWirelessEndpoint();
+  if (offlineEp && !devices.some((d) => d.id === offlineEp)) {
+    items.push({
+      label: `$(sync) Reconnect to ${offlineEp}`,
+      description: 'Attempt reconnect to last known wireless endpoint',
+      action: 'reconnect',
+    });
+  }
+  items.push({
     label: '$(radio-tower) Switch USB Device to Wireless (WiFi)',
-    description: 'Set up wireless debugging over local network',
+    description: 'Set up wireless debugging over local network from USB',
     action: 'wifi',
   });
   items.push({
@@ -471,6 +524,12 @@ async function handleSelectDeviceCommand(): Promise<void> {
   if (selected.action === 'refresh') {
     await statusBarManager.refresh();
     vscode.window.showInformationMessage('ADBSnap: Device list refreshed.');
+  } else if (selected.action === 'connectIp') {
+    await handleConnectIpCommand();
+  } else if (selected.action === 'pairWifi') {
+    await handlePairWifiCommand();
+  } else if (selected.action === 'reconnect') {
+    await handleReconnectCommand();
   } else if (selected.action === 'wifi') {
     await handleWifiCommand();
   } else if (selected.action === 'disconnectWifi') {
@@ -489,7 +548,7 @@ async function handleWifiCommand(): Promise<void> {
   const usbDevices = devices.filter((d) => d.platform === 'android' && d.type === 'usb' && d.isAuthorized);
 
   if (usbDevices.length === 0) {
-    vscode.window.showWarningMessage('ADBSnap: No authorized USB device found. Please connect your phone via USB first to enable wireless mode.');
+    vscode.window.showWarningMessage('ADBSnap: No authorized USB device found. Connect phone via USB or use "Connect via Wi-Fi IP".');
     return;
   }
 
@@ -512,6 +571,7 @@ async function handleWifiCommand(): Promise<void> {
     async () => {
       try {
         const address = await androidDriver.enableWireless(targetId);
+        statusBarManager.setLastWirelessEndpoint(address);
         await statusBarManager.refresh();
         if (devicesProvider) {
           devicesProvider.refresh();
@@ -525,9 +585,160 @@ async function handleWifiCommand(): Promise<void> {
 }
 
 /**
+ * Connect directly to an Android device by IP and port
+ */
+async function handleConnectIpCommand(context?: vscode.ExtensionContext): Promise<void> {
+  const defaultVal = statusBarManager.getLastWirelessEndpoint() || '192.168.1.';
+  const input = await vscode.window.showInputBox({
+    title: 'Connect Android Device by Wi-Fi IP',
+    prompt: 'Enter device IP and optional port (e.g. 192.168.1.45 or 192.168.1.45:5555)',
+    value: defaultVal,
+    ignoreFocusOut: true,
+  });
+
+  if (!input || !input.trim()) return;
+
+  const raw = input.trim();
+  const [ip, portStr] = raw.includes(':') ? raw.split(':') : [raw, '5555'];
+  const port = portStr ? Number(portStr) : 5555;
+  const endpoint = `${ip}:${port}`;
+
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: `ADBSnap: Connecting to ${endpoint}...`,
+      cancellable: false,
+    },
+    async () => {
+      try {
+        const res = await androidDriver.connectWifi(ip, port);
+        if (res.success) {
+          statusBarManager.setLastWirelessEndpoint(endpoint);
+          if (context) {
+            context.globalState.update('adbsnap.lastWifiEndpoint', endpoint);
+          }
+          await statusBarManager.refresh();
+          if (devicesProvider) devicesProvider.refresh();
+          vscode.window.showInformationMessage(`📶 Connected to Android device at ${endpoint}!`);
+        } else {
+          vscode.window.showErrorMessage(`❌ Connection failed: ${res.message}`);
+        }
+      } catch (err: any) {
+        vscode.window.showErrorMessage(`Connection error: ${err.message || err}`);
+      }
+    }
+  );
+}
+
+/**
+ * Pair with Android 11+ device using 6-digit wireless pairing code
+ */
+async function handlePairWifiCommand(context?: vscode.ExtensionContext): Promise<void> {
+  const ipPort = await vscode.window.showInputBox({
+    title: 'Wireless Pairing (Step 1/2: IP & Pairing Port)',
+    prompt: 'Enter IP and 5-digit Pairing Port shown under Developer Options > Wireless debugging > Pair with code',
+    placeHolder: '192.168.1.45:37851',
+    ignoreFocusOut: true,
+  });
+
+  if (!ipPort || !ipPort.includes(':')) {
+    if (ipPort) vscode.window.showErrorMessage('Please specify both IP and Pairing Port (format: 192.168.1.X:PORT)');
+    return;
+  }
+
+  const [ip, portStr] = ipPort.trim().split(':');
+  const port = Number(portStr);
+
+  const code = await vscode.window.showInputBox({
+    title: 'Wireless Pairing (Step 2/2: 6-Digit Code)',
+    prompt: `Enter the 6-digit Wi-Fi pairing code displayed on your phone for ${ip}:${port}`,
+    placeHolder: '123456',
+    ignoreFocusOut: true,
+  });
+
+  if (!code || !code.trim()) return;
+
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: `ADBSnap: Pairing with ${ip}:${port}...`,
+      cancellable: false,
+    },
+    async () => {
+      try {
+        const pairRes = await androidDriver.pairWifi(ip.trim(), port, code.trim());
+        if (pairRes.success) {
+          vscode.window.showInformationMessage(`🎉 Paired successfully with ${ip}! Connecting link...`);
+          // Give mDNS daemon time to register
+          await new Promise((r) => setTimeout(r, 1200));
+          const connRes = await androidDriver.connectWifi(ip.trim(), 5555);
+          const fullEndpoint = `${ip.trim()}:5555`;
+          statusBarManager.setLastWirelessEndpoint(fullEndpoint);
+          if (context) {
+            context.globalState.update('adbsnap.lastWifiEndpoint', fullEndpoint);
+          }
+          await statusBarManager.refresh();
+          if (devicesProvider) devicesProvider.refresh();
+          if (connRes.success) {
+            vscode.window.showInformationMessage(`📶 Wirelessly connected to ${fullEndpoint}!`);
+          }
+        } else {
+          vscode.window.showErrorMessage(`❌ Pairing failed: ${pairRes.message}`);
+        }
+      } catch (err: any) {
+        vscode.window.showErrorMessage(`Pairing error: ${err.message || err}`);
+      }
+    }
+  );
+}
+
+/**
+ * 1-Click Reconnect to known or offline wireless device
+ */
+async function handleReconnectCommand(context?: vscode.ExtensionContext, target?: any): Promise<void> {
+  const endpoint = typeof target === 'string'
+    ? target
+    : target?.endpoint || target?.device?.id || statusBarManager.getLastWirelessEndpoint();
+
+  if (!endpoint || !endpoint.includes(':')) {
+    await handleConnectIpCommand(context);
+    return;
+  }
+
+  const [ip, portStr] = endpoint.split(':');
+  const port = portStr ? Number(portStr) : 5555;
+
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: `ADBSnap: Reconnecting to ${endpoint}...`,
+      cancellable: false,
+    },
+    async () => {
+      try {
+        const res = await androidDriver.connectWifi(ip, port);
+        if (res.success) {
+          statusBarManager.setLastWirelessEndpoint(endpoint);
+          if (context) {
+            context.globalState.update('adbsnap.lastWifiEndpoint', endpoint);
+          }
+          await statusBarManager.refresh();
+          if (devicesProvider) devicesProvider.refresh();
+          vscode.window.showInformationMessage(`📶 Reconnected to ${endpoint}!`);
+        } else {
+          vscode.window.showWarningMessage(`❌ Reconnect to ${endpoint} failed: ${res.message}`);
+        }
+      } catch (err: any) {
+        vscode.window.showErrorMessage(`Reconnect error: ${err.message || err}`);
+      }
+    }
+  );
+}
+
+/**
  * Disconnect Wi-Fi mode and revert back to USB
  */
-async function handleDisconnectWifiCommand(targetDevice?: ConnectedDevice | DeviceTreeItem): Promise<void> {
+async function handleDisconnectWifiCommand(context?: vscode.ExtensionContext, targetDevice?: any): Promise<void> {
   const dev = targetDevice && 'device' in targetDevice ? targetDevice.device : targetDevice;
   const deviceId = dev?.id || statusBarManager.getActiveDevice()?.id;
 
@@ -541,6 +752,10 @@ async function handleDisconnectWifiCommand(targetDevice?: ConnectedDevice | Devi
       try {
         if (androidDriver.disableWireless) {
           await androidDriver.disableWireless(deviceId);
+        }
+        statusBarManager.setLastWirelessEndpoint(null);
+        if (context) {
+          context.globalState.update('adbsnap.lastWifiEndpoint', undefined);
         }
         await statusBarManager.refresh();
         if (devicesProvider) {
