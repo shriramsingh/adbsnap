@@ -3,6 +3,7 @@ import path from 'node:path';
 import net from 'node:net';
 import { spawn, type ChildProcess } from 'node:child_process';
 import type { AdbStatusBarManager } from '../statusBar';
+import { resolveNodeBinary } from '../cli';
 
 /**
  * Checks if a TCP port is currently open and responding.
@@ -133,10 +134,12 @@ export class StudioWebviewManager {
     const localSrcCli = path.resolve(context.extensionPath, '..', 'bin', 'cli.ts');
     const rootDir = path.resolve(context.extensionPath, '..');
 
-    let cmd = process.execPath;
+    const nodeBin = resolveNodeBinary();
+    let cmd = nodeBin;
     let args: string[] = [];
 
     if (await fileExists(localCli)) {
+      cmd = nodeBin;
       args = [localCli, 'studio', '--port', String(targetPort), '--no-open'];
     } else if (await fileExists(localSrcCli)) {
       const tsxBin = path.resolve(rootDir, 'node_modules', '.bin', process.platform === 'win32' ? 'tsx.cmd' : 'tsx');
@@ -160,6 +163,7 @@ export class StudioWebviewManager {
       stdio: ['ignore', 'pipe', 'pipe'],
       env: { ...process.env, FORCE_COLOR: '0' },
       windowsHide: true,
+      shell: process.platform === 'win32' && cmd.endsWith('.cmd'),
     });
 
     StudioWebviewManager.studioProcess = child;

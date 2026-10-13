@@ -1,6 +1,53 @@
-import { execFile } from 'node:child_process';
+import { execFile, execSync } from 'node:child_process';
 import path from 'node:path';
 import fs from 'node:fs';
+
+/**
+ * Resolves the real Node.js binary on the host system.
+ * Avoids process.execPath when running inside VS Code / Electron (which is Code.exe).
+ */
+export function resolveNodeBinary(): string {
+  // If running in standalone node, process.execPath ends with 'node' or 'node.exe'
+  if (process.execPath && /node(?:\.exe)?$/i.test(process.execPath)) {
+    return process.execPath;
+  }
+
+  // If running inside VS Code / Electron, find real node binary on host
+  if (process.platform === 'win32') {
+    try {
+      const out = execSync('where.exe node', { encoding: 'utf-8', timeout: 3000 });
+      const firstLine = out.split(/\r?\n/).find((l: string) => l.trim().length > 0);
+      if (firstLine && fs.existsSync(firstLine.trim())) {
+        return firstLine.trim();
+      }
+    } catch {
+      // Fallback
+    }
+
+    const candidates = [
+      process.env.PROGRAMFILES ? path.join(process.env.PROGRAMFILES, 'nodejs', 'node.exe') : '',
+      process.env['PROGRAMFILES(X86)'] ? path.join(process.env['PROGRAMFILES(X86)'], 'nodejs', 'node.exe') : '',
+      process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, 'Programs', 'nodejs', 'node.exe') : '',
+      'C:\\nvm4w\\nodejs\\node.exe',
+    ].filter(Boolean);
+
+    for (const c of candidates) {
+      if (fs.existsSync(c)) return c;
+    }
+  } else {
+    try {
+      const out = execSync('which node', { encoding: 'utf-8', timeout: 3000 });
+      const line = out.trim();
+      if (line && fs.existsSync(line)) {
+        return line;
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
+  return 'node';
+}
 
 /**
  * Resolves the path to the adbsnap CLI executable.
@@ -22,12 +69,12 @@ type CliRunner = {
   label: string;
 };
 
-function resolveCliRunner(extensionPath: string): CliRunner {
+export function resolveCliRunner(extensionPath: string): CliRunner {
   // 1. Check local monorepo compiled CLI
   const localCli = path.resolve(extensionPath, '..', 'dist', 'bin', 'cli.js');
   if (fs.existsSync(localCli)) {
     return {
-      command: process.execPath, // node
+      command: resolveNodeBinary(),
       prefixArgs: [localCli],
       label: `node ${localCli}`,
     };

@@ -860,12 +860,45 @@ Click to switch devices.`;
 var import_node_child_process4 = require("node:child_process");
 var import_node_path4 = __toESM(require("node:path"));
 var import_node_fs2 = __toESM(require("node:fs"));
+function resolveNodeBinary() {
+  if (process.execPath && /node(?:\.exe)?$/i.test(process.execPath)) {
+    return process.execPath;
+  }
+  if (process.platform === "win32") {
+    try {
+      const out = (0, import_node_child_process4.execSync)("where.exe node", { encoding: "utf-8", timeout: 3e3 });
+      const firstLine = out.split(/\r?\n/).find((l) => l.trim().length > 0);
+      if (firstLine && import_node_fs2.default.existsSync(firstLine.trim())) {
+        return firstLine.trim();
+      }
+    } catch {
+    }
+    const candidates = [
+      process.env.PROGRAMFILES ? import_node_path4.default.join(process.env.PROGRAMFILES, "nodejs", "node.exe") : "",
+      process.env["PROGRAMFILES(X86)"] ? import_node_path4.default.join(process.env["PROGRAMFILES(X86)"], "nodejs", "node.exe") : "",
+      process.env.LOCALAPPDATA ? import_node_path4.default.join(process.env.LOCALAPPDATA, "Programs", "nodejs", "node.exe") : "",
+      "C:\\nvm4w\\nodejs\\node.exe"
+    ].filter(Boolean);
+    for (const c of candidates) {
+      if (import_node_fs2.default.existsSync(c)) return c;
+    }
+  } else {
+    try {
+      const out = (0, import_node_child_process4.execSync)("which node", { encoding: "utf-8", timeout: 3e3 });
+      const line = out.trim();
+      if (line && import_node_fs2.default.existsSync(line)) {
+        return line;
+      }
+    } catch {
+    }
+  }
+  return "node";
+}
 function resolveCliRunner(extensionPath) {
   const localCli = import_node_path4.default.resolve(extensionPath, "..", "dist", "bin", "cli.js");
   if (import_node_fs2.default.existsSync(localCli)) {
     return {
-      command: process.execPath,
-      // node
+      command: resolveNodeBinary(),
       prefixArgs: [localCli],
       label: `node ${localCli}`
     };
@@ -1174,9 +1207,11 @@ var StudioWebviewManager = class _StudioWebviewManager {
     const localCli = import_node_path6.default.resolve(context.extensionPath, "..", "dist", "bin", "cli.js");
     const localSrcCli = import_node_path6.default.resolve(context.extensionPath, "..", "bin", "cli.ts");
     const rootDir = import_node_path6.default.resolve(context.extensionPath, "..");
-    let cmd = process.execPath;
+    const nodeBin = resolveNodeBinary();
+    let cmd = nodeBin;
     let args = [];
     if (await fileExists(localCli)) {
+      cmd = nodeBin;
       args = [localCli, "studio", "--port", String(targetPort), "--no-open"];
     } else if (await fileExists(localSrcCli)) {
       const tsxBin = import_node_path6.default.resolve(rootDir, "node_modules", ".bin", process.platform === "win32" ? "tsx.cmd" : "tsx");
@@ -1197,7 +1232,8 @@ var StudioWebviewManager = class _StudioWebviewManager {
       cwd: rootDir,
       stdio: ["ignore", "pipe", "pipe"],
       env: { ...process.env, FORCE_COLOR: "0" },
-      windowsHide: true
+      windowsHide: true,
+      shell: process.platform === "win32" && cmd.endsWith(".cmd")
     });
     _StudioWebviewManager.studioProcess = child;
     child.on("error", (err) => {
