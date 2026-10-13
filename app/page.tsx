@@ -29,6 +29,7 @@ import {
   Upload,
   ImagePlus,
   Plus,
+  Minus,
   Cable,
   Globe,
   WifiOff,
@@ -445,6 +446,8 @@ export default function StudioPage() {
   const [ambientGlow, setAmbientGlow] = useState<boolean>(true);
   const [aspectRatio, setAspectRatio] = useState<'portrait' | 'landscape' | 'square'>('portrait');
   const [isFitMode, setIsFitMode] = useState<boolean>(true);
+  const [zoomPercent, setZoomPercent] = useState<number>(100);
+  const canvasScrollRef = useRef<HTMLDivElement>(null);
 
   // Images & Screen Session History
   const [screenshotBase64, setScreenshotBase64] = useState<string | null>(null);
@@ -2151,7 +2154,50 @@ export default function StudioPage() {
     }
   };
 
-  // Universal Keyboard Shortcuts: Space (Sync), Ctrl+C (Copy), Arrows (Navigate), Delete (Remove)
+  const ZOOM_PRESETS = [25, 35, 50, 65, 75, 90, 100, 125, 150, 200];
+
+  const handleZoomIn = useCallback(() => {
+    setIsFitMode(false);
+    setZoomPercent((curr) => {
+      const next = ZOOM_PRESETS.find((p) => p > curr);
+      return next !== undefined ? next : Math.min(curr + 15, 200);
+    });
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setIsFitMode(false);
+    setZoomPercent((curr) => {
+      const prev = [...ZOOM_PRESETS].reverse().find((p) => p < curr);
+      return prev !== undefined ? prev : Math.max(curr - 15, 25);
+    });
+  }, []);
+
+  const handleResetZoom = useCallback(() => {
+    if (!isFitMode && zoomPercent === 100) {
+      setIsFitMode(true);
+    } else {
+      setIsFitMode(false);
+      setZoomPercent(100);
+    }
+  }, [isFitMode, zoomPercent]);
+
+  // Trackpad pinch & Ctrl + MouseWheel canvas zoom
+  useEffect(() => {
+    const el = canvasScrollRef.current;
+    if (!el) return;
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        setIsFitMode(false);
+        const delta = e.deltaY > 0 ? -10 : 10;
+        setZoomPercent((curr) => Math.min(Math.max(curr + delta, 25), 200));
+      }
+    };
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, []);
+
+  // Universal Keyboard Shortcuts: Space (Sync), Ctrl+C (Copy), Arrows (Navigate), Delete (Remove), Ctrl+/- (Zoom)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isInput =
@@ -2167,6 +2213,15 @@ export default function StudioPage() {
       } else if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
         e.preventDefault();
         handleCopyImage();
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === '=' || e.key === '+')) {
+        e.preventDefault();
+        handleZoomIn();
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === '-' || e.key === '_')) {
+        e.preventDefault();
+        handleZoomOut();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+        e.preventDefault();
+        setIsFitMode(true);
       } else if (e.key === 'ArrowLeft') {
         if (screens.length > 1 && activeScreenIndex > 0) {
           e.preventDefault();
@@ -2186,7 +2241,7 @@ export default function StudioPage() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSnap, handleCopyImage, screens.length, activeScreenIndex]);
+  }, [handleSnap, handleCopyImage, handleZoomIn, handleZoomOut, screens.length, activeScreenIndex]);
 
   const activeDevice = devices.find((d) => d.id === selectedDevice) || devices[0];
   const filteredIOSApps = iosApps.filter((app) =>
@@ -3620,6 +3675,7 @@ export default function StudioPage() {
               handleImportFiles(e.dataTransfer.files);
             }
           }}
+          ref={canvasScrollRef}
           className="flex-1 bg-[#0a0b0e] flex flex-col items-center p-3 sm:p-5 relative overflow-y-auto overflow-x-hidden min-h-0"
         >
           {/* Subtle Studio Background Grid */}
@@ -3682,31 +3738,50 @@ export default function StudioPage() {
 
             <div className="w-px h-3.5 bg-white/15 mx-0.5" />
 
-            {/* Segmented Zoom Mode Control (Fit vs 100%) */}
-            <div className="flex items-center bg-[#0b0c10] rounded-lg p-0.5 border border-white/10 shadow-inner">
+            {/* Granular Zoom Control: [-] [ 75% ] [+] [ 🔍 Fit ] */}
+            <div className="flex items-center bg-[#0b0c10] rounded-lg p-0.5 border border-white/10 shadow-inner gap-0.5 select-none">
+              <button
+                type="button"
+                onClick={handleZoomOut}
+                disabled={!isFitMode && zoomPercent <= 25}
+                className="p-1 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
+                title="Zoom Out (−) [Ctrl + −]"
+              >
+                <Minus className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResetZoom}
+                className="px-1.5 py-0.5 rounded text-xs font-mono font-semibold text-zinc-300 hover:text-white hover:bg-white/10 transition min-w-[42px] text-center cursor-pointer"
+                title={isFitMode ? "Auto-fitted to screen. Click to view 100% natural resolution [Ctrl + 0]" : "Click to toggle 100% / Auto-Fit [Ctrl + 0]"}
+              >
+                {isFitMode ? 'Fit' : `${zoomPercent}%`}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleZoomIn}
+                disabled={!isFitMode && zoomPercent >= 200}
+                className="p-1 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
+                title="Zoom In (+) [Ctrl + +]"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+
+              <div className="w-px h-3.5 bg-white/15 mx-0.5" />
+
               <button
                 type="button"
                 onClick={() => setIsFitMode(true)}
-                className={`px-2 py-0.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-all ${
+                className={`px-2 py-0.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
                   isFitMode
                     ? 'bg-indigo-500/25 text-indigo-300 border border-indigo-500/40 shadow-sm'
                     : 'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent'
                 }`}
-                title="Fit to Window: scales mockup so bottom dock and filmstrip fit on screen without scrolling"
+                title="Fit to Window: scale canvas so entire artboard and dock fit on screen"
               >
                 <span>🔍 Fit</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsFitMode(false)}
-                className={`px-2 py-0.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-all ${
-                  !isFitMode
-                    ? 'bg-indigo-500/25 text-indigo-300 border border-indigo-500/40 shadow-sm'
-                    : 'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent'
-                }`}
-                title="100% Actual Size: view full crisp resolution, typography, and device bezels"
-              >
-                <span>100%</span>
               </button>
             </div>
           </div>
@@ -3729,8 +3804,16 @@ export default function StudioPage() {
                     }
                     alt="ADBSnap Canvas Preview"
                     draggable={false}
-                    className={`w-auto object-contain rounded-xl select-none pointer-events-none transition-all duration-300 ease-out ${
-                      isFitMode ? 'max-h-[min(42vh,420px)]' : 'max-h-[min(85vh,850px)]'
+                    style={
+                      !isFitMode
+                        ? {
+                            maxHeight: `${Math.round((zoomPercent / 100) * 750)}px`,
+                            width: 'auto',
+                          }
+                        : undefined
+                    }
+                    className={`w-auto object-contain rounded-xl select-none pointer-events-none transition-all duration-200 ease-out ${
+                      isFitMode ? 'max-h-[min(42vh,420px)]' : ''
                     }`}
                   />
 
