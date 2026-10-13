@@ -2027,12 +2027,24 @@ async function findAvailablePort(startPort) {
   }
   return port;
 }
-async function waitForStudioServer(port, timeoutMs = 7e3) {
+async function checkCommandAvailable(cmd) {
+  try {
+    const isWin = process.platform === "win32";
+    const checkCmd = isWin ? `where.exe ${cmd}` : `which ${cmd}`;
+    const { exec } = await import("node:child_process");
+    return await new Promise((resolve) => {
+      exec(checkCmd, (err) => resolve(!err));
+    });
+  } catch {
+    return false;
+  }
+}
+async function waitForStudioServer(port, timeoutMs = 8e3) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     try {
-      const res = await fetch(`http://127.0.0.1:${port}/api/devices`, {
-        signal: AbortSignal.timeout(500)
+      const res = await fetch(`http://127.0.0.1:${port}/index.html`, {
+        signal: AbortSignal.timeout(1e3)
       });
       if (res.ok) return true;
     } catch {
@@ -2101,26 +2113,39 @@ var StudioWebviewManager = class _StudioWebviewManager {
       return 3e3;
     }
     const targetPort = await findAvailablePort(3300);
+    const workspaceRoot = vscode5.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const workspaceCli = workspaceRoot ? import_node_path6.default.resolve(workspaceRoot, "dist", "bin", "cli.js") : "";
+    const workspaceHasSharp = workspaceRoot ? await fileExists(import_node_path6.default.resolve(workspaceRoot, "node_modules", "sharp")) : false;
+    const monorepoRoot = import_node_path6.default.resolve(context.extensionPath, "..");
+    const localCli = import_node_path6.default.resolve(monorepoRoot, "dist", "bin", "cli.js");
+    const monorepoHasSharp = await fileExists(import_node_path6.default.resolve(monorepoRoot, "node_modules", "sharp"));
     const bundledCli = import_node_path6.default.resolve(context.extensionPath, "dist", "bin", "cli.js");
-    const localCli = import_node_path6.default.resolve(context.extensionPath, "..", "dist", "bin", "cli.js");
-    const localSrcCli = import_node_path6.default.resolve(context.extensionPath, "..", "bin", "cli.ts");
-    const rootDir = await fileExists(import_node_path6.default.resolve(context.extensionPath, "..", "package.json")) ? import_node_path6.default.resolve(context.extensionPath, "..") : context.extensionPath;
+    const extensionHasSharp = await fileExists(import_node_path6.default.resolve(context.extensionPath, "node_modules", "sharp"));
+    const hasGlobalCli = await checkCommandAvailable("adbsnap");
     const nodeBin = resolveNodeBinary();
     let cmd = nodeBin;
     let args = [];
-    if (await fileExists(bundledCli)) {
+    let rootDir = workspaceRoot || context.extensionPath;
+    if (workspaceCli && await fileExists(workspaceCli) && workspaceHasSharp) {
       cmd = nodeBin;
-      args = [bundledCli, "studio", "--port", String(targetPort), "--no-open"];
-    } else if (await fileExists(localCli)) {
+      args = [workspaceCli, "studio", "--port", String(targetPort), "--no-open"];
+      rootDir = workspaceRoot;
+    } else if (localCli && await fileExists(localCli) && monorepoHasSharp) {
       cmd = nodeBin;
       args = [localCli, "studio", "--port", String(targetPort), "--no-open"];
-    } else if (await fileExists(localSrcCli)) {
-      const tsxBin = import_node_path6.default.resolve(rootDir, "node_modules", ".bin", process.platform === "win32" ? "tsx.cmd" : "tsx");
-      cmd = tsxBin;
-      args = [localSrcCli, "studio", "--port", String(targetPort), "--no-open"];
+      rootDir = monorepoRoot;
+    } else if (hasGlobalCli) {
+      cmd = process.platform === "win32" ? "adbsnap.cmd" : "adbsnap";
+      args = ["studio", "--port", String(targetPort), "--no-open"];
+      rootDir = workspaceRoot || process.cwd();
+    } else if (await fileExists(bundledCli) && extensionHasSharp) {
+      cmd = nodeBin;
+      args = [bundledCli, "studio", "--port", String(targetPort), "--no-open"];
+      rootDir = context.extensionPath;
     } else {
       cmd = process.platform === "win32" ? "npx.cmd" : "npx";
       args = ["adbsnap", "studio", "--port", String(targetPort), "--no-open"];
+      rootDir = workspaceRoot || context.extensionPath;
     }
     if (_StudioWebviewManager.studioProcess) {
       try {
@@ -2129,6 +2154,9 @@ var StudioWebviewManager = class _StudioWebviewManager {
       }
       _StudioWebviewManager.studioProcess = null;
     }
+    let startupStderr = "";
+    let processExited = false;
+    let exitCode = null;
     const child = (0, import_node_child_process5.spawn)(cmd, args, {
       cwd: rootDir,
       stdio: ["ignore", "pipe", "pipe"],
@@ -2137,18 +2165,26 @@ var StudioWebviewManager = class _StudioWebviewManager {
       shell: process.platform === "win32" && (cmd.endsWith(".cmd") || cmd.endsWith(".bat"))
     });
     _StudioWebviewManager.studioProcess = child;
+    child.stderr?.on("data", (chunk) => {
+      startupStderr += chunk.toString();
+    });
     child.on("error", (err) => {
       console.error("ADBSnap Studio server process error:", err);
+      startupStderr += `
+Process error: ${err.message}`;
     });
-    child.on("exit", () => {
+    child.on("exit", (code) => {
+      processExited = true;
+      exitCode = code;
       if (_StudioWebviewManager.studioProcess === child) {
         _StudioWebviewManager.studioProcess = null;
         _StudioWebviewManager.activePort = null;
       }
     });
-    const isUp = await waitForStudioServer(targetPort, 8e3);
+    const isUp = await waitForStudioServer(targetPort, 1e4);
     if (!isUp) {
-      throw new Error(`Studio server failed to start on port ${targetPort} within 8 seconds.`);
+      const errDetails = startupStderr.trim() || (processExited ? `Process exited early with code ${exitCode}` : "Timed out waiting for HTTP response");
+      throw new Error(`Studio server failed to start on port ${targetPort}: ${errDetails}`);
     }
     return targetPort;
   }
