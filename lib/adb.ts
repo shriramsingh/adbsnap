@@ -142,8 +142,8 @@ export class AndroidDriver implements DeviceDriver {
   }
 
   /**
-   * Captures raw screenshot directly into a memory Buffer via high-speed raw framebuffer streaming.
-   * Bypasses device-side CPU PNG compression with automatic fallback to standard `screencap -p`.
+   * Captures high-fidelity PNG screenshot directly into a memory Buffer.
+   * Auto-wakes screen if asleep and uses Android screencap -p for complete RenderEngine fidelity.
    */
   async captureScreenshot(deviceId?: string): Promise<Buffer> {
     let targetId = deviceId;
@@ -159,66 +159,27 @@ export class AndroidDriver implements DeviceDriver {
 
     const adbBinary = resolveAdbPath();
 
-    // Strategy 1: High-speed raw framebuffer streaming (no device CPU PNG compression)
+    // 1. Auto-wake device screen if asleep (KEYCODE_WAKEUP 224)
     try {
-      const rawArgs = targetId
-        ? ['-s', targetId, ...(ADB_COMMANDS.SCREENCAP_RAW as unknown as string[])]
-        : (ADB_COMMANDS.SCREENCAP_RAW as unknown as string[]);
-
-      const rawBuffer = await new Promise<Buffer>((resolve, reject) => {
-        execFile(
-          adbBinary,
-          rawArgs,
-          {
-            encoding: 'buffer',
-            maxBuffer: 50 * 1024 * 1024,
-            timeout: CONFIG.DEFAULT_TIMEOUT_MS,
-          },
-          (err, stdout, stderr) => {
-            if (err) return reject(err);
-            if (!stdout || stdout.length < 16) return reject(new Error('Invalid raw screencap buffer'));
-            resolve(stdout as unknown as Buffer);
-          }
-        );
+      const wakeArgs = targetId
+        ? ['-s', targetId, 'shell', 'input', 'keyevent', '224']
+        : ['shell', 'input', 'keyevent', '224'];
+      await new Promise<void>((resolve) => {
+        execFile(adbBinary, wakeArgs, { timeout: 1000 }, () => resolve());
       });
-
-      const width = rawBuffer.readUInt32LE(0);
-      const height = rawBuffer.readUInt32LE(4);
-      const format = rawBuffer.readUInt32LE(8);
-
-      const sharpModule = await import('sharp').catch(() => null);
-      if (sharpModule) {
-        const sharp = sharpModule.default || sharpModule;
-        // format 1 = HAL_PIXEL_FORMAT_RGBA_8888 (standard Android 32-bit RGBA)
-        if (width > 0 && height > 0 && (format === 1 || format === 2 || format === 3 || format === 5)) {
-          const expectedBytes = 16 + (width * height * 4);
-          if (rawBuffer.length >= expectedBytes) {
-            const pixelData = rawBuffer.subarray(16, expectedBytes);
-            return await sharp(pixelData, {
-              raw: {
-                width,
-                height,
-                channels: 4,
-              },
-            })
-              .png({ compressionLevel: 6 })
-              .toBuffer();
-          }
-        }
-      }
     } catch {
-      // Fallback silently to standard screencap -p
+      // Non-fatal
     }
 
-    // Strategy 2: Standard ADB screencap -p fallback
-    const fallbackArgs = targetId
+    // 2. High-fidelity RenderEngine PNG capture (bypasses hardware DRM blanking)
+    const screencapArgs = targetId
       ? ['-s', targetId, ...(ADB_COMMANDS.SCREENCAP as unknown as string[])]
       : (ADB_COMMANDS.SCREENCAP as unknown as string[]);
 
     return new Promise((resolve, reject) => {
       execFile(
         adbBinary,
-        fallbackArgs,
+        screencapArgs,
         {
           encoding: 'buffer',
           maxBuffer: 50 * 1024 * 1024,

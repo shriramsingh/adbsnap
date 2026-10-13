@@ -653,12 +653,25 @@ export default function StudioPage() {
           }
         }
 
+        const effRawScreenshot =
+          rawScreenshot ||
+          overrides?.base64 ||
+          screenshotBase64 ||
+          currentScreens[currentActiveIdx]?.base64 ||
+          currentScreens[0]?.base64 ||
+          undefined;
+
+        if (!effRawScreenshot) {
+          setIsRendering(false);
+          return;
+        }
+
         const res = await fetch('/api/export', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
           body: JSON.stringify({
-            screenshotBase64: rawScreenshot || overrides?.base64 || screenshotBase64,
+            screenshotBase64: effRawScreenshot,
             secondaryScreenshotBase64: effSecondaryBase64,
             deviceId: selectedDevice || undefined,
             bezelId: effBezelId,
@@ -3588,7 +3601,7 @@ export default function StudioPage() {
 
           {/* Canvas Wrapper */}
           <div className="relative max-h-[72vh] max-w-[85vw] flex flex-col items-center justify-center my-auto shrink-0">
-            {previewBase64 ? (
+            {previewBase64 || screens.length > 0 ? (
               <>
                 <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-black/80 border border-white/10 group transition duration-300">
                   {/* Camera Shutter Flash Animation */}
@@ -3597,7 +3610,11 @@ export default function StudioPage() {
                   )}
 
                   <img
-                    src={`data:${previewMime};base64,${previewBase64}`}
+                    src={
+                      previewBase64
+                        ? `data:${previewMime};base64,${previewBase64}`
+                        : `data:image/png;base64,${screens[activeScreenIndex]?.base64 || screens[0]?.base64}`
+                    }
                     alt="ADBSnap Canvas Preview"
                     draggable={false}
                     className="max-h-[min(48vh,480px)] w-auto object-contain rounded-xl select-none pointer-events-none"

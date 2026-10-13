@@ -194,8 +194,8 @@ var AndroidDriver = class {
     return devices;
   }
   /**
-   * Captures raw screenshot directly into a memory Buffer via high-speed raw framebuffer streaming.
-   * Bypasses device-side CPU PNG compression with automatic fallback to standard `screencap -p`.
+   * Captures high-fidelity PNG screenshot directly into a memory Buffer.
+   * Auto-wakes screen if asleep and uses Android screencap -p for complete RenderEngine fidelity.
    */
   async captureScreenshot(deviceId) {
     let targetId = deviceId;
@@ -209,50 +209,17 @@ var AndroidDriver = class {
     }
     const adbBinary = resolveAdbPath();
     try {
-      const rawArgs = targetId ? ["-s", targetId, ...ADB_COMMANDS.SCREENCAP_RAW] : ADB_COMMANDS.SCREENCAP_RAW;
-      const rawBuffer = await new Promise((resolve, reject) => {
-        (0, import_node_child_process.execFile)(
-          adbBinary,
-          rawArgs,
-          {
-            encoding: "buffer",
-            maxBuffer: 50 * 1024 * 1024,
-            timeout: CONFIG.DEFAULT_TIMEOUT_MS
-          },
-          (err, stdout, stderr) => {
-            if (err) return reject(err);
-            if (!stdout || stdout.length < 16) return reject(new Error("Invalid raw screencap buffer"));
-            resolve(stdout);
-          }
-        );
+      const wakeArgs = targetId ? ["-s", targetId, "shell", "input", "keyevent", "224"] : ["shell", "input", "keyevent", "224"];
+      await new Promise((resolve) => {
+        (0, import_node_child_process.execFile)(adbBinary, wakeArgs, { timeout: 1e3 }, () => resolve());
       });
-      const width = rawBuffer.readUInt32LE(0);
-      const height = rawBuffer.readUInt32LE(4);
-      const format = rawBuffer.readUInt32LE(8);
-      const sharpModule = await import("sharp").catch(() => null);
-      if (sharpModule) {
-        const sharp = sharpModule.default || sharpModule;
-        if (width > 0 && height > 0 && (format === 1 || format === 2 || format === 3 || format === 5)) {
-          const expectedBytes = 16 + width * height * 4;
-          if (rawBuffer.length >= expectedBytes) {
-            const pixelData = rawBuffer.subarray(16, expectedBytes);
-            return await sharp(pixelData, {
-              raw: {
-                width,
-                height,
-                channels: 4
-              }
-            }).png({ compressionLevel: 6 }).toBuffer();
-          }
-        }
-      }
     } catch {
     }
-    const fallbackArgs = targetId ? ["-s", targetId, ...ADB_COMMANDS.SCREENCAP] : ADB_COMMANDS.SCREENCAP;
+    const screencapArgs = targetId ? ["-s", targetId, ...ADB_COMMANDS.SCREENCAP] : ADB_COMMANDS.SCREENCAP;
     return new Promise((resolve, reject) => {
       (0, import_node_child_process.execFile)(
         adbBinary,
-        fallbackArgs,
+        screencapArgs,
         {
           encoding: "buffer",
           maxBuffer: 50 * 1024 * 1024,
