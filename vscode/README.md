@@ -23,86 +23,29 @@ ADBSnap for VS Code captures connected Android devices and, on macOS, iOS simula
 | Wireless device controls | ADB Wi-Fi | Not applicable | Pair through Apple's Xcode tools |
 | Automatic screen exploration | CLI / full Studio | XCTest Auto Explorer via CLI / full Studio | XCTest Auto Explorer via CLI / full Studio; signing required |
 
-The VS Code extension provides device discovery, capture, the embedded asset Studio, and store export. Screen-exploration commands are not exposed in the VS Code extension: use the ADBSnap CLI (`adbsnap explore` for Android and `adbsnap explore-ios` for iOS) or the full ADBSnap Studio launched with `adbsnap studio`.
+The VS Code extension provides device discovery, capture, markdown document insertion, autonomous app exploration, app lifecycle controls, the embedded asset Studio, and multi-store asset pack export.
 
 ## Features
 
 ### Capture and device management
 - **Quick Capture (Framed)** — `Ctrl+Alt+S` (`Cmd+Alt+S` on macOS) captures the active screen, applies a device frame, and saves it to the configured output directory.
 - **Capture & Copy to Clipboard** — `Ctrl+Alt+C` copies the framed capture for pasting into issues, pull requests, chat, or documentation.
+- **Capture and Insert into Document** — Snaps active screen and instantly writes `![ADBSnap](./output/...)` markdown syntax at your cursor position in any active document.
 - **Capture Raw Screenshot** — Save screen pixels without a bezel or marketing canvas.
-- **Connected Devices View** — See Android USB/Wi-Fi/emulators and iOS simulators/paired devices, their connection type, and authorization state; choose the active target.
-- **Recent Captures Gallery** — Open captures, copy them, reveal them in the file manager, or remove them.
+- **Connected Devices View** — See Android USB/Wi-Fi/emulators and iOS simulators/paired devices, their connection type, and authorization state; choose the active target with 1 click.
+- **Auto-Reconnect & Wi-Fi Pairing** — Connect directly via IP (`adbsnap.connectIp`), pair Android 11+ devices with 6-digit PIN code (`adbsnap.pairWifi`), or 1-click reconnect to offline Wi-Fi phones.
+- **Recent Captures Gallery** — Open captures in VS Code or Asset Studio, copy them, reveal them in OS file explorer, or remove them. Supports PNG, WebP, AVIF, JPEG, and ZIP.
 
 ### Asset Studio and exports
 - Open the embedded interactive Studio from the Activity Bar palette icon or `ADBSnap: Open Asset Studio`.
-- Adjust device bezels, backdrop themes, typography, alignment, and layout with live preview.
+- Adjust 15+ device bezels (iPhone 16 Pro Max 6.9", Pixel 9 Pro Fold 8", Galaxy S25 Ultra, iPad Pro 13" M4, etc.), 16 gradient backdrop themes, typography, and duo-split/overlap layouts with live preview.
 - Collect, reorder, and style multiple screens; export App Store and Google Play asset packs as ZIP files.
-- Create animated stories from screens captured into the Studio filmstrip.
 
-### Android-only tools
-- Switch a USB-connected Android device to wireless ADB and disconnect a wireless session.
-- Run Android diagnostics (`ADBSnap: Run ADB Doctor Diagnostics`). The Android tab crawler is available from the CLI/full Studio, not the VS Code extension.
-
-## Getting started
-
-### Android
-
-1. Install Android SDK Platform-Tools and make `adb` available on `PATH` (or set `adbsnap.customAdbPath`).
-2. Enable USB debugging on the device, connect it, unlock it, and accept the RSA authorization prompt. Android emulators are also supported.
-3. Run `ADBSnap: Refresh Devices`, select the active device, then use Quick Capture or open the Studio.
-
-For Android wireless debugging, use the extension's wireless commands or Android's Wireless Debugging pairing flow. These controls apply to Android only.
-
-### iOS (macOS only)
-
-1. Install Xcode, open it once, accept its license, and ensure Xcode's command-line tools are selected. `xcrun simctl` and `xcrun devicectl` must be available.
-2. For a simulator, install an iOS Simulator runtime and boot the simulator.
-3. For a physical iPhone/iPad, connect and unlock it, then accept the Trust This Computer/pairing prompts. Confirm that it appears in `xcrun devicectl list devices`.
-4. Run `ADBSnap: Refresh Devices` and select the iOS target. Quick Capture and raw capture do not require signing or an Apple Developer Program membership once the device is paired.
-
-Choose an iPhone or iPad bezel in Studio for the mockup. The bezel is presentation framing; it does not alter the raw screenshot.
-
-### App exploration (CLI / full Studio)
-
-App exploration is available through the published CLI or the full Studio (`adbsnap studio`), not as a VS Code extension command. Android uses the existing tab crawler; iOS uses XCTest/XCUITest. Install the CLI if needed:
-
-```bash
-npm install -g adbsnap
-adbsnap devices
-```
-
-#### iOS Simulator
-
-1. Install/open Xcode, install an iOS Simulator runtime, and boot a simulator from Xcode or the Simulator app.
-2. Install the app in the simulator and note its bundle identifier.
-3. Run `adbsnap devices` and copy the intended simulator ID if more than one simulator is booted.
-4. Use the CLI below, or launch `adbsnap studio`, click **Auto-Crawl**, pick the simulator and installed app, then start exploration. The sample ADBSnap app is available for simulator runs and can be installed automatically.
-
-```bash
-adbsnap explore-ios --bundle com.example.myapp --device "<simulator ID>" --zip
-```
-
-#### Physical iPhone/iPad
-
-1. Connect and unlock the device, accept **Trust This Computer**, complete Xcode pairing, then confirm it appears in `xcrun devicectl list devices` and `adbsnap devices`.
-2. Enable **Developer Mode** (Settings > Privacy & Security > Developer Mode). iOS may require a restart and confirmation.
-3. Install the app on the device and note its bundle identifier. Physical runs can only select apps installed on that device; the ADBSnap sample app is simulator-only.
-4. Sign in to an Apple account in Xcode (Xcode > Settings > Accounts) and get the account's 10-character Team ID.
-5. Use the CLI below, or in the full Studio select the phone/tablet, click **Auto-Crawl**, choose an installed app, enter the Team ID, and start.
-
-```bash
-adbsnap explore-ios --bundle com.example.myapp \
-  --device "<iOS device ID>" --team "<10-character Team ID>" --zip
-```
-
-Xcode automatically signs ADBSnap's temporary UI-test runner and may contact Apple to create/update a provisioning profile. A free Personal Team may work for local runs but is subject to Apple's provisioning and capability restrictions; signing is required for physical XCTest, not for screenshots. The Team ID is an identifier, not a password or certificate. Follow Xcode's error output if signing or Developer Mode is not ready.
-
-**What to expect:** the first exploration may take several minutes while Xcode builds the runner. XCTest launches and may terminate/relaunch the selected app while replaying routes; do not run during unsaved work or sensitive in-app operations. It captures tab roots and follows accessible, labelled navigation buttons up to two levels deep, with a maximum of 20 screens and 30 navigation attempts.
-
-**Limitations:** this is a conservative accessibility-based explorer, not a general-purpose test recorder. It does not fill forms, tap arbitrary controls, follow external links, authenticate, or understand app-specific flows. Common destructive/transactional labels are skipped, but review the limitations before using it on apps with important data. Controls must be exposed to XCTest.
-
-**Verification status:** Auto Explorer has been run and tested on an iOS Simulator. Physical iPhone/iPad XCTest execution has **not been verified on real hardware**; pairing, signing, provisioning, or device-specific behavior may need troubleshooting on the target Mac/device.
+### App exploration & lifecycle automation
+- **Autonomous Android Tab Crawler** (`adbsnap.explore`) — Hands-free crawling and capture of bottom navigation tabs.
+- **Autonomous iOS UI Explorer** (`adbsnap.exploreIos`) — Hands-free XCTest traversal of tab roots and accessible view hierarchies on macOS.
+- **Instant App Data Reset** (`adbsnap.resetAppData`) — Execute `adb shell pm clear` to wipe auth tokens and cache in <100ms, returning apps to fresh onboarding state.
+- **Relaunch Mobile App** (`adbsnap.relaunchApp`) — Cleanly force-stop and restart the active foreground application.
 
 ## Commands
 
@@ -111,12 +54,22 @@ Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`):
 | Command | Shortcut | Description |
 | :--- | :--- | :--- |
 | `ADBSnap: Quick Capture (Framed)` | `Ctrl+Alt+S` | Capture and frame the active device screen |
-| `ADBSnap: Capture & Copy to Clipboard` | `Ctrl+Alt+C` | Capture, frame, and copy |
+| `ADBSnap: Capture & Copy to Clipboard` | `Ctrl+Alt+C` | Capture, frame, and copy to system clipboard |
+| `ADBSnap: Capture and Insert into Document` | — | Capture and insert `![ADBSnap](path)` markdown tag at cursor |
 | `ADBSnap: Capture Raw Screenshot` | — | Save unframed device pixels |
 | `ADBSnap: Open Asset Studio` | — | Open the interactive Studio tab |
+| `ADBSnap: Change Default Bezel Frame` | — | QuickPick: Switch default bezel (iPhone 16 Pro Max, Pixel Fold, etc.) |
+| `ADBSnap: Change Default Canvas Theme` | — | QuickPick: Switch default backdrop gradient (Aurora, Cyberpunk, etc.) |
+| `ADBSnap: Change Default Export Format` | — | QuickPick: Switch output format (PNG, WebP, AVIF, JPEG) |
+| `ADBSnap: Explore & Capture Android App Tabs` | — | Autonomous bottom-tab crawler |
+| `ADBSnap: Explore & Capture iOS App Views (XCTest)`| — | Autonomous iOS UI explorer (macOS) |
+| `ADBSnap: Reset App Data (Logout / Clear Cache)` | — | Instant `pm clear` application reset |
+| `ADBSnap: Relaunch Mobile App` | — | Terminate and restart active foreground application |
 | `ADBSnap: Export Store Asset Pack (ZIP)` | — | Generate store-resolution assets |
 | `ADBSnap: Select Active Device` | — | Choose the target device |
 | `ADBSnap: Refresh Connected Devices` | — | Refresh device discovery |
+| `ADBSnap: Connect Device via Wi-Fi IP` | — | Direct IP/Port wireless connection |
+| `ADBSnap: Pair Wireless Device (Android 11+ Code)` | — | 6-digit wireless pairing code modal |
 | `ADBSnap: Switch to Wireless ADB (WiFi)` | — | Enable Android wireless ADB |
 | `ADBSnap: Turn Off Wi-Fi Mode (Revert to USB)` | — | Disconnect Android wireless ADB |
 | `ADBSnap: Run ADB Doctor Diagnostics` | — | Diagnose Android ADB setup |
@@ -129,6 +82,7 @@ Configure in **Settings > Extensions > ADBSnap**:
 {
   "adbsnap.defaultTheme": "aurora",
   "adbsnap.defaultFrame": "iphone-16-pro",
+  "adbsnap.defaultFormat": "png",
   "adbsnap.outputDirectory": "${workspaceFolder}/output",
   "adbsnap.customAdbPath": ""
 }

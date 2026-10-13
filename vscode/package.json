@@ -134,6 +134,51 @@
         "command": "adbsnap.deleteCapture",
         "title": "Delete Screenshot",
         "icon": "$(trash)"
+      },
+      {
+        "command": "adbsnap.openCaptureInStudio",
+        "title": "Open in Asset Studio",
+        "icon": "$(paintcan)"
+      },
+      {
+        "command": "adbsnap.insertMarkdown",
+        "title": "ADBSnap: Capture and Insert into Document",
+        "icon": "$(markdown)"
+      },
+      {
+        "command": "adbsnap.selectFrame",
+        "title": "ADBSnap: Change Default Bezel Frame",
+        "icon": "$(device-mobile)"
+      },
+      {
+        "command": "adbsnap.selectTheme",
+        "title": "ADBSnap: Change Default Canvas Theme",
+        "icon": "$(color-mode)"
+      },
+      {
+        "command": "adbsnap.selectFormat",
+        "title": "ADBSnap: Change Default Export Format",
+        "icon": "$(file-media)"
+      },
+      {
+        "command": "adbsnap.explore",
+        "title": "ADBSnap: Explore & Capture Android App Tabs",
+        "icon": "$(compass)"
+      },
+      {
+        "command": "adbsnap.exploreIos",
+        "title": "ADBSnap: Explore & Capture iOS App Views (XCTest)",
+        "icon": "$(compass)"
+      },
+      {
+        "command": "adbsnap.resetAppData",
+        "title": "ADBSnap: Reset App Data (Logout / Clear Cache)",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "adbsnap.relaunchApp",
+        "title": "ADBSnap: Relaunch Mobile App",
+        "icon": "$(debug-restart)"
       }
     ],
     "keybindings": [
@@ -161,7 +206,16 @@
             "sunset",
             "midnight",
             "royal",
-            "cleanDark"
+            "cleanDark",
+            "fintech",
+            "lavender",
+            "cyberpunk",
+            "crimsonVoid",
+            "cobalt",
+            "terracotta",
+            "slateCarbon",
+            "pureWhite",
+            "none"
           ],
           "description": "Default canvas gradient backdrop preset"
         },
@@ -169,11 +223,34 @@
           "type": "string",
           "default": "iphone-16-pro",
           "enum": [
+            "iphone-16-pro-max",
             "iphone-16-pro",
+            "iphone-16",
+            "iphone-15-pro",
+            "iphone-14",
+            "pixel-9-pro-fold",
             "pixel-9-pro",
-            "minimal"
+            "pixel-8",
+            "galaxy-s25-ultra",
+            "galaxy-s24-ultra",
+            "galaxy-s24",
+            "ipad-pro-13",
+            "android-tablet-10",
+            "minimal",
+            "none"
           ],
           "description": "Default device bezel chassis"
+        },
+        "adbsnap.defaultFormat": {
+          "type": "string",
+          "default": "png",
+          "enum": [
+            "png",
+            "webp",
+            "avif",
+            "jpeg"
+          ],
+          "description": "Default screenshot and export image format"
         },
         "adbsnap.outputDirectory": {
           "type": "string",
@@ -209,6 +286,13 @@
       ]
     },
     "menus": {
+      "editor/context": [
+        {
+          "command": "adbsnap.insertMarkdown",
+          "when": "editorTextFocus",
+          "group": "modification@10"
+        }
+      ],
       "view/title": [
         {
           "command": "adbsnap.openStudio",
@@ -221,9 +305,14 @@
           "group": "navigation@2"
         },
         {
-          "command": "adbsnap.refreshDevices",
+          "command": "adbsnap.explore",
           "when": "view == adbsnap.devicesView",
           "group": "navigation@3"
+        },
+        {
+          "command": "adbsnap.refreshDevices",
+          "when": "view == adbsnap.devicesView",
+          "group": "navigation@4"
         },
         {
           "command": "adbsnap.refreshCaptures",
@@ -250,6 +339,11 @@
         {
           "command": "adbsnap.disconnectWifi",
           "when": "view == adbsnap.devicesView && viewItem =~ /^device-wifi/",
+          "group": "inline"
+        },
+        {
+          "command": "adbsnap.openCaptureInStudio",
+          "when": "view == adbsnap.recentCapturesView && viewItem == capture-image",
           "group": "inline"
         },
         {

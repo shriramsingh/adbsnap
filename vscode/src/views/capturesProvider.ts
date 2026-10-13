@@ -55,9 +55,9 @@ export class CapturesTreeDataProvider implements vscode.TreeDataProvider<Capture
     try {
       const entries = fs.readdirSync(outDir, { withFileTypes: true });
       const items: CaptureTreeItem[] = [];
-
       for (const entry of entries) {
-        if (entry.isFile() && (entry.name.endsWith('.png') || entry.name.endsWith('.jpg') || entry.name.endsWith('.zip'))) {
+        const ext = path.extname(entry.name).toLowerCase();
+        if (entry.isFile() && ['.png', '.jpg', '.jpeg', '.webp', '.avif', '.gif', '.zip'].includes(ext)) {
           const fullPath = path.join(outDir, entry.name);
           const stats = fs.statSync(fullPath);
           items.push(new CaptureTreeItem(fullPath, entry.name, stats));

@@ -8466,7 +8466,8 @@ var CapturesTreeDataProvider = class {
       const entries = import_node_fs3.default.readdirSync(outDir, { withFileTypes: true });
       const items = [];
       for (const entry of entries) {
-        if (entry.isFile() && (entry.name.endsWith(".png") || entry.name.endsWith(".jpg") || entry.name.endsWith(".zip"))) {
+        const ext = import_node_path6.default.extname(entry.name).toLowerCase();
+        if (entry.isFile() && [".png", ".jpg", ".jpeg", ".webp", ".avif", ".gif", ".zip"].includes(ext)) {
           const fullPath = import_node_path6.default.join(outDir, entry.name);
           const stats2 = import_node_fs3.default.statSync(fullPath);
           items.push(new CaptureTreeItem(fullPath, entry.name, stats2));
@@ -9012,6 +9013,56 @@ function activate(context) {
       }
     })
   );
+  context.subscriptions.push(
+    vscode5.commands.registerCommand("adbsnap.openCaptureInStudio", (_item) => {
+      StudioWebviewManager.createOrShow(
+        context,
+        statusBarManager,
+        resolveOutputDir,
+        () => capturesProvider.refresh()
+      );
+    })
+  );
+  context.subscriptions.push(
+    vscode5.commands.registerCommand("adbsnap.insertMarkdown", async () => {
+      await handleInsertMarkdownCommand(context);
+    })
+  );
+  context.subscriptions.push(
+    vscode5.commands.registerCommand("adbsnap.selectFrame", async () => {
+      await handleSelectFrameCommand();
+    })
+  );
+  context.subscriptions.push(
+    vscode5.commands.registerCommand("adbsnap.selectTheme", async () => {
+      await handleSelectThemeCommand();
+    })
+  );
+  context.subscriptions.push(
+    vscode5.commands.registerCommand("adbsnap.selectFormat", async () => {
+      await handleSelectFormatCommand();
+    })
+  );
+  context.subscriptions.push(
+    vscode5.commands.registerCommand("adbsnap.explore", async () => {
+      await handleExploreCommand(context);
+    })
+  );
+  context.subscriptions.push(
+    vscode5.commands.registerCommand("adbsnap.exploreIos", async () => {
+      await handleExploreIosCommand(context);
+    })
+  );
+  context.subscriptions.push(
+    vscode5.commands.registerCommand("adbsnap.resetAppData", async () => {
+      await handleResetAppDataCommand(context);
+    })
+  );
+  context.subscriptions.push(
+    vscode5.commands.registerCommand("adbsnap.relaunchApp", async () => {
+      await handleRelaunchAppCommand(context);
+    })
+  );
   const savedWifi = context.globalState.get("adbsnap.lastWifiEndpoint");
   if (savedWifi) {
     statusBarManager.setLastWirelessEndpoint(savedWifi);
@@ -9057,12 +9108,13 @@ async function handleSnapCommand(context, options) {
   const device = statusBarManager.getActiveDevice();
   if (!device) {
     vscode5.window.showWarningMessage("ADBSnap: No connected ADB device found. Please attach a device or emulator.");
-    return;
+    return null;
   }
   if (!device.isAuthorized) {
     vscode5.window.showErrorMessage(`ADBSnap: Device "${device.model}" is unauthorized. Please accept the USB debugging prompt on the device.`);
-    return;
+    return null;
   }
+  let resultOutput = null;
   await vscode5.window.withProgress(
     {
       location: vscode5.ProgressLocation.Notification,
@@ -9074,10 +9126,12 @@ async function handleSnapCommand(context, options) {
         const config = vscode5.workspace.getConfiguration("adbsnap");
         const theme = config.get("defaultTheme") || "aurora";
         const frame = config.get("defaultFrame") || "iphone-16-pro";
+        const format2 = config.get("defaultFormat") || "png";
+        const ext = format2 === "jpeg" ? "jpg" : format2;
         const outDir = resolveOutputDir();
         await import_promises3.default.mkdir(outDir, { recursive: true });
         const timestamp = (/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-").slice(0, 19);
-        const fileName = `adbsnap-${frame}-${theme}-${timestamp}.png`;
+        const fileName = `adbsnap-${frame}-${theme}-${timestamp}.${ext}`;
         const filePath = import_node_path8.default.join(outDir, fileName);
         const cliArgs = [
           "snap",
@@ -9085,6 +9139,8 @@ async function handleSnapCommand(context, options) {
           frame,
           "--theme",
           theme,
+          "--format",
+          format2,
           "--device",
           device.id,
           "--out",
@@ -9095,6 +9151,7 @@ async function handleSnapCommand(context, options) {
           const errorMsg = result.stderr || result.stdout || "Unknown CLI error";
           throw new Error(errorMsg.trim());
         }
+        resultOutput = { filePath, fileName };
         if (options.copyToClipboard) {
           const imgBuffer = await import_promises3.default.readFile(filePath);
           await copyImageBufferToClipboard(Buffer.from(imgBuffer));
@@ -9103,15 +9160,17 @@ async function handleSnapCommand(context, options) {
         if (capturesProvider) {
           capturesProvider.refresh();
         }
-        const action = await vscode5.window.showInformationMessage(
-          `\u{1F4F8} Saved screenshot to ${fileName}`,
-          "Open Image",
-          "Reveal in Explorer"
-        );
-        if (action === "Open Image") {
-          await vscode5.commands.executeCommand("vscode.open", vscode5.Uri.file(filePath));
-        } else if (action === "Reveal in Explorer") {
-          await vscode5.commands.executeCommand("revealFileInOS", vscode5.Uri.file(filePath));
+        if (!options.returnResult) {
+          const action = await vscode5.window.showInformationMessage(
+            `\u{1F4F8} Saved screenshot to ${fileName}`,
+            "Open Image",
+            "Reveal in Explorer"
+          );
+          if (action === "Open Image") {
+            await vscode5.commands.executeCommand("vscode.open", vscode5.Uri.file(filePath));
+          } else if (action === "Reveal in Explorer") {
+            await vscode5.commands.executeCommand("revealFileInOS", vscode5.Uri.file(filePath));
+          }
         }
         await checkAndPromptReview(context);
       } catch (err) {
@@ -9119,6 +9178,7 @@ async function handleSnapCommand(context, options) {
       }
     }
   );
+  return resultOutput;
 }
 async function handleSnapRawCommand(context) {
   const device = statusBarManager.getActiveDevice();
@@ -9578,6 +9638,301 @@ async function handleExportCommand(context) {
         }
       } catch (err) {
         vscode5.window.showErrorMessage(`ADBSnap Export Failed: ${err.message || err}`);
+      }
+    }
+  );
+}
+async function handleInsertMarkdownCommand(context) {
+  const editor = vscode5.window.activeTextEditor;
+  if (!editor) {
+    vscode5.window.showWarningMessage("ADBSnap: Please open a Markdown or text document first.");
+    return;
+  }
+  const result = await handleSnapCommand(context, { copyToClipboard: false, returnResult: true });
+  if (!result) return;
+  const docDir = import_node_path8.default.dirname(editor.document.uri.fsPath);
+  let relPath = import_node_path8.default.relative(docDir, result.filePath).replace(/\\/g, "/");
+  if (!relPath.startsWith(".") && !relPath.startsWith("/")) {
+    relPath = "./" + relPath;
+  }
+  const markdownSnippet = `![ADBSnap](${relPath})`;
+  await editor.edit((editBuilder) => {
+    editBuilder.insert(editor.selection.active, markdownSnippet);
+  });
+  vscode5.window.showInformationMessage(`\u{1F4F8} Inserted "${result.fileName}" into document!`);
+}
+async function handleSelectFrameCommand() {
+  const config = vscode5.workspace.getConfiguration("adbsnap");
+  const currentFrame = config.get("defaultFrame") || "iphone-16-pro";
+  const frames = [
+    { label: "iPhone 16 Pro Max", id: "iphone-16-pro-max", description: '6.9" Dynamic Island (2026 Flagship)' },
+    { label: "iPhone 16 Pro", id: "iphone-16-pro", description: '6.3" Dynamic Island' },
+    { label: "iPhone 16", id: "iphone-16", description: '6.1" Base Model' },
+    { label: "iPhone 15 Pro", id: "iphone-15-pro", description: "Titanium chassis" },
+    { label: "iPhone 14", id: "iphone-14", description: "Classic Notch Bezel" },
+    { label: "Google Pixel 9 Pro Fold", id: "pixel-9-pro-fold", description: '8.0" Inner Foldable OLED' },
+    { label: "Google Pixel 9 Pro", id: "pixel-9-pro", description: '6.3" Punch-Hole OLED' },
+    { label: "Google Pixel 8", id: "pixel-8", description: "Compact Android flagship" },
+    { label: "Samsung Galaxy S25 Ultra", id: "galaxy-s25-ultra", description: '6.8" Titanium chassis' },
+    { label: "Samsung Galaxy S24 Ultra", id: "galaxy-s24-ultra", description: "Square profile titanium" },
+    { label: "Samsung Galaxy S24", id: "galaxy-s24", description: "Compact dynamic AMOLED" },
+    { label: 'Apple iPad Pro 13" M4', id: "ipad-pro-13", description: 'Ultra-thin 13" tablet' },
+    { label: 'Android Tablet 10"', id: "android-tablet-10", description: '10.5" widescreen tablet' },
+    { label: "Modern Minimalist", id: "minimal", description: "Clean universal floating frame" },
+    { label: "Pure Floating Screen", id: "none", description: "No hardware bezel (Raw shadow only)" }
+  ];
+  const items = frames.map((f) => ({
+    label: `${f.id === currentFrame ? "$(check) " : ""}${f.label}`,
+    description: f.id,
+    detail: f.description,
+    id: f.id
+  }));
+  const pick = await vscode5.window.showQuickPick(items, {
+    placeHolder: `Select default device bezel chassis (current: ${currentFrame})`
+  });
+  if (pick) {
+    await config.update("defaultFrame", pick.id, vscode5.ConfigurationTarget.Global);
+    vscode5.window.showInformationMessage(`\u{1F4F1} ADBSnap: Default bezel set to "${pick.label.replace("$(check) ", "")}" (${pick.id}).`);
+  }
+}
+async function handleSelectThemeCommand() {
+  const config = vscode5.workspace.getConfiguration("adbsnap");
+  const currentTheme = config.get("defaultTheme") || "aurora";
+  const themes = [
+    { id: "aurora", label: "Electric Aurora", colors: "#4f46e5 \u2794 #06b6d4 \u2794 #10b981" },
+    { id: "studioLight", label: "Apple Studio Light", colors: "#f8fafc \u2794 #f1f5f9 \u2794 #e2e8f0" },
+    { id: "freshMint", label: "Fresh Mint", colors: "#0f766e \u2794 #059669 \u2794 #10b981" },
+    { id: "sunset", label: "Warm Sunset", colors: "#f43f5e \u2794 #fb923c \u2794 #fbbf24" },
+    { id: "midnight", label: "Deep Midnight", colors: "#090d16 \u2794 #1e1b4b \u2794 #312e81" },
+    { id: "royal", label: "Royal Orchid", colors: "#7c3aed \u2794 #c026d3 \u2794 #f43f5e" },
+    { id: "cleanDark", label: "Titanium Dark", colors: "#18181b \u2794 #27272a \u2794 #09090b" },
+    { id: "fintech", label: "Fintech Emerald", colors: "#022c22 \u2794 #064e3b \u2794 #047857" },
+    { id: "lavender", label: "Lavender Mist", colors: "#1e1b4b \u2794 #4c1d95 \u2794 #7c3aed" },
+    { id: "cyberpunk", label: "Cyberpunk Neon", colors: "#09090b \u2794 #701a75 \u2794 #a21caf" },
+    { id: "crimsonVoid", label: "Crimson Void", colors: "#18181b \u2794 #7f1d1d \u2794 #450a0a" },
+    { id: "cobalt", label: "Cobalt Indigo", colors: "#030712 \u2794 #1e3a8a \u2794 #1e40af" },
+    { id: "terracotta", label: "Warm Terracotta", colors: "#1c1917 \u2794 #78350f \u2794 #9a3412" },
+    { id: "slateCarbon", label: "Carbon Matte", colors: "#090d16 \u2794 #1e293b \u2794 #334155" },
+    { id: "pureWhite", label: "Studio Minimal White", colors: "#ffffff \u2794 #f8fafc" },
+    { id: "none", label: "None (Raw / Transparent)", colors: "Transparent" }
+  ];
+  const items = themes.map((t) => ({
+    label: `${t.id === currentTheme ? "$(check) " : ""}${t.label}`,
+    description: t.id,
+    detail: t.colors,
+    id: t.id
+  }));
+  const pick = await vscode5.window.showQuickPick(items, {
+    placeHolder: `Select default canvas backdrop gradient (current: ${currentTheme})`
+  });
+  if (pick) {
+    await config.update("defaultTheme", pick.id, vscode5.ConfigurationTarget.Global);
+    vscode5.window.showInformationMessage(`\u{1F3A8} ADBSnap: Default backdrop set to "${pick.label.replace("$(check) ", "")}" (${pick.id}).`);
+  }
+}
+async function handleSelectFormatCommand() {
+  const config = vscode5.workspace.getConfiguration("adbsnap");
+  const currentFormat = config.get("defaultFormat") || "png";
+  const formats2 = [
+    { id: "png", label: "PNG (Lossless Standard)", detail: "Full fidelity, standard format for App Store & Google Play" },
+    { id: "webp", label: "WebP (42% Smaller)", detail: "Super-fast load times, ideal for web portfolios and documentation" },
+    { id: "avif", label: "AVIF (95% Smaller)", detail: "Next-gen compact format with superior HDR chroma reproduction" },
+    { id: "jpeg", label: "JPEG (mozjpeg)", detail: "Universal compatibility for social media and legacy systems" }
+  ];
+  const items = formats2.map((f) => ({
+    label: `${f.id === currentFormat ? "$(check) " : ""}${f.label}`,
+    description: f.id,
+    detail: f.detail,
+    id: f.id
+  }));
+  const pick = await vscode5.window.showQuickPick(items, {
+    placeHolder: `Select screenshot format (current: ${currentFormat})`
+  });
+  if (pick) {
+    await config.update("defaultFormat", pick.id, vscode5.ConfigurationTarget.Global);
+    vscode5.window.showInformationMessage(`\u{1F4E6} ADBSnap: Export format set to "${pick.id.toUpperCase()}".`);
+  }
+}
+async function handleExploreCommand(context) {
+  const device = statusBarManager.getActiveDevice();
+  if (!device || device.platform !== "android") {
+    vscode5.window.showWarningMessage("ADBSnap: Tab Explorer requires an active Android device.");
+    return;
+  }
+  const maxTabsInput = await vscode5.window.showInputBox({
+    title: "ADBSnap: Explore Android App Tabs",
+    prompt: "Maximum number of bottom navigation tabs to crawl and snap",
+    value: "5",
+    validateInput: (v) => !isNaN(Number(v)) && Number(v) > 0 ? null : "Please enter a valid positive number"
+  });
+  if (!maxTabsInput) return;
+  const maxTabs = parseInt(maxTabsInput.trim(), 10);
+  outputChannel.clear();
+  outputChannel.show(true);
+  outputChannel.appendLine(`\u{1F680} Starting Android Tab Crawler on device: ${device.id} (Max tabs: ${maxTabs})...`);
+  await vscode5.window.withProgress(
+    {
+      location: vscode5.ProgressLocation.Notification,
+      title: `ADBSnap: Crawling app tabs (${device.model})...`,
+      cancellable: false
+    },
+    async () => {
+      try {
+        const outDir = resolveOutputDir();
+        const cliArgs = [
+          "explore",
+          "--max-tabs",
+          String(maxTabs),
+          "--device",
+          device.id,
+          "--out",
+          outDir,
+          "--zip"
+        ];
+        const res = await runAdbSnapCli(context.extensionPath, cliArgs, 12e4);
+        outputChannel.appendLine(res.stdout || "");
+        if (res.stderr) outputChannel.appendLine(res.stderr);
+        if (res.exitCode === 0) {
+          if (capturesProvider) capturesProvider.refresh();
+          const action = await vscode5.window.showInformationMessage(
+            "\u{1F389} Tab exploration completed! Screenshots & ZIP saved.",
+            "Reveal in Explorer",
+            "Open Studio"
+          );
+          if (action === "Reveal in Explorer") {
+            vscode5.commands.executeCommand("revealFileInOS", vscode5.Uri.file(outDir));
+          } else if (action === "Open Studio") {
+            vscode5.commands.executeCommand("adbsnap.openStudio");
+          }
+        } else {
+          vscode5.window.showErrorMessage(`Explorer error: ${res.stderr || res.stdout}`);
+        }
+      } catch (err) {
+        vscode5.window.showErrorMessage(`Exploration failed: ${err.message || err}`);
+      }
+    }
+  );
+}
+async function handleExploreIosCommand(context) {
+  const device = statusBarManager.getActiveDevice();
+  const isMac = process.platform === "darwin";
+  if (!isMac) {
+    vscode5.window.showWarningMessage("ADBSnap: iOS UI Explorer requires macOS with Xcode command-line tools installed.");
+    return;
+  }
+  const bundleInput = await vscode5.window.showInputBox({
+    title: "ADBSnap: Autonomous iOS UI Explorer (XCTest)",
+    prompt: "Bundle Identifier of the installed iOS app to explore",
+    placeHolder: "e.g. com.example.myapp",
+    ignoreFocusOut: true
+  });
+  if (!bundleInput || !bundleInput.trim()) return;
+  const bundle = bundleInput.trim();
+  let teamId;
+  if (device && device.type !== "emulator") {
+    const teamInput = await vscode5.window.showInputBox({
+      title: "Apple Developer Team ID (Physical Device)",
+      prompt: "10-character Team ID from developer.apple.com for signing the UI runner",
+      placeHolder: "e.g. ABCDE12345"
+    });
+    if (teamInput && teamInput.trim()) teamId = teamInput.trim();
+  }
+  outputChannel.clear();
+  outputChannel.show(true);
+  outputChannel.appendLine(`\u{1F680} Starting iOS XCTest Auto Explorer for "${bundle}"...`);
+  await vscode5.window.withProgress(
+    {
+      location: vscode5.ProgressLocation.Notification,
+      title: `ADBSnap: Exploring iOS app ${bundle}...`,
+      cancellable: false
+    },
+    async () => {
+      try {
+        const outDir = resolveOutputDir();
+        const cliArgs = ["explore-ios", "--bundle", bundle, "--out", outDir, "--zip"];
+        if (device?.id) cliArgs.push("--device", device.id);
+        if (teamId) cliArgs.push("--team", teamId);
+        const res = await runAdbSnapCli(context.extensionPath, cliArgs, 18e4);
+        outputChannel.appendLine(res.stdout || "");
+        if (res.stderr) outputChannel.appendLine(res.stderr);
+        if (res.exitCode === 0) {
+          if (capturesProvider) capturesProvider.refresh();
+          vscode5.window.showInformationMessage("\u{1F389} iOS UI Exploration completed! Screenshots saved.");
+        } else {
+          vscode5.window.showErrorMessage(`iOS Explorer error: ${res.stderr || res.stdout}`);
+        }
+      } catch (err) {
+        vscode5.window.showErrorMessage(`iOS Exploration failed: ${err.message || err}`);
+      }
+    }
+  );
+}
+async function handleResetAppDataCommand(_context) {
+  const device = statusBarManager.getActiveDevice();
+  if (!device || device.platform !== "android") {
+    vscode5.window.showWarningMessage("ADBSnap: App Data Reset requires an active Android device.");
+    return;
+  }
+  let defaultPkg = "";
+  try {
+    defaultPkg = await androidDriver.getForegroundApp(device.id) || "";
+  } catch {
+  }
+  const pkg = await vscode5.window.showInputBox({
+    title: "ADBSnap: Reset App Data (Logout / Clear Cache)",
+    prompt: "Enter Android application package name to reset (pm clear)",
+    value: defaultPkg,
+    ignoreFocusOut: true
+  });
+  if (!pkg || !pkg.trim()) return;
+  await vscode5.window.withProgress(
+    {
+      location: vscode5.ProgressLocation.Notification,
+      title: `ADBSnap: Clearing app data for ${pkg.trim()}...`,
+      cancellable: false
+    },
+    async () => {
+      try {
+        await androidDriver.resetAppData(pkg.trim(), device.id);
+        vscode5.window.showInformationMessage(`\u{1F389} Successfully wiped data for "${pkg.trim()}"! App reset to pristine state.`);
+      } catch (err) {
+        vscode5.window.showErrorMessage(`Reset App Data Failed: ${err.message || err}`);
+      }
+    }
+  );
+}
+async function handleRelaunchAppCommand(_context) {
+  const device = statusBarManager.getActiveDevice();
+  if (!device || device.platform !== "android") {
+    vscode5.window.showWarningMessage("ADBSnap: App Relaunch requires an active Android device.");
+    return;
+  }
+  let defaultPkg = "";
+  try {
+    defaultPkg = await androidDriver.getForegroundApp(device.id) || "";
+  } catch {
+  }
+  const pkg = await vscode5.window.showInputBox({
+    title: "ADBSnap: Relaunch Mobile App",
+    prompt: "Enter package name to terminate and restart",
+    value: defaultPkg,
+    ignoreFocusOut: true
+  });
+  if (!pkg || !pkg.trim()) return;
+  await vscode5.window.withProgress(
+    {
+      location: vscode5.ProgressLocation.Notification,
+      title: `ADBSnap: Relaunching ${pkg.trim()}...`,
+      cancellable: false
+    },
+    async () => {
+      try {
+        await androidDriver.killApp(pkg.trim(), device.id);
+        await new Promise((r) => setTimeout(r, 400));
+        await androidDriver.launchApp(pkg.trim(), device.id);
+        vscode5.window.showInformationMessage(`\u{1F680} Relaunched "${pkg.trim()}"!`);
+      } catch (err) {
+        vscode5.window.showErrorMessage(`Relaunch Failed: ${err.message || err}`);
       }
     }
   );
