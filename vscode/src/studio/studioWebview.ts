@@ -130,15 +130,21 @@ export class StudioWebviewManager {
     const targetPort = await findAvailablePort(3300);
 
     // 4. Resolve the CLI executable to launch the studio server
+    const bundledCli = path.resolve(context.extensionPath, 'dist', 'bin', 'cli.js');
     const localCli = path.resolve(context.extensionPath, '..', 'dist', 'bin', 'cli.js');
     const localSrcCli = path.resolve(context.extensionPath, '..', 'bin', 'cli.ts');
-    const rootDir = path.resolve(context.extensionPath, '..');
+    const rootDir = (await fileExists(path.resolve(context.extensionPath, '..', 'package.json')))
+      ? path.resolve(context.extensionPath, '..')
+      : context.extensionPath;
 
     const nodeBin = resolveNodeBinary();
     let cmd = nodeBin;
     let args: string[] = [];
 
-    if (await fileExists(localCli)) {
+    if (await fileExists(bundledCli)) {
+      cmd = nodeBin;
+      args = [bundledCli, 'studio', '--port', String(targetPort), '--no-open'];
+    } else if (await fileExists(localCli)) {
       cmd = nodeBin;
       args = [localCli, 'studio', '--port', String(targetPort), '--no-open'];
     } else if (await fileExists(localSrcCli)) {
@@ -163,7 +169,7 @@ export class StudioWebviewManager {
       stdio: ['ignore', 'pipe', 'pipe'],
       env: { ...process.env, FORCE_COLOR: '0' },
       windowsHide: true,
-      shell: process.platform === 'win32' && cmd.endsWith('.cmd'),
+      shell: process.platform === 'win32' && (cmd.endsWith('.cmd') || cmd.endsWith('.bat')),
     });
 
     StudioWebviewManager.studioProcess = child;

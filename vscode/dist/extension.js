@@ -636,6 +636,324 @@ async function listAllDevices() {
   return [...androidDevices, ...iosDevices];
 }
 
+// ../lib/crawler.ts
+function escapeAdbText(text) {
+  return text.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/'/g, "\\'").replace(/ /g, "%s").replace(/&/g, "\\&").replace(/</g, "\\<").replace(/>/g, "\\>").replace(/\(/g, "\\(").replace(/\)/g, "\\)").replace(/;/g, "\\;").replace(/\|/g, "\\|").replace(/\$/g, "\\$");
+}
+function parseBounds(raw) {
+  const m = raw.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
+  if (!m) {
+    return { x1: 0, y1: 0, x2: 0, y2: 0, width: 0, height: 0, centerX: 0, centerY: 0 };
+  }
+  const x1 = parseInt(m[1], 10);
+  const y1 = parseInt(m[2], 10);
+  const x2 = parseInt(m[3], 10);
+  const y2 = parseInt(m[4], 10);
+  return {
+    x1,
+    y1,
+    x2,
+    y2,
+    width: x2 - x1,
+    height: y2 - y1,
+    centerX: Math.round((x1 + x2) / 2),
+    centerY: Math.round((y1 + y2) / 2)
+  };
+}
+function parseHierarchyXml(xmlContent) {
+  const hierarchyMatch = xmlContent.match(/<hierarchy[^>]*>([\s\S]*?)<\/hierarchy>/i);
+  if (!hierarchyMatch) {
+    throw new Error("No valid <hierarchy> tag found in UI automator output.");
+  }
+  const innerXml = hierarchyMatch[1];
+  const tagRegex = /<node\b([^>]*?)(\/?)>|<\/node>/gi;
+  const attrRegex = /([a-zA-Z0-9_-]+)="([^"]*)"/g;
+  const root = [];
+  const flat = [];
+  const stack = [];
+  let match;
+  while ((match = tagRegex.exec(innerXml)) !== null) {
+    const fullTag = match[0];
+    const rawAttrs = match[1];
+    const isSelfClosing = match[2] === "/";
+    if (fullTag.startsWith("</")) {
+      stack.pop();
+      continue;
+    }
+    const attrs = {};
+    let attrMatch;
+    while ((attrMatch = attrRegex.exec(rawAttrs)) !== null) {
+      attrs[attrMatch[1]] = attrMatch[2];
+    }
+    const bounds = parseBounds(attrs["bounds"] || "");
+    const node = {
+      index: parseInt(attrs["index"] || "0", 10),
+      text: attrs["text"] || "",
+      resourceId: attrs["resource-id"] || "",
+      className: attrs["class"] || "",
+      packageName: attrs["package"] || "",
+      contentDesc: attrs["content-desc"] || "",
+      bounds,
+      clickable: attrs["clickable"] === "true",
+      enabled: attrs["enabled"] === "true",
+      focused: attrs["focused"] === "true",
+      scrollable: attrs["scrollable"] === "true",
+      password: attrs["password"] === "true",
+      selected: attrs["selected"] === "true",
+      children: []
+    };
+    if (stack.length > 0) {
+      stack[stack.length - 1].children.push(node);
+    } else {
+      root.push(node);
+    }
+    flat.push(node);
+    if (!isSelfClosing) {
+      stack.push(node);
+    }
+  }
+  return { root, flat };
+}
+function findNodes(flat, selector) {
+  return flat.filter((node) => {
+    if (selector.clickable !== void 0 && node.clickable !== selector.clickable) {
+      return false;
+    }
+    if (selector.className && node.className !== selector.className) {
+      return false;
+    }
+    if (selector.text !== void 0) {
+      if (typeof selector.text === "string") {
+        const query = selector.text.toLowerCase();
+        if (!node.text.toLowerCase().includes(query)) return false;
+      } else if (!selector.text.test(node.text)) {
+        return false;
+      }
+    }
+    if (selector.resourceId !== void 0) {
+      if (typeof selector.resourceId === "string") {
+        const query = selector.resourceId.toLowerCase();
+        if (!node.resourceId.toLowerCase().includes(query)) return false;
+      } else if (!selector.resourceId.test(node.resourceId)) {
+        return false;
+      }
+    }
+    if (selector.contentDesc !== void 0) {
+      if (typeof selector.contentDesc === "string") {
+        const query = selector.contentDesc.toLowerCase();
+        if (!node.contentDesc.toLowerCase().includes(query)) return false;
+      } else if (!selector.contentDesc.test(node.contentDesc)) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+function findNode(flat, selector) {
+  const results = findNodes(flat, selector);
+  return results[0];
+}
+function findNavigationTabs(flat) {
+  if (flat.length === 0) return [];
+  const maxY = Math.max(...flat.map((n) => n.bounds.y2));
+  const bottomThreshold = maxY * 0.72;
+  const bottomNodes = flat.filter((n) => {
+    const isBottom = n.bounds.centerY >= bottomThreshold;
+    const hasLabel = Boolean(n.text.trim() || n.contentDesc.trim());
+    return isBottom && hasLabel;
+  });
+  if (bottomNodes.length === 0) return [];
+  const rows = /* @__PURE__ */ new Map();
+  for (const node of bottomNodes) {
+    let matchedRowKey = null;
+    for (const key of rows.keys()) {
+      if (Math.abs(key - node.bounds.centerY) <= 50) {
+        matchedRowKey = key;
+        break;
+      }
+    }
+    if (matchedRowKey !== null) {
+      rows.get(matchedRowKey).push(node);
+    } else {
+      rows.set(node.bounds.centerY, [node]);
+    }
+  }
+  let bestRow = [];
+  for (const row of rows.values()) {
+    if (row.length >= 2 && row.length <= 8) {
+      if (row.length > bestRow.length) {
+        bestRow = row;
+      }
+    }
+  }
+  if (bestRow.length === 0) return [];
+  bestRow.sort((a, b) => a.bounds.centerX - b.bounds.centerX);
+  const uniqueTabs = [];
+  for (const node of bestRow) {
+    const title = (node.text || node.contentDesc || `Tab ${uniqueTabs.length + 1}`).trim();
+    const isDuplicate = uniqueTabs.some(
+      (t) => Math.abs(t.bounds.centerX - node.bounds.centerX) < 60 || t.title.toLowerCase() === title.toLowerCase()
+    );
+    if (!isDuplicate) {
+      uniqueTabs.push({
+        title,
+        bounds: node.bounds,
+        node
+      });
+    }
+  }
+  return uniqueTabs;
+}
+var UiCrawler = class {
+  /**
+   * Dumps and parses active screen UI hierarchy into structured nodes.
+   */
+  async dumpHierarchy(deviceId) {
+    const prefix = deviceId ? ["-s", deviceId] : [];
+    const rawOutput = await androidDriver.exec([...prefix, ...ADB_COMMANDS.UIAUTOMATOR_DUMP]);
+    return parseHierarchyXml(rawOutput);
+  }
+  /**
+   * Simulates a screen tap at exact pixel coordinates.
+   */
+  async tap(x, y, deviceId) {
+    const prefix = deviceId ? ["-s", deviceId] : [];
+    await androidDriver.exec([...prefix, ...ADB_COMMANDS.INPUT_TAP(x, y)]);
+  }
+  /**
+   * Types text into the currently focused input field.
+   */
+  async typeText(text, deviceId) {
+    const prefix = deviceId ? ["-s", deviceId] : [];
+    const escaped = escapeAdbText(text);
+    await androidDriver.exec([...prefix, ...ADB_COMMANDS.INPUT_TEXT(escaped)]);
+  }
+  /**
+   * Dispatches a key event (e.g. 66 for Enter, 4 for Back).
+   */
+  async pressKey(keyCode, deviceId) {
+    const prefix = deviceId ? ["-s", deviceId] : [];
+    await androidDriver.exec([...prefix, ...ADB_COMMANDS.INPUT_KEY(keyCode)]);
+  }
+  /**
+   * Simulates a swipe motion between two coordinates.
+   */
+  async swipe(x1, y1, x2, y2, durationMs = 300, deviceId) {
+    const prefix = deviceId ? ["-s", deviceId] : [];
+    await androidDriver.exec([...prefix, ...ADB_COMMANDS.INPUT_SWIPE(x1, y1, x2, y2, durationMs)]);
+  }
+  /**
+   * Finds an element on the active screen and taps its center coordinates.
+   */
+  async tapElement(selector, deviceId) {
+    const { flat } = await this.dumpHierarchy(deviceId);
+    const target = findNode(flat, selector);
+    if (!target) {
+      const summary = flat.filter((n) => n.text || n.contentDesc || n.resourceId).slice(0, 10).map((n) => `"${n.text || n.contentDesc || n.resourceId}"`).join(", ");
+      throw new Error(
+        `Element matching ${JSON.stringify(selector)} not found. Sample elements on screen: [${summary}]`
+      );
+    }
+    await this.tap(target.bounds.centerX, target.bounds.centerY, deviceId);
+    return target;
+  }
+  /**
+   * Focuses an element (e.g. EditText) by tapping it, pauses, and types text.
+   */
+  async tapAndType(selector, text, deviceId, focusDelayMs = 300) {
+    const node = await this.tapElement(selector, deviceId);
+    if (focusDelayMs > 0) {
+      await new Promise((r) => setTimeout(r, focusDelayMs));
+    }
+    await this.typeText(text, deviceId);
+    return node;
+  }
+  /**
+   * Repeatedly inspects the UI hierarchy until animations/spinners stabilize.
+   */
+  async waitForLayoutSettle(timeoutMs = 4e3, checkIntervalMs = 400, deviceId) {
+    const startTime = performance.now();
+    let previousCount = -1;
+    while (performance.now() - startTime < timeoutMs) {
+      try {
+        const { flat } = await this.dumpHierarchy(deviceId);
+        if (flat.length === previousCount && flat.length > 5) {
+          return;
+        }
+        previousCount = flat.length;
+      } catch {
+      }
+      await new Promise((r) => setTimeout(r, checkIntervalMs));
+    }
+  }
+  /**
+   * Discovers bottom navigation tabs and sequentially clicks each tab,
+   * waiting for the screen to settle and capturing pristine screenshot buffers.
+   */
+  async crawlTabs(deviceId, onProgress) {
+    const { flat } = await this.dumpHierarchy(deviceId);
+    const tabs = findNavigationTabs(flat);
+    if (tabs.length === 0) {
+      throw new Error("No bottom navigation tab bar detected on the active screen.");
+    }
+    const results = [];
+    for (let i = 0; i < tabs.length; i++) {
+      const tab = tabs[i];
+      if (onProgress) onProgress(tab, i, tabs.length);
+      const start = performance.now();
+      await this.tap(tab.bounds.centerX, tab.bounds.centerY, deviceId);
+      await new Promise((r) => setTimeout(r, 600));
+      const screenshotBuffer = await androidDriver.captureScreenshot(deviceId);
+      const elapsedMs = Math.round(performance.now() - start);
+      results.push({
+        tabIndex: i + 1,
+        title: tab.title,
+        screenshotBuffer,
+        elapsedMs
+      });
+    }
+    return results;
+  }
+  /**
+   * Auto-detects login input fields and injects credentials to solve the empty-screen problem.
+   */
+  async autoLogin(credentials, deviceId) {
+    if (!credentials.username && !credentials.password) return false;
+    const { flat } = await this.dumpHierarchy(deviceId);
+    const userField = flat.find(
+      (n) => (n.className.includes("EditText") || n.clickable) && !n.password && (n.text.toLowerCase().includes("email") || n.text.toLowerCase().includes("user") || n.resourceId.toLowerCase().includes("email") || n.resourceId.toLowerCase().includes("user"))
+    );
+    const passField = flat.find(
+      (n) => n.password || n.className.includes("EditText") && (n.text.toLowerCase().includes("pass") || n.resourceId.toLowerCase().includes("pass"))
+    );
+    let typed = false;
+    if (userField && credentials.username) {
+      await this.tap(userField.bounds.centerX, userField.bounds.centerY, deviceId);
+      await new Promise((r) => setTimeout(r, 200));
+      await this.typeText(credentials.username, deviceId);
+      typed = true;
+    }
+    if (passField && credentials.password) {
+      await this.tap(passField.bounds.centerX, passField.bounds.centerY, deviceId);
+      await new Promise((r) => setTimeout(r, 200));
+      await this.typeText(credentials.password, deviceId);
+      typed = true;
+    }
+    if (typed) {
+      const submitBtn = flat.find(
+        (n) => n.clickable && (n.text.toLowerCase().includes("sign in") || n.text.toLowerCase().includes("log in") || n.text.toLowerCase().includes("login") || n.text.toLowerCase().includes("continue"))
+      );
+      if (submitBtn) {
+        await new Promise((r) => setTimeout(r, 300));
+        await this.tap(submitBtn.bounds.centerX, submitBtn.bounds.centerY, deviceId);
+        await new Promise((r) => setTimeout(r, 1200));
+      }
+    }
+    return typed;
+  }
+};
+var uiCrawler = new UiCrawler();
+
 // src/clipboard.ts
 var import_promises2 = __toESM(require("node:fs/promises"));
 var import_node_path3 = __toESM(require("node:path"));
@@ -895,12 +1213,22 @@ function resolveNodeBinary() {
   return "node";
 }
 function resolveCliRunner(extensionPath) {
+  const bundledCli = import_node_path4.default.resolve(extensionPath, "dist", "bin", "cli.js");
+  if (import_node_fs2.default.existsSync(bundledCli)) {
+    return {
+      command: resolveNodeBinary(),
+      prefixArgs: [bundledCli],
+      label: `node ${bundledCli}`,
+      shell: false
+    };
+  }
   const localCli = import_node_path4.default.resolve(extensionPath, "..", "dist", "bin", "cli.js");
   if (import_node_fs2.default.existsSync(localCli)) {
     return {
       command: resolveNodeBinary(),
       prefixArgs: [localCli],
-      label: `node ${localCli}`
+      label: `node ${localCli}`,
+      shell: false
     };
   }
   const localSrcCli = import_node_path4.default.resolve(extensionPath, "..", "bin", "cli.ts");
@@ -910,18 +1238,22 @@ function resolveCliRunner(extensionPath) {
       return {
         command: tsxBin,
         prefixArgs: [localSrcCli],
-        label: `tsx ${localSrcCli}`
+        label: `tsx ${localSrcCli}`,
+        shell: process.platform === "win32"
       };
     }
   }
+  const isWin = process.platform === "win32";
   return {
-    command: process.platform === "win32" ? "npx.cmd" : "npx",
+    command: isWin ? "npx.cmd" : "npx",
     prefixArgs: ["adbsnap"],
-    label: "npx adbsnap"
+    label: "npx adbsnap",
+    shell: isWin
   };
 }
 async function runAdbSnapCli(extensionPath, args, timeoutMs = 3e4) {
   const runner = resolveCliRunner(extensionPath);
+  const cwd = import_node_fs2.default.existsSync(import_node_path4.default.resolve(extensionPath, "..", "package.json")) ? import_node_path4.default.resolve(extensionPath, "..") : extensionPath;
   return new Promise((resolve) => {
     (0, import_node_child_process4.execFile)(
       runner.command,
@@ -929,7 +1261,8 @@ async function runAdbSnapCli(extensionPath, args, timeoutMs = 3e4) {
       {
         timeout: timeoutMs,
         maxBuffer: 50 * 1024 * 1024,
-        cwd: import_node_path4.default.resolve(extensionPath, ".."),
+        cwd,
+        shell: runner.shell || process.platform === "win32" && (runner.command.endsWith(".cmd") || runner.command.endsWith(".bat")),
         env: { ...process.env, FORCE_COLOR: "0" }
         // Disable chalk colors in output
       },
@@ -1204,13 +1537,17 @@ var StudioWebviewManager = class _StudioWebviewManager {
       return 3e3;
     }
     const targetPort = await findAvailablePort(3300);
+    const bundledCli = import_node_path6.default.resolve(context.extensionPath, "dist", "bin", "cli.js");
     const localCli = import_node_path6.default.resolve(context.extensionPath, "..", "dist", "bin", "cli.js");
     const localSrcCli = import_node_path6.default.resolve(context.extensionPath, "..", "bin", "cli.ts");
-    const rootDir = import_node_path6.default.resolve(context.extensionPath, "..");
+    const rootDir = await fileExists(import_node_path6.default.resolve(context.extensionPath, "..", "package.json")) ? import_node_path6.default.resolve(context.extensionPath, "..") : context.extensionPath;
     const nodeBin = resolveNodeBinary();
     let cmd = nodeBin;
     let args = [];
-    if (await fileExists(localCli)) {
+    if (await fileExists(bundledCli)) {
+      cmd = nodeBin;
+      args = [bundledCli, "studio", "--port", String(targetPort), "--no-open"];
+    } else if (await fileExists(localCli)) {
       cmd = nodeBin;
       args = [localCli, "studio", "--port", String(targetPort), "--no-open"];
     } else if (await fileExists(localSrcCli)) {
@@ -1233,7 +1570,7 @@ var StudioWebviewManager = class _StudioWebviewManager {
       stdio: ["ignore", "pipe", "pipe"],
       env: { ...process.env, FORCE_COLOR: "0" },
       windowsHide: true,
-      shell: process.platform === "win32" && cmd.endsWith(".cmd")
+      shell: process.platform === "win32" && (cmd.endsWith(".cmd") || cmd.endsWith(".bat"))
     });
     _StudioWebviewManager.studioProcess = child;
     child.on("error", (err) => {
@@ -2517,38 +2854,40 @@ async function handleExploreCommand(context) {
       title: `ADBSnap: Crawling app tabs (${device.model})...`,
       cancellable: false
     },
-    async () => {
+    async (progress) => {
       try {
         const outDir = resolveOutputDir();
-        const cliArgs = [
-          "explore",
-          "--max-tabs",
-          String(maxTabs),
-          "--device",
-          device.id,
-          "--out",
-          outDir,
-          "--zip"
-        ];
-        const res = await runAdbSnapCli(context.extensionPath, cliArgs, 12e4);
-        outputChannel.appendLine(res.stdout || "");
-        if (res.stderr) outputChannel.appendLine(res.stderr);
-        if (res.exitCode === 0) {
-          if (capturesProvider) capturesProvider.refresh();
-          const action = await vscode5.window.showInformationMessage(
-            "\u{1F389} Tab exploration completed! Screenshots & ZIP saved.",
-            "Reveal in Explorer",
-            "Open Studio"
-          );
-          if (action === "Reveal in Explorer") {
-            vscode5.commands.executeCommand("revealFileInOS", vscode5.Uri.file(outDir));
-          } else if (action === "Open Studio") {
-            vscode5.commands.executeCommand("adbsnap.openStudio");
-          }
-        } else {
-          vscode5.window.showErrorMessage(`Explorer error: ${res.stderr || res.stdout}`);
+        await import_promises3.default.mkdir(outDir, { recursive: true });
+        progress.report({ message: "Scanning screen hierarchy for bottom navigation tabs..." });
+        outputChannel.appendLine("\u{1F50D} Scanning screen hierarchy for bottom navigation tabs...");
+        const crawledTabs = await uiCrawler.crawlTabs(device.id, (tab, index, total) => {
+          const msg = `[Tab ${index + 1}/${total}] Navigating to: "${tab.title}"`;
+          progress.report({ message: msg });
+          outputChannel.appendLine(`\u{1F449} ${msg}`);
+        });
+        const limitedTabs = crawledTabs.slice(0, maxTabs);
+        outputChannel.appendLine(`\u{1F4F8} Discovered ${crawledTabs.length} tabs. Saving ${limitedTabs.length} screenshots to ${outDir}...`);
+        for (let i = 0; i < limitedTabs.length; i++) {
+          const tab = limitedTabs[i];
+          const sanitizedTitle = tab.title.toLowerCase().replace(/[^a-z0-9]/g, "-") || "tab";
+          const fileName = `tab-${String(i + 1).padStart(2, "0")}-${sanitizedTitle}.png`;
+          const filePath = import_node_path7.default.join(outDir, fileName);
+          await import_promises3.default.writeFile(filePath, tab.screenshotBuffer);
+          outputChannel.appendLine(`  \u2714 Saved: ${fileName} (${Math.round(tab.screenshotBuffer.length / 1024)} KB)`);
+        }
+        if (capturesProvider) capturesProvider.refresh();
+        const action = await vscode5.window.showInformationMessage(
+          `\u{1F389} Successfully crawled and saved ${limitedTabs.length} tab screenshots!`,
+          "Reveal in Explorer",
+          "Open Studio"
+        );
+        if (action === "Reveal in Explorer") {
+          vscode5.commands.executeCommand("revealFileInOS", vscode5.Uri.file(outDir));
+        } else if (action === "Open Studio") {
+          vscode5.commands.executeCommand("adbsnap.openStudio");
         }
       } catch (err) {
+        outputChannel.appendLine(`\u274C Exploration failed: ${err.message || err}`);
         vscode5.window.showErrorMessage(`Exploration failed: ${err.message || err}`);
       }
     }

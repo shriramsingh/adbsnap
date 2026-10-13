@@ -31,3 +31,7 @@ pnpm-debug.log*
 *.tgz
 *.zip
 *.vsix
+
+# VS Code packaged build assets
+vscode/dist/bin/
+vscode/dist/studio/

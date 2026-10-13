@@ -25,6 +25,23 @@ async function build() {
   } else {
     await context.rebuild();
     await context.dispose();
+
+    // Copy bundled CLI and Studio static assets so extension is fully self-contained
+    const fs = await import('node:fs');
+    const rootDistBin = path.resolve(__dirname, '..', 'dist', 'bin');
+    const rootDistStudio = path.resolve(__dirname, '..', 'dist', 'studio');
+    const targetDistBin = path.resolve(__dirname, 'dist', 'bin');
+    const targetDistStudio = path.resolve(__dirname, 'dist', 'studio');
+
+    if (fs.existsSync(rootDistBin)) {
+      fs.mkdirSync(targetDistBin, { recursive: true });
+      fs.cpSync(rootDistBin, targetDistBin, { recursive: true });
+    }
+    if (fs.existsSync(rootDistStudio)) {
+      fs.mkdirSync(targetDistStudio, { recursive: true });
+      fs.cpSync(rootDistStudio, targetDistStudio, { recursive: true });
+    }
+
     console.log('✅ VS Code extension bundle created successfully at vscode/dist/extension.js');
   }
 }

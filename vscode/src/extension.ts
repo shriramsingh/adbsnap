@@ -3,6 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import { androidDriver, resolveAdbPath } from '../../lib/adb';
 import { listAllDevices } from '../../lib/devices';
+import { uiCrawler } from '../../lib/crawler';
 import { copyImageBufferToClipboard } from './clipboard';
 import { AdbStatusBarManager } from './statusBar';
 import { runAdbSnapCli, getCliRunnerLabel } from './cli';
@@ -1319,36 +1320,45 @@ async function handleExploreCommand(context: vscode.ExtensionContext): Promise<v
       title: `ADBSnap: Crawling app tabs (${device.model})...`,
       cancellable: false,
     },
-    async () => {
+    async (progress) => {
       try {
         const outDir = resolveOutputDir();
-        const cliArgs = [
-          'explore',
-          '--max-tabs', String(maxTabs),
-          '--device', device.id,
-          '--out', outDir,
-          '--zip',
-        ];
-        const res = await runAdbSnapCli(context.extensionPath, cliArgs, 120000);
-        outputChannel.appendLine(res.stdout || '');
-        if (res.stderr) outputChannel.appendLine(res.stderr);
+        await fs.mkdir(outDir, { recursive: true });
 
-        if (res.exitCode === 0) {
-          if (capturesProvider) capturesProvider.refresh();
-          const action = await vscode.window.showInformationMessage(
-            '🎉 Tab exploration completed! Screenshots & ZIP saved.',
-            'Reveal in Explorer',
-            'Open Studio'
-          );
-          if (action === 'Reveal in Explorer') {
-            vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(outDir));
-          } else if (action === 'Open Studio') {
-            vscode.commands.executeCommand('adbsnap.openStudio');
-          }
-        } else {
-          vscode.window.showErrorMessage(`Explorer error: ${res.stderr || res.stdout}`);
+        progress.report({ message: 'Scanning screen hierarchy for bottom navigation tabs...' });
+        outputChannel.appendLine('🔍 Scanning screen hierarchy for bottom navigation tabs...');
+
+        const crawledTabs = await uiCrawler.crawlTabs(device.id, (tab, index, total) => {
+          const msg = `[Tab ${index + 1}/${total}] Navigating to: "${tab.title}"`;
+          progress.report({ message: msg });
+          outputChannel.appendLine(`👉 ${msg}`);
+        });
+
+        const limitedTabs = crawledTabs.slice(0, maxTabs);
+        outputChannel.appendLine(`📸 Discovered ${crawledTabs.length} tabs. Saving ${limitedTabs.length} screenshots to ${outDir}...`);
+
+        for (let i = 0; i < limitedTabs.length; i++) {
+          const tab = limitedTabs[i];
+          const sanitizedTitle = tab.title.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'tab';
+          const fileName = `tab-${String(i + 1).padStart(2, '0')}-${sanitizedTitle}.png`;
+          const filePath = path.join(outDir, fileName);
+          await fs.writeFile(filePath, tab.screenshotBuffer);
+          outputChannel.appendLine(`  ✔ Saved: ${fileName} (${Math.round(tab.screenshotBuffer.length / 1024)} KB)`);
+        }
+
+        if (capturesProvider) capturesProvider.refresh();
+        const action = await vscode.window.showInformationMessage(
+          `🎉 Successfully crawled and saved ${limitedTabs.length} tab screenshots!`,
+          'Reveal in Explorer',
+          'Open Studio'
+        );
+        if (action === 'Reveal in Explorer') {
+          vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(outDir));
+        } else if (action === 'Open Studio') {
+          vscode.commands.executeCommand('adbsnap.openStudio');
         }
       } catch (err: any) {
+        outputChannel.appendLine(`❌ Exploration failed: ${err.message || err}`);
         vscode.window.showErrorMessage(`Exploration failed: ${err.message || err}`);
       }
     }

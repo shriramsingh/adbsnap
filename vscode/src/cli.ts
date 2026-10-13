@@ -67,20 +67,33 @@ type CliRunner = {
   command: string;
   prefixArgs: string[];
   label: string;
+  shell?: boolean;
 };
 
 export function resolveCliRunner(extensionPath: string): CliRunner {
-  // 1. Check local monorepo compiled CLI
+  // 1. Check bundled CLI inside the extension package (packaged VSIX)
+  const bundledCli = path.resolve(extensionPath, 'dist', 'bin', 'cli.js');
+  if (fs.existsSync(bundledCli)) {
+    return {
+      command: resolveNodeBinary(),
+      prefixArgs: [bundledCli],
+      label: `node ${bundledCli}`,
+      shell: false,
+    };
+  }
+
+  // 2. Check local monorepo compiled CLI
   const localCli = path.resolve(extensionPath, '..', 'dist', 'bin', 'cli.js');
   if (fs.existsSync(localCli)) {
     return {
       command: resolveNodeBinary(),
       prefixArgs: [localCli],
       label: `node ${localCli}`,
+      shell: false,
     };
   }
 
-  // 2. Check local monorepo source CLI (via tsx)
+  // 3. Check local monorepo source CLI (via tsx)
   const localSrcCli = path.resolve(extensionPath, '..', 'bin', 'cli.ts');
   if (fs.existsSync(localSrcCli)) {
     // Look for tsx in the monorepo node_modules
@@ -90,15 +103,18 @@ export function resolveCliRunner(extensionPath: string): CliRunner {
         command: tsxBin,
         prefixArgs: [localSrcCli],
         label: `tsx ${localSrcCli}`,
+        shell: process.platform === 'win32',
       };
     }
   }
 
-  // 3. Fall back to globally installed adbsnap or npx
+  // 4. Fall back to globally installed adbsnap or npx
+  const isWin = process.platform === 'win32';
   return {
-    command: process.platform === 'win32' ? 'npx.cmd' : 'npx',
+    command: isWin ? 'npx.cmd' : 'npx',
     prefixArgs: ['adbsnap'],
     label: 'npx adbsnap',
+    shell: isWin,
   };
 }
 
@@ -111,6 +127,9 @@ export async function runAdbSnapCli(
   timeoutMs: number = 30000
 ): Promise<CliRunResult> {
   const runner = resolveCliRunner(extensionPath);
+  const cwd = fs.existsSync(path.resolve(extensionPath, '..', 'package.json'))
+    ? path.resolve(extensionPath, '..')
+    : extensionPath;
 
   return new Promise((resolve) => {
     execFile(
@@ -119,7 +138,8 @@ export async function runAdbSnapCli(
       {
         timeout: timeoutMs,
         maxBuffer: 50 * 1024 * 1024,
-        cwd: path.resolve(extensionPath, '..'),
+        cwd,
+        shell: runner.shell || (process.platform === 'win32' && (runner.command.endsWith('.cmd') || runner.command.endsWith('.bat'))),
         env: { ...process.env, FORCE_COLOR: '0' }, // Disable chalk colors in output
       },
       (err, stdout, stderr) => {
