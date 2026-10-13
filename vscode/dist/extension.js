@@ -2072,6 +2072,16 @@ function activate(context) {
       await handleBugReportCommand(context);
     })
   );
+  context.subscriptions.push(
+    vscode5.commands.registerCommand("adbsnap.selectOutputDir", async () => {
+      await handleSelectOutputDirCommand();
+    })
+  );
+  context.subscriptions.push(
+    vscode5.commands.registerCommand("adbsnap.snapAs", async () => {
+      await handleSnapAsCommand(context);
+    })
+  );
   registerMarkdownHoverProvider(context);
   const savedWifi = context.globalState.get("adbsnap.lastWifiEndpoint");
   if (savedWifi) {
@@ -2192,6 +2202,147 @@ async function handleSnapCommand(context, options) {
     }
   );
   return resultOutput;
+}
+async function handleSnapAsCommand(context) {
+  const device = statusBarManager.getActiveDevice();
+  if (!device || !device.isAuthorized) {
+    vscode5.window.showWarningMessage("ADBSnap: Please connect and authorize an active device first.");
+    return;
+  }
+  const config = vscode5.workspace.getConfiguration("adbsnap");
+  const format = config.get("defaultFormat") || "png";
+  const ext = format === "jpeg" ? "jpg" : format;
+  const timestamp = (/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  const defaultName = `adbsnap-custom-${timestamp}`;
+  const nameInput = await vscode5.window.showInputBox({
+    title: "ADBSnap: Quick Capture As...",
+    prompt: `Enter file name (without .${ext})`,
+    value: defaultName,
+    validateInput: (v) => !v || !v.trim() ? "File name cannot be empty" : null
+  });
+  if (!nameInput) return;
+  const cleanBaseName = nameInput.trim().replace(/\.[^/.]+$/, "");
+  const customFileName = `${cleanBaseName}.${ext}`;
+  const currentDir = resolveOutputDir();
+  const folderChoice = await vscode5.window.showQuickPick(
+    [
+      { label: `$(folder) Current Folder`, description: currentDir, useCurrent: true },
+      { label: `$(folder-opened) Browse for different folder...`, useCurrent: false }
+    ],
+    { placeHolder: "Select destination folder for this capture" }
+  );
+  if (!folderChoice) return;
+  let targetDir = currentDir;
+  if (!folderChoice.useCurrent) {
+    const picked = await vscode5.window.showOpenDialog({
+      canSelectFiles: false,
+      canSelectFolders: true,
+      canSelectMany: false,
+      title: "Select Destination Folder for this Capture"
+    });
+    if (!picked || picked.length === 0) return;
+    targetDir = picked[0].fsPath;
+  }
+  await import_promises3.default.mkdir(targetDir, { recursive: true });
+  const targetFilePath = import_node_path7.default.join(targetDir, customFileName);
+  await vscode5.window.withProgress(
+    {
+      location: vscode5.ProgressLocation.Notification,
+      title: `ADBSnap: Saving "${customFileName}"...`,
+      cancellable: false
+    },
+    async () => {
+      try {
+        const theme = config.get("defaultTheme") || "aurora";
+        const frame = config.get("defaultFrame") || "iphone-16-pro";
+        const aspect = config.get("defaultAspectRatio") || "portrait";
+        const cliArgs = [
+          "snap",
+          "--device",
+          device.id,
+          "--theme",
+          theme,
+          "--frame",
+          frame,
+          "--aspect-ratio",
+          aspect,
+          "--format",
+          format,
+          "--out",
+          targetFilePath
+        ];
+        const result = await runAdbSnapCli(context.extensionPath, cliArgs, 3e4);
+        if (result.exitCode !== 0) {
+          throw new Error(result.stderr || result.stdout || "Capture failed");
+        }
+        if (capturesProvider) capturesProvider.refresh();
+        const action = await vscode5.window.showInformationMessage(
+          `\u{1F4F8} Saved: ${customFileName}`,
+          "Reveal in Explorer",
+          "Copy Path"
+        );
+        if (action === "Reveal in Explorer") {
+          vscode5.commands.executeCommand("revealFileInOS", vscode5.Uri.file(targetFilePath));
+        } else if (action === "Copy Path") {
+          await vscode5.env.clipboard.writeText(targetFilePath);
+        }
+      } catch (err) {
+        vscode5.window.showErrorMessage(`Capture failed: ${err.message || err}`);
+      }
+    }
+  );
+}
+async function handleSelectOutputDirCommand() {
+  const currentDir = resolveOutputDir();
+  const options = {
+    canSelectFiles: false,
+    canSelectFolders: true,
+    canSelectMany: false,
+    defaultUri: vscode5.Uri.file(currentDir),
+    openLabel: "Select Output Folder",
+    title: "Choose ADBSnap Screenshot & Export Directory"
+  };
+  const selectedUri = await vscode5.window.showOpenDialog(options);
+  if (!selectedUri || selectedUri.length === 0) {
+    return;
+  }
+  const chosenPath = selectedUri[0].fsPath;
+  const config = vscode5.workspace.getConfiguration("adbsnap");
+  const workspaceFolders = vscode5.workspace.workspaceFolders;
+  let targetScope = vscode5.ConfigurationTarget.Global;
+  let savePathValue = chosenPath;
+  if (workspaceFolders && workspaceFolders.length > 0) {
+    const wsRoot = workspaceFolders[0].uri.fsPath;
+    if (chosenPath.startsWith(wsRoot)) {
+      const relative = import_node_path7.default.relative(wsRoot, chosenPath);
+      savePathValue = relative ? `\${workspaceFolder}/${relative.replace(/\\/g, "/")}` : "${workspaceFolder}";
+      targetScope = vscode5.ConfigurationTarget.Workspace;
+    } else {
+      const scopePick = await vscode5.window.showQuickPick(
+        [
+          { label: "This Workspace only", scope: vscode5.ConfigurationTarget.Workspace },
+          { label: "Globally (All Workspaces & Projects)", scope: vscode5.ConfigurationTarget.Global }
+        ],
+        { placeHolder: "Save folder setting for this workspace or globally?" }
+      );
+      if (!scopePick) return;
+      targetScope = scopePick.scope;
+    }
+  }
+  await config.update("outputDirectory", savePathValue, targetScope);
+  if (capturesProvider) {
+    capturesProvider.refresh();
+  }
+  const action = await vscode5.window.showInformationMessage(
+    `\u{1F4C1} ADBSnap: Output folder set to "${chosenPath}"`,
+    "Reveal in Explorer",
+    "Open Studio"
+  );
+  if (action === "Reveal in Explorer") {
+    vscode5.commands.executeCommand("revealFileInOS", vscode5.Uri.file(chosenPath));
+  } else if (action === "Open Studio") {
+    vscode5.commands.executeCommand("adbsnap.openStudio");
+  }
 }
 async function handleSnapRawCommand(context) {
   const device = statusBarManager.getActiveDevice();
@@ -3035,6 +3186,11 @@ async function handleOpenMenuCommand(context) {
       action: () => vscode5.commands.executeCommand("adbsnap.snap")
     },
     {
+      label: "$(save-as) Quick Capture As...",
+      detail: "Capture with custom file name and destination folder choice",
+      action: () => vscode5.commands.executeCommand("adbsnap.snapAs")
+    },
+    {
       label: "$(copy) Capture & Copy to Clipboard",
       description: "Ctrl+Alt+C",
       detail: "Capture framed image and copy directly to system clipboard",
@@ -3117,6 +3273,12 @@ async function handleOpenMenuCommand(context) {
       label: "$(file-media) Change Default Export Format",
       detail: "Switch export format: PNG, WebP (42% smaller), AVIF (95% smaller), JPEG",
       action: () => vscode5.commands.executeCommand("adbsnap.selectFormat")
+    },
+    {
+      label: "$(folder-opened) Select Output Folder...",
+      description: resolveOutputDir(),
+      detail: "Choose where captures, crawler assets, and store mockups are saved",
+      action: () => vscode5.commands.executeCommand("adbsnap.selectOutputDir")
     },
     { label: "", kind: vscode5.QuickPickItemKind.Separator },
     {

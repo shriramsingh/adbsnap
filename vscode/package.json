@@ -234,6 +234,16 @@
         "command": "adbsnap.keyPower",
         "title": "ADBSnap: Remote Key - Power / Lock",
         "icon": "$(lock)"
+      },
+      {
+        "command": "adbsnap.selectOutputDir",
+        "title": "ADBSnap: Select Output Directory...",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "adbsnap.snapAs",
+        "title": "ADBSnap: Quick Capture As...",
+        "icon": "$(save-as)"
       }
     ],
     "keybindings": [
@@ -400,9 +410,14 @@
           "group": "navigation@4"
         },
         {
+          "command": "adbsnap.selectOutputDir",
+          "when": "view == adbsnap.recentCapturesView",
+          "group": "navigation@1"
+        },
+        {
           "command": "adbsnap.refreshCaptures",
           "when": "view == adbsnap.recentCapturesView",
-          "group": "navigation"
+          "group": "navigation@2"
         }
       ],
       "view/item/context": [

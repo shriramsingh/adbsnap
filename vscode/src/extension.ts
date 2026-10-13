@@ -334,7 +334,21 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // 31. Markdown Hover Provider for Visual Tooltip Preview
+  // 31. Command: Select Output Directory...
+  context.subscriptions.push(
+    vscode.commands.registerCommand('adbsnap.selectOutputDir', async () => {
+      await handleSelectOutputDirCommand();
+    })
+  );
+
+  // 32. Command: Quick Capture As...
+  context.subscriptions.push(
+    vscode.commands.registerCommand('adbsnap.snapAs', async () => {
+      await handleSnapAsCommand(context);
+    })
+  );
+
+  // 33. Markdown Hover Provider for Visual Tooltip Preview
   registerMarkdownHoverProvider(context);
 
   // Restore known Wi-Fi endpoint and attempt background auto-reconnect if no active device is connected
@@ -498,6 +512,173 @@ async function handleSnapCommand(
   );
 
   return resultOutput;
+}
+
+/**
+ * Capture As... Allows naming the screenshot and optionally choosing an alternate folder.
+ */
+async function handleSnapAsCommand(context: vscode.ExtensionContext): Promise<void> {
+  const device = statusBarManager.getActiveDevice();
+  if (!device || !device.isAuthorized) {
+    vscode.window.showWarningMessage('ADBSnap: Please connect and authorize an active device first.');
+    return;
+  }
+
+  const config = vscode.workspace.getConfiguration('adbsnap');
+  const format = config.get<string>('defaultFormat') || 'png';
+  const ext = format === 'jpeg' ? 'jpg' : format;
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const defaultName = `adbsnap-custom-${timestamp}`;
+
+  const nameInput = await vscode.window.showInputBox({
+    title: 'ADBSnap: Quick Capture As...',
+    prompt: `Enter file name (without .${ext})`,
+    value: defaultName,
+    validateInput: (v) => (!v || !v.trim() ? 'File name cannot be empty' : null),
+  });
+
+  if (!nameInput) return;
+  const cleanBaseName = nameInput.trim().replace(/\.[^/.]+$/, '');
+  const customFileName = `${cleanBaseName}.${ext}`;
+
+  // Ask if user wants to use default output folder or pick another folder
+  const currentDir = resolveOutputDir();
+  const folderChoice = await vscode.window.showQuickPick(
+    [
+      { label: `$(folder) Current Folder`, description: currentDir, useCurrent: true },
+      { label: `$(folder-opened) Browse for different folder...`, useCurrent: false },
+    ],
+    { placeHolder: 'Select destination folder for this capture' }
+  );
+
+  if (!folderChoice) return;
+
+  let targetDir = currentDir;
+  if (!folderChoice.useCurrent) {
+    const picked = await vscode.window.showOpenDialog({
+      canSelectFiles: false,
+      canSelectFolders: true,
+      canSelectMany: false,
+      title: 'Select Destination Folder for this Capture',
+    });
+    if (!picked || picked.length === 0) return;
+    targetDir = picked[0].fsPath;
+  }
+
+  await fs.mkdir(targetDir, { recursive: true });
+  const targetFilePath = path.join(targetDir, customFileName);
+
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: `ADBSnap: Saving "${customFileName}"...`,
+      cancellable: false,
+    },
+    async () => {
+      try {
+        const theme = config.get<string>('defaultTheme') || 'aurora';
+        const frame = config.get<string>('defaultFrame') || 'iphone-16-pro';
+        const aspect = config.get<string>('defaultAspectRatio') || 'portrait';
+
+        const cliArgs = [
+          'snap',
+          '--device', device.id,
+          '--theme', theme,
+          '--frame', frame,
+          '--aspect-ratio', aspect,
+          '--format', format,
+          '--out', targetFilePath,
+        ];
+
+        const result = await runAdbSnapCli(context.extensionPath, cliArgs, 30000);
+        if (result.exitCode !== 0) {
+          throw new Error(result.stderr || result.stdout || 'Capture failed');
+        }
+
+        if (capturesProvider) capturesProvider.refresh();
+
+        const action = await vscode.window.showInformationMessage(
+          `📸 Saved: ${customFileName}`,
+          'Reveal in Explorer',
+          'Copy Path'
+        );
+
+        if (action === 'Reveal in Explorer') {
+          vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(targetFilePath));
+        } else if (action === 'Copy Path') {
+          await vscode.env.clipboard.writeText(targetFilePath);
+        }
+      } catch (err: any) {
+        vscode.window.showErrorMessage(`Capture failed: ${err.message || err}`);
+      }
+    }
+  );
+}
+
+/**
+ * Interactive output directory chooser (Native Folder Picker)
+ */
+async function handleSelectOutputDirCommand(): Promise<void> {
+  const currentDir = resolveOutputDir();
+  const options: vscode.OpenDialogOptions = {
+    canSelectFiles: false,
+    canSelectFolders: true,
+    canSelectMany: false,
+    defaultUri: vscode.Uri.file(currentDir),
+    openLabel: 'Select Output Folder',
+    title: 'Choose ADBSnap Screenshot & Export Directory',
+  };
+
+  const selectedUri = await vscode.window.showOpenDialog(options);
+  if (!selectedUri || selectedUri.length === 0) {
+    return;
+  }
+
+  const chosenPath = selectedUri[0].fsPath;
+  const config = vscode.workspace.getConfiguration('adbsnap');
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+
+  let targetScope = vscode.ConfigurationTarget.Global;
+  let savePathValue = chosenPath;
+
+  if (workspaceFolders && workspaceFolders.length > 0) {
+    const wsRoot = workspaceFolders[0].uri.fsPath;
+    if (chosenPath.startsWith(wsRoot)) {
+      // Relative path inside current workspace
+      const relative = path.relative(wsRoot, chosenPath);
+      savePathValue = relative ? `\${workspaceFolder}/${relative.replace(/\\/g, '/')}` : '${workspaceFolder}';
+      targetScope = vscode.ConfigurationTarget.Workspace;
+    } else {
+      // Ask user whether to save for this workspace or globally
+      const scopePick = await vscode.window.showQuickPick(
+        [
+          { label: 'This Workspace only', scope: vscode.ConfigurationTarget.Workspace },
+          { label: 'Globally (All Workspaces & Projects)', scope: vscode.ConfigurationTarget.Global },
+        ],
+        { placeHolder: 'Save folder setting for this workspace or globally?' }
+      );
+      if (!scopePick) return;
+      targetScope = scopePick.scope;
+    }
+  }
+
+  await config.update('outputDirectory', savePathValue, targetScope);
+
+  if (capturesProvider) {
+    capturesProvider.refresh();
+  }
+
+  const action = await vscode.window.showInformationMessage(
+    `📁 ADBSnap: Output folder set to "${chosenPath}"`,
+    'Reveal in Explorer',
+    'Open Studio'
+  );
+
+  if (action === 'Reveal in Explorer') {
+    vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(chosenPath));
+  } else if (action === 'Open Studio') {
+    vscode.commands.executeCommand('adbsnap.openStudio');
+  }
 }
 
 /**
@@ -1543,6 +1724,11 @@ async function handleOpenMenuCommand(context: vscode.ExtensionContext): Promise<
       action: () => vscode.commands.executeCommand('adbsnap.snap'),
     },
     {
+      label: '$(save-as) Quick Capture As...',
+      detail: 'Capture with custom file name and destination folder choice',
+      action: () => vscode.commands.executeCommand('adbsnap.snapAs'),
+    },
+    {
       label: '$(copy) Capture & Copy to Clipboard',
       description: 'Ctrl+Alt+C',
       detail: 'Capture framed image and copy directly to system clipboard',
@@ -1625,6 +1811,12 @@ async function handleOpenMenuCommand(context: vscode.ExtensionContext): Promise<
       label: '$(file-media) Change Default Export Format',
       detail: 'Switch export format: PNG, WebP (42% smaller), AVIF (95% smaller), JPEG',
       action: () => vscode.commands.executeCommand('adbsnap.selectFormat'),
+    },
+    {
+      label: '$(folder-opened) Select Output Folder...',
+      description: resolveOutputDir(),
+      detail: 'Choose where captures, crawler assets, and store mockups are saved',
+      action: () => vscode.commands.executeCommand('adbsnap.selectOutputDir'),
     },
     { label: '', kind: vscode.QuickPickItemKind.Separator },
     {
