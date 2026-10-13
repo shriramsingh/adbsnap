@@ -97,7 +97,8 @@ export class StudioWebviewManager {
           panel.webview.html = StudioWebviewManager.getStudioIframeHtml(StudioWebviewManager.activePort);
         }
       } else if (message.command === 'copied') {
-        vscode.window.setStatusBarMessage('✨ ADBSnap mockup copied to clipboard! Ready to paste into Figma, Slack, or PR.', 3500);
+        vscode.window.showInformationMessage('✨ ADBSnap mockup copied to clipboard! Ready to paste into Figma, Slack, or GitHub PR.');
+        vscode.window.setStatusBarMessage('✨ ADBSnap mockup copied to clipboard!', 3500);
       }
     });
 

@@ -1604,10 +1604,17 @@ export default function StudioPage() {
 
   // Copy framed mockup to clipboard
   const handleCopyImage = async () => {
-    if (!previewBase64 || isCopying) return;
+    const targetBase64 = previewBase64 || screens[activeScreenIndex]?.base64 || screens[0]?.base64;
+    if (!targetBase64) {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+      setToastMessage('⚠️ No screenshot to copy yet. Capture or drop an image first.');
+      toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2500);
+      return;
+    }
+    if (isCopying) return;
     setIsCopying(true);
     try {
-      const byteCharacters = atob(previewBase64);
+      const byteCharacters = atob(targetBase64);
       const byteNumbers = new Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) {
         byteNumbers[i] = byteCharacters.charCodeAt(i);
@@ -1631,7 +1638,11 @@ export default function StudioPage() {
         window.parent.postMessage({ type: 'adbsnap-copied' }, '*');
       } catch {}
     } catch (err) {
-      setStatusMessage(`Copy failed: ${err instanceof Error ? err.message : String(err)}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      setStatusMessage(`Copy failed: ${msg}`);
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+      setToastMessage(`⚠️ Copy failed: ${msg.includes('focus') ? 'Click canvas to focus before copying' : msg}`);
+      toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 3000);
     } finally {
       setIsCopying(false);
     }
