@@ -1613,19 +1613,49 @@ export default function StudioPage() {
     }
     if (isCopying) return;
     setIsCopying(true);
-    try {
-      const byteCharacters = atob(targetBase64);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: 'image/png' });
 
+    try {
+      // 1. Convert any base64 image (WebP or PNG) into a true 100% compliant PNG Blob via Canvas
+      const mime = previewBase64 ? previewMime : 'image/png';
+      const dataUri = targetBase64.startsWith('data:')
+        ? targetBase64
+        : `data:${mime};base64,${targetBase64}`;
+
+      const pngBlob = await new Promise<Blob>((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth || img.width;
+            canvas.height = img.naturalHeight || img.height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              reject(new Error('Canvas 2D context unavailable'));
+              return;
+            }
+            ctx.drawImage(img, 0, 0);
+            canvas.toBlob((blob) => {
+              if (blob) {
+                resolve(blob);
+              } else {
+                reject(new Error('Failed to encode canvas to PNG blob'));
+              }
+            }, 'image/png');
+          } catch (cErr) {
+            reject(cErr);
+          }
+        };
+        img.onerror = () => reject(new Error('Failed to decode source image for copy'));
+        img.src = dataUri;
+      });
+
+      // 2. Write validated PNG blob to clipboard
       await navigator.clipboard.write([
-        new ClipboardItem({ 'image/png': blob }),
+        new ClipboardItem({ 'image/png': pngBlob }),
       ]);
 
+      // 3. Trigger UI success feedback
       if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
       setIsCopySuccess(true);
       copyTimeoutRef.current = setTimeout(() => setIsCopySuccess(false), 2000);
@@ -1634,11 +1664,13 @@ export default function StudioPage() {
       setToastMessage('📋 Mockup copied to clipboard! Paste in Figma or Slack');
       toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2500);
 
+      // 4. Notify VS Code extension host to display notification popup & status message
       try {
         window.parent.postMessage({ type: 'adbsnap-copied' }, '*');
       } catch {}
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      console.error('Clipboard copy error:', err);
       setStatusMessage(`Copy failed: ${msg}`);
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
       setToastMessage(`⚠️ Copy failed: ${msg.includes('focus') ? 'Click canvas to focus before copying' : msg}`);
