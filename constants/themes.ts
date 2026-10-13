@@ -390,5 +390,47 @@ export const STORE_TARGETS: Record<string, StoreTarget> = {
   },
 };
 
+export type CanvasAspectRatio = 'portrait' | 'landscape' | 'square';
+
+export interface AspectRatioPreset {
+  id: CanvasAspectRatio;
+  name: string;
+  shortLabel: string;
+  width: number;
+  height: number;
+  ratioStr: string;
+  icon: string;
+}
+
+export const ASPECT_RATIO_PRESETS: Record<CanvasAspectRatio, AspectRatioPreset> = {
+  portrait: {
+    id: 'portrait',
+    name: 'App Store & Google Play (Portrait 9:19.5)',
+    shortLabel: '9:19.5 Store',
+    width: 1290,
+    height: 2796,
+    ratioStr: '9/19.5',
+    icon: '📱',
+  },
+  landscape: {
+    id: 'landscape',
+    name: 'Product Hunt, Twitter & Hero (Landscape 16:9)',
+    shortLabel: '16:9 Banner',
+    width: 1920,
+    height: 1080,
+    ratioStr: '16/9',
+    icon: '🖥️',
+  },
+  square: {
+    id: 'square',
+    name: 'Instagram & Social Showcase (Square 1:1)',
+    shortLabel: '1:1 Square',
+    width: 1080,
+    height: 1080,
+    ratioStr: '1/1',
+    icon: '⬛',
+  },
+};
+
 
 

@@ -274,6 +274,7 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
                   bezelId: scr.bezelId || body.bezelId,
                   gradientPreset: scr.themeId || body.gradientPreset,
                   layout: scr.layout || body.layout,
+                  aspectRatio: scr.aspectRatio || body.aspectRatio,
                   font: scr.font || body.font,
                   title: scr.customTitle || body.title,
                   subtitle: scr.subtitle !== undefined ? scr.subtitle : body.subtitle,
@@ -372,8 +373,27 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
           if (!rawBase64) return sendJson({ success: false, error: 'No screenshot provided' }, 400);
 
           const isPreview = Boolean(body.format === 'preview' || body.preview || body.mode === 'preview');
-          const canvasWidth = isPreview ? 645 : (body.canvasWidth || 1290);
-          const canvasHeight = isPreview ? 1398 : (body.canvasHeight || 2796);
+          const aspectRatio = body.aspectRatio || (screens[0]?.aspectRatio) || 'portrait';
+          
+          let fullW = 1290;
+          let fullH = 2796;
+          let previewW = 645;
+          let previewH = 1398;
+
+          if (aspectRatio === 'landscape') {
+            fullW = 1920;
+            fullH = 1080;
+            previewW = 960;
+            previewH = 540;
+          } else if (aspectRatio === 'square') {
+            fullW = 1080;
+            fullH = 1080;
+            previewW = 540;
+            previewH = 540;
+          }
+
+          const canvasWidth = isPreview ? previewW : (body.canvasWidth || fullW);
+          const canvasHeight = isPreview ? previewH : (body.canvasHeight || fullH);
 
           const secScreenBuf = body.secondaryScreenshotBase64
             ? Buffer.from(body.secondaryScreenshotBase64, 'base64')
@@ -390,6 +410,7 @@ export function startStudioServer(options: StudioServerOptions): Promise<http.Se
             bezelId: body.bezelId,
             gradientPreset: body.gradientPreset,
             layout: body.layout,
+            aspectRatio,
             title: body.title,
             subtitle: body.subtitle,
             footer: body.footer,

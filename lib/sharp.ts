@@ -1,5 +1,16 @@
 import sharp, { type OverlayOptions } from 'sharp';
-import { BEZEL_PRESETS, GRADIENT_PRESETS, LAYOUT_PRESETS, FONT_PRESETS, STORE_TARGETS, type BezelSpec, type LayoutMode, type StoreTarget } from '../constants/themes';
+import {
+  BEZEL_PRESETS,
+  GRADIENT_PRESETS,
+  LAYOUT_PRESETS,
+  FONT_PRESETS,
+  STORE_TARGETS,
+  ASPECT_RATIO_PRESETS,
+  type BezelSpec,
+  type LayoutMode,
+  type StoreTarget,
+  type CanvasAspectRatio,
+} from '../constants/themes';
 import { generateBezelSvg, generateScreenCornerMask, generateStudioShadowSvg } from './bezel-generator';
 import { generateGradientSvg, generateTypographySvg, generateAmbientGlowSvg } from './backdrop-generator';
 
@@ -10,6 +21,7 @@ export interface CompositeFrameOptions {
   customColors?: string[];
   gradientAngle?: number;
   layout?: LayoutMode;
+  aspectRatio?: CanvasAspectRatio;
   font?: string;
   title?: string;
   subtitle?: string;
@@ -147,9 +159,20 @@ export async function assemblePhoneDevice(
  */
 export async function compositeFrame(options: CompositeFrameOptions): Promise<CompositeResult> {
   const startTime = performance.now();
+  let canvasWidth = options.canvasWidth;
+  let canvasHeight = options.canvasHeight;
 
-  const canvasWidth = options.canvasWidth || 1290;
-  const canvasHeight = options.canvasHeight || 2796;
+  if (!canvasWidth || !canvasHeight) {
+    if (options.aspectRatio && ASPECT_RATIO_PRESETS[options.aspectRatio]) {
+      const preset = ASPECT_RATIO_PRESETS[options.aspectRatio];
+      canvasWidth = preset.width;
+      canvasHeight = preset.height;
+    } else {
+      canvasWidth = 1290;
+      canvasHeight = 2796;
+    }
+  }
+
   const typographyPosition = options.typographyPosition || 'top';
 
   // 1. Resolve Bezel Specification

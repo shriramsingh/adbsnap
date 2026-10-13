@@ -96,6 +96,7 @@ interface SessionScreen {
   customColor2?: string;
   useCustomColors?: boolean;
   typographyPosition?: 'top' | 'bottom' | 'both';
+  aspectRatio?: 'portrait' | 'landscape' | 'square';
 }
 
 const THEMES = [
@@ -439,6 +440,7 @@ export default function StudioPage() {
   const [phoneScale, setPhoneScale] = useState<number>(1.0);
   const [phoneOffset, setPhoneOffset] = useState<number>(0);
   const [ambientGlow, setAmbientGlow] = useState<boolean>(true);
+  const [aspectRatio, setAspectRatio] = useState<'portrait' | 'landscape' | 'square'>('portrait');
 
   // Images & Screen Session History
   const [screenshotBase64, setScreenshotBase64] = useState<string | null>(null);
@@ -616,6 +618,7 @@ export default function StudioPage() {
         const effPhoneScale = overrides?.phoneScale !== undefined ? overrides.phoneScale : phoneScale;
         const effPhoneOffset = overrides?.phoneOffset !== undefined ? overrides.phoneOffset : phoneOffset;
         const effAmbientGlow = overrides?.ambientGlow !== undefined ? overrides.ambientGlow : ambientGlow;
+        const effAspectRatio = overrides?.aspectRatio || currentScreen?.aspectRatio || aspectRatio;
         const effSecIdx = overrides?.secondaryScreenIndex !== undefined ? overrides.secondaryScreenIndex : secondaryScreenIndex;
         const currentScreens = screensRef.current.length > 0 ? screensRef.current : screens;
         const currentActiveIdx = activeScreenIndexRef.current;
@@ -643,6 +646,7 @@ export default function StudioPage() {
             bezelId: effBezelId,
             gradientPreset: effThemeId,
             layout: effLayout,
+            aspectRatio: effAspectRatio,
             font: effHeadlineFont,
             headlineFont: effHeadlineFont,
             subtitleFont: effSubtitleFont === 'match' ? effHeadlineFont : effSubtitleFont,
@@ -711,6 +715,7 @@ export default function StudioPage() {
       phoneScale,
       phoneOffset,
       ambientGlow,
+      aspectRatio,
     ]
   );
 
@@ -731,6 +736,7 @@ export default function StudioPage() {
   }, [
     themeId,
     bezelId,
+    aspectRatio,
     layout,
     secondaryScreenIndex,
     headlineFont,
@@ -1215,6 +1221,7 @@ export default function StudioPage() {
     if (target.customColor2) setCustomColor2(target.customColor2);
     setUseCustomColors(target.useCustomColors ?? false);
     if (target.typographyPosition) setTypographyPosition(target.typographyPosition);
+    if (target.aspectRatio) setAspectRatio(target.aspectRatio);
 
     setScreenshotBase64(target.base64);
     await refreshPreview(target.base64, {
@@ -3306,6 +3313,37 @@ export default function StudioPage() {
               <span className="font-semibold">{toastMessage}</span>
             </div>
           )}
+
+          {/* Canvas Aspect Ratio Toolbar */}
+          <div className="mb-3 z-30 flex items-center gap-1.5 p-1 rounded-xl bg-[#12141c]/90 border border-white/10 shadow-lg backdrop-blur-md">
+            {(['portrait', 'landscape', 'square'] as const).map((mode) => {
+              const isAct = aspectRatio === mode;
+              const label = mode === 'portrait' ? '📱 9:19.5 Store' : mode === 'landscape' ? '🖥️ 16:9 Banner' : '⬛ 1:1 Square';
+              return (
+                <button
+                  key={mode}
+                  onClick={() => {
+                    setAspectRatio(mode);
+                    setScreens((prev) => {
+                      const next = [...prev];
+                      if (next[activeScreenIndex]) {
+                        next[activeScreenIndex] = { ...next[activeScreenIndex], aspectRatio: mode };
+                      }
+                      return next;
+                    });
+                  }}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                    isAct
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
+                      : 'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent'
+                  }`}
+                  title={mode === 'portrait' ? 'App Store & Google Play standard' : mode === 'landscape' ? 'Product Hunt & Twitter landscape header' : 'Social media square post'}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
 
           {/* Canvas Wrapper */}
           <div className="relative max-h-[72vh] max-w-[85vw] flex flex-col items-center justify-center">

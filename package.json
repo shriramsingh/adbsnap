@@ -44,6 +44,7 @@
     "LICENSE"
   ],
   "scripts": {
+    "test": "tsx scripts/test-suite.ts",
     "version:sync": "node scripts/bump-version.mjs",
     "bump:patch": "node scripts/bump-version.mjs patch",
     "bump:minor": "node scripts/bump-version.mjs minor",

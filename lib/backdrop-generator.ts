@@ -128,7 +128,11 @@ export function generateTypographySvg(options: TypographyOptions): string {
   const defaultFont = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, sans-serif";
   const hFont = headlineFontFamily || fontFamily || defaultFont;
   const sFont = (!subtitleFontFamily || subtitleFontFamily === 'match') ? hFont : (subtitleFontFamily || fontFamily || defaultFont);
-  const scale = Math.min(canvasWidth / 1290, canvasHeight / 2796);
+  
+  const isLandscapeOrSquare = canvasWidth >= canvasHeight;
+  const scale = isLandscapeOrSquare
+    ? Math.max(0.75, Math.min(canvasWidth / 1920, canvasHeight / 1080))
+    : Math.min(canvasWidth / 1290, canvasHeight / 2796);
 
   // Alignment coordinates
   const marginX = Math.round(90 * scale);
@@ -142,7 +146,8 @@ export function generateTypographySvg(options: TypographyOptions): string {
 
   // 1. Prepare Title Lines and Dynamic Sizing
   const tScale = Math.max(0.5, Math.min(1.8, titleScaleMultiplier));
-  const maxTitleChars = Math.max(16, Math.round((22 / tScale) * (canvasWidth / 1290)));
+  const baseTitleChars = isLandscapeOrSquare ? 36 : 22;
+  const maxTitleChars = Math.max(16, Math.round((baseTitleChars / tScale) * (canvasWidth / (isLandscapeOrSquare ? 1920 : 1290))));
   const titleLines = title ? wrapText(title, maxTitleChars) : [];
   const lineCount = titleLines.length;
   const titleScaleFactor = lineCount > 2 ? Math.max(0.68, 1 - (lineCount - 2) * 0.12) : 1;
@@ -151,7 +156,8 @@ export function generateTypographySvg(options: TypographyOptions): string {
 
   // 2. Prepare Subtitle Lines
   const subScale = Math.max(0.5, Math.min(1.5, subtitleScaleMultiplier));
-  const maxSubChars = Math.max(24, Math.round((36 / subScale) * (canvasWidth / 1290)));
+  const baseSubChars = isLandscapeOrSquare ? 56 : 36;
+  const maxSubChars = Math.max(24, Math.round((baseSubChars / subScale) * (canvasWidth / (isLandscapeOrSquare ? 1920 : 1290))));
   const subtitleLines = subtitle ? wrapText(subtitle, maxSubChars) : [];
   const subtitleSize = Math.max(14, Math.round(28 * scale * subScale));
   const subtitleLineHeight = Math.round(subtitleSize * 1.25);
