@@ -11,7 +11,7 @@ async function build() {
     entryPoints: [path.resolve(__dirname, 'src/extension.ts')],
     bundle: true,
     outfile: path.resolve(__dirname, 'dist/extension.js'),
-    external: ['vscode'],
+    external: ['vscode', 'sharp'],
     format: 'cjs',
     platform: 'node',
     target: 'node18',

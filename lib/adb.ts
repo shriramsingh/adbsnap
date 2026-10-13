@@ -2,7 +2,6 @@ import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import sharp from 'sharp';
 import type { ConnectedDevice, DeviceDriver, DeviceConnectionType } from './driver';
 import { ADB_COMMANDS } from '../constants/commands';
 import { CONFIG } from '../constants/config';
@@ -187,20 +186,24 @@ export class AndroidDriver implements DeviceDriver {
       const height = rawBuffer.readUInt32LE(4);
       const format = rawBuffer.readUInt32LE(8);
 
-      // format 1 = HAL_PIXEL_FORMAT_RGBA_8888 (standard Android 32-bit RGBA)
-      if (width > 0 && height > 0 && (format === 1 || format === 2 || format === 3 || format === 5)) {
-        const expectedBytes = 16 + (width * height * 4);
-        if (rawBuffer.length >= expectedBytes) {
-          const pixelData = rawBuffer.subarray(16, expectedBytes);
-          return await sharp(pixelData, {
-            raw: {
-              width,
-              height,
-              channels: 4,
-            },
-          })
-            .png({ compressionLevel: 6 })
-            .toBuffer();
+      const sharpModule = await import('sharp').catch(() => null);
+      if (sharpModule) {
+        const sharp = sharpModule.default || sharpModule;
+        // format 1 = HAL_PIXEL_FORMAT_RGBA_8888 (standard Android 32-bit RGBA)
+        if (width > 0 && height > 0 && (format === 1 || format === 2 || format === 3 || format === 5)) {
+          const expectedBytes = 16 + (width * height * 4);
+          if (rawBuffer.length >= expectedBytes) {
+            const pixelData = rawBuffer.subarray(16, expectedBytes);
+            return await sharp(pixelData, {
+              raw: {
+                width,
+                height,
+                channels: 4,
+              },
+            })
+              .png({ compressionLevel: 6 })
+              .toBuffer();
+          }
         }
       }
     } catch {
