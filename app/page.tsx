@@ -18,6 +18,7 @@ import {
   ExternalLink,
   Trash2,
   Copy,
+  Check,
   Video,
   ChevronLeft,
   ChevronRight,
@@ -387,6 +388,8 @@ export default function StudioPage() {
   const [storyFrames, setStoryFrames] = useState<string[]>([]);
   const [isLoadingFrames, setIsLoadingFrames] = useState<boolean>(false);
   const [isCopying, setIsCopying] = useState(false);
+  const [isCopySuccess, setIsCopySuccess] = useState(false);
+  const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isRendering, setIsRendering] = useState(false);
   const [lastLatencyMs, setLastLatencyMs] = useState<number | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -441,7 +444,7 @@ export default function StudioPage() {
   const [phoneOffset, setPhoneOffset] = useState<number>(0);
   const [ambientGlow, setAmbientGlow] = useState<boolean>(true);
   const [aspectRatio, setAspectRatio] = useState<'portrait' | 'landscape' | 'square'>('portrait');
-  const [isFitMode, setIsFitMode] = useState<boolean>(false);
+  const [isFitMode, setIsFitMode] = useState<boolean>(true);
 
   // Images & Screen Session History
   const [screenshotBase64, setScreenshotBase64] = useState<string | null>(null);
@@ -1601,7 +1604,7 @@ export default function StudioPage() {
 
   // Copy framed mockup to clipboard
   const handleCopyImage = async () => {
-    if (!previewBase64) return;
+    if (!previewBase64 || isCopying) return;
     setIsCopying(true);
     try {
       const byteCharacters = atob(previewBase64);
@@ -1615,6 +1618,10 @@ export default function StudioPage() {
       await navigator.clipboard.write([
         new ClipboardItem({ 'image/png': blob }),
       ]);
+
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+      setIsCopySuccess(true);
+      copyTimeoutRef.current = setTimeout(() => setIsCopySuccess(false), 2000);
 
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
       setToastMessage('📋 Mockup copied to clipboard! Paste in Figma or Slack');
@@ -2109,6 +2116,7 @@ export default function StudioPage() {
         (e.target as HTMLElement)?.tagName === 'TEXTAREA' ||
         (e.target as HTMLElement)?.isContentEditable;
       if (isInput) return;
+      if (e.repeat) return;
 
       if (e.code === 'Space') {
         e.preventDefault();
@@ -3631,23 +3639,37 @@ export default function StudioPage() {
 
             <div className="w-px h-3.5 bg-white/15 mx-0.5" />
 
-            {/* Quick Auto-Fit / 100% Zoom Toggle */}
-            <button
-              type="button"
-              onClick={() => setIsFitMode(!isFitMode)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
-                isFitMode
-                  ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-sm'
-                  : 'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent'
-              }`}
-              title={isFitMode ? 'Fit mode active: canvas scales to fit window (Click to switch to 100% full view)' : '100% view: full resolution (Click to auto-fit to window)'}
-            >
-              <span>{isFitMode ? '🔍 Auto-Fit' : '🔍 100%'}</span>
-            </button>
+            {/* Segmented Zoom Mode Control (Fit vs 100%) */}
+            <div className="flex items-center bg-[#0b0c10] rounded-lg p-0.5 border border-white/10 shadow-inner">
+              <button
+                type="button"
+                onClick={() => setIsFitMode(true)}
+                className={`px-2 py-0.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-all ${
+                  isFitMode
+                    ? 'bg-indigo-500/25 text-indigo-300 border border-indigo-500/40 shadow-sm'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent'
+                }`}
+                title="Fit to Window: scales mockup so bottom dock and filmstrip fit on screen without scrolling"
+              >
+                <span>🔍 Fit</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsFitMode(false)}
+                className={`px-2 py-0.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-all ${
+                  !isFitMode
+                    ? 'bg-indigo-500/25 text-indigo-300 border border-indigo-500/40 shadow-sm'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent'
+                }`}
+                title="100% Actual Size: view full crisp resolution, typography, and device bezels"
+              >
+                <span>100%</span>
+              </button>
+            </div>
           </div>
 
           {/* Canvas Wrapper */}
-          <div className="relative max-h-[72vh] max-w-[85vw] flex flex-col items-center justify-center my-auto shrink-0">
+          <div className={`relative ${isFitMode ? 'max-h-[72vh]' : 'max-h-none'} max-w-[90vw] flex flex-col items-center justify-center my-auto shrink-0 transition-all duration-200`}>
             {previewBase64 || screens.length > 0 ? (
               <>
                 <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-black/80 border border-white/10 group transition duration-300">
@@ -3664,8 +3686,8 @@ export default function StudioPage() {
                     }
                     alt="ADBSnap Canvas Preview"
                     draggable={false}
-                    className={`w-auto object-contain rounded-xl select-none pointer-events-none transition-all duration-200 ${
-                      isFitMode ? 'max-h-[min(38vh,380px)]' : 'max-h-[min(48vh,480px)]'
+                    className={`w-auto object-contain rounded-xl select-none pointer-events-none transition-all duration-300 ease-out ${
+                      isFitMode ? 'max-h-[min(42vh,420px)]' : 'max-h-[min(85vh,850px)]'
                     }`}
                   />
 
@@ -3758,11 +3780,20 @@ export default function StudioPage() {
                     type="button"
                     onClick={handleCopyImage}
                     disabled={isCopying}
-                    className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white px-2 py-0.5 rounded transition cursor-pointer disabled:opacity-50"
+                    className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white px-2 py-0.5 rounded transition cursor-pointer"
                     title="Copy framed mockup directly to clipboard (Ctrl+C)"
                   >
-                    <Copy className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>{isCopying ? 'Copied!' : 'Copy Image'}</span>
+                    {isCopySuccess ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400 animate-in zoom-in-50 duration-100" />
+                        <span className="text-emerald-300 font-medium">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>Copy Image</span>
+                      </>
+                    )}
                     <kbd className="text-[10px] px-1 py-0.2 rounded bg-slate-800 text-cyan-300 font-mono">Ctrl+C</kbd>
                   </button>
 
