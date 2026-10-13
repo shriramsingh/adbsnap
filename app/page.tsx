@@ -441,6 +441,7 @@ export default function StudioPage() {
   const [phoneOffset, setPhoneOffset] = useState<number>(0);
   const [ambientGlow, setAmbientGlow] = useState<boolean>(true);
   const [aspectRatio, setAspectRatio] = useState<'portrait' | 'landscape' | 'square'>('portrait');
+  const [isFitMode, setIsFitMode] = useState<boolean>(false);
 
   // Images & Screen Session History
   const [screenshotBase64, setScreenshotBase64] = useState<string | null>(null);
@@ -1618,6 +1619,10 @@ export default function StudioPage() {
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
       setToastMessage('📋 Mockup copied to clipboard! Paste in Figma or Slack');
       toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2500);
+
+      try {
+        window.parent.postMessage({ type: 'adbsnap-copied' }, '*');
+      } catch {}
     } catch (err) {
       setStatusMessage(`Copy failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -2096,17 +2101,41 @@ export default function StudioPage() {
     }
   };
 
-  // Keyboard shortcut: Space to Snap
+  // Universal Keyboard Shortcuts: Space (Sync), Ctrl+C (Copy), Arrows (Navigate), Delete (Remove)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && (e.target as HTMLElement)?.tagName !== 'INPUT' && (e.target as HTMLElement)?.tagName !== 'TEXTAREA') {
+      const isInput =
+        (e.target as HTMLElement)?.tagName === 'INPUT' ||
+        (e.target as HTMLElement)?.tagName === 'TEXTAREA' ||
+        (e.target as HTMLElement)?.isContentEditable;
+      if (isInput) return;
+
+      if (e.code === 'Space') {
         e.preventDefault();
         handleSnap();
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
+        e.preventDefault();
+        handleCopyImage();
+      } else if (e.key === 'ArrowLeft') {
+        if (screens.length > 1 && activeScreenIndex > 0) {
+          e.preventDefault();
+          selectScreen(activeScreenIndex - 1);
+        }
+      } else if (e.key === 'ArrowRight') {
+        if (screens.length > 1 && activeScreenIndex < screens.length - 1) {
+          e.preventDefault();
+          selectScreen(activeScreenIndex + 1);
+        }
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (screens.length > 0) {
+          e.preventDefault();
+          deleteScreen(e as unknown as React.MouseEvent, activeScreenIndex);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  });
+  }, [handleSnap, handleCopyImage, screens.length, activeScreenIndex]);
 
   const activeDevice = devices.find((d) => d.id === selectedDevice) || devices[0];
   const filteredIOSApps = iosApps.filter((app) =>
@@ -3569,7 +3598,7 @@ export default function StudioPage() {
             </div>
           )}
 
-          {/* Canvas Aspect Ratio Toolbar */}
+          {/* Canvas Aspect Ratio & Zoom Toolbar */}
           <div className="mb-3 z-30 flex items-center gap-1.5 p-1 rounded-xl bg-[#12141c]/90 border border-white/10 shadow-lg backdrop-blur-md">
             {(['portrait', 'landscape', 'square'] as const).map((mode) => {
               const isAct = aspectRatio === mode;
@@ -3599,6 +3628,22 @@ export default function StudioPage() {
                 </button>
               );
             })}
+
+            <div className="w-px h-3.5 bg-white/15 mx-0.5" />
+
+            {/* Quick Auto-Fit / 100% Zoom Toggle */}
+            <button
+              type="button"
+              onClick={() => setIsFitMode(!isFitMode)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
+                isFitMode
+                  ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-sm'
+                  : 'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent'
+              }`}
+              title={isFitMode ? 'Fit mode active: canvas scales to fit window (Click to switch to 100% full view)' : '100% view: full resolution (Click to auto-fit to window)'}
+            >
+              <span>{isFitMode ? '🔍 Auto-Fit' : '🔍 100%'}</span>
+            </button>
           </div>
 
           {/* Canvas Wrapper */}
@@ -3619,7 +3664,9 @@ export default function StudioPage() {
                     }
                     alt="ADBSnap Canvas Preview"
                     draggable={false}
-                    className="max-h-[min(48vh,480px)] w-auto object-contain rounded-xl select-none pointer-events-none"
+                    className={`w-auto object-contain rounded-xl select-none pointer-events-none transition-all duration-200 ${
+                      isFitMode ? 'max-h-[min(38vh,380px)]' : 'max-h-[min(48vh,480px)]'
+                    }`}
                   />
 
                   {/* Direct On-Canvas Draggable Text Zone (Top Headline Area) */}
@@ -3712,10 +3759,11 @@ export default function StudioPage() {
                     onClick={handleCopyImage}
                     disabled={isCopying}
                     className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white px-2 py-0.5 rounded transition cursor-pointer disabled:opacity-50"
-                    title="Copy framed mockup directly to clipboard"
+                    title="Copy framed mockup directly to clipboard (Ctrl+C)"
                   >
                     <Copy className="w-3.5 h-3.5 text-cyan-400" />
                     <span>{isCopying ? 'Copied!' : 'Copy Image'}</span>
+                    <kbd className="text-[10px] px-1 py-0.2 rounded bg-slate-800 text-cyan-300 font-mono">Ctrl+C</kbd>
                   </button>
 
                   <div className="w-px h-3.5 bg-slate-700/60" />
@@ -3742,10 +3790,11 @@ export default function StudioPage() {
                       deleteScreen(e, activeScreenIndex);
                     }}
                     className="flex items-center gap-1.5 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 px-2 py-0.5 rounded transition cursor-pointer"
-                    title="Remove active screen from canvas and filmstrip"
+                    title="Remove active screen from canvas and filmstrip (Delete)"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>Delete</span>
+                    <kbd className="text-[10px] px-1 py-0.2 rounded bg-rose-900/60 text-rose-300 font-mono">Del</kbd>
                   </button>
 
                   {isRendering && (

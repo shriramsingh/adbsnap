@@ -993,6 +993,7 @@ $img.Dispose();
 var vscode = __toESM(require("vscode"));
 var AdbStatusBarManager = class {
   statusBarItem;
+  canvasBarItem;
   activeDevice = null;
   pollInterval = null;
   isRefreshing = false;
@@ -1011,6 +1012,14 @@ var AdbStatusBarManager = class {
     this.statusBarItem.text = "$(device-mobile) ADBSnap: Initializing...";
     this.statusBarItem.tooltip = "ADBSnap: Click to open Mobile Command Center";
     this.statusBarItem.show();
+    this.canvasBarItem = vscode.window.createStatusBarItem(
+      vscode.StatusBarAlignment.Left,
+      99
+    );
+    this.canvasBarItem.command = "adbsnap.openStudio";
+    this.canvasBarItem.text = "$(paintcan) Mockup Canvas";
+    this.canvasBarItem.tooltip = "ADBSnap: Launch Visual Mockup Canvas & Design Dashboard";
+    this.canvasBarItem.show();
     this.refresh();
     this.pollInterval = setInterval(() => this.refresh(), 8e3);
   }
@@ -1140,6 +1149,7 @@ Click to switch devices.`;
       this.pollInterval = null;
     }
     this.statusBarItem.dispose();
+    this.canvasBarItem.dispose();
     this.onDidDeviceChange.dispose();
   }
 };
@@ -2064,6 +2074,8 @@ var StudioWebviewManager = class _StudioWebviewManager {
         if (_StudioWebviewManager.activePort) {
           panel.webview.html = _StudioWebviewManager.getStudioIframeHtml(_StudioWebviewManager.activePort);
         }
+      } else if (message.command === "copied") {
+        vscode5.window.showInformationMessage("\u2728 ADBSnap mockup copied to clipboard! Ready to paste into Figma, Slack, or GitHub PR.");
       }
     });
     try {
@@ -2265,6 +2277,11 @@ var StudioWebviewManager = class _StudioWebviewManager {
     function openInBrowser() {
       vscode.postMessage({ command: 'openExternal', url: 'http://127.0.0.1:${port}/' });
     }
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'adbsnap-copied') {
+        vscode.postMessage({ command: 'copied' });
+      }
+    });
   </script>
 </body>
 </html>`;

@@ -5,6 +5,7 @@ import type { ConnectedDevice } from '../../lib/driver';
 
 export class AdbStatusBarManager implements vscode.Disposable {
   private statusBarItem: vscode.StatusBarItem;
+  private canvasBarItem: vscode.StatusBarItem;
   private activeDevice: ConnectedDevice | null = null;
   private pollInterval: NodeJS.Timeout | null = null;
   private isRefreshing = false;
@@ -26,6 +27,15 @@ export class AdbStatusBarManager implements vscode.Disposable {
     this.statusBarItem.text = '$(device-mobile) ADBSnap: Initializing...';
     this.statusBarItem.tooltip = 'ADBSnap: Click to open Mobile Command Center';
     this.statusBarItem.show();
+
+    this.canvasBarItem = vscode.window.createStatusBarItem(
+      vscode.StatusBarAlignment.Left,
+      99
+    );
+    this.canvasBarItem.command = 'adbsnap.openStudio';
+    this.canvasBarItem.text = '$(paintcan) Mockup Canvas';
+    this.canvasBarItem.tooltip = 'ADBSnap: Launch Visual Mockup Canvas & Design Dashboard';
+    this.canvasBarItem.show();
 
     this.refresh();
     // Poll devices every 8 seconds in the background
@@ -184,6 +194,7 @@ export class AdbStatusBarManager implements vscode.Disposable {
       this.pollInterval = null;
     }
     this.statusBarItem.dispose();
+    this.canvasBarItem.dispose();
     this.onDidDeviceChange.dispose();
   }
 }

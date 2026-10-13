@@ -96,6 +96,8 @@ export class StudioWebviewManager {
         if (StudioWebviewManager.activePort) {
           panel.webview.html = StudioWebviewManager.getStudioIframeHtml(StudioWebviewManager.activePort);
         }
+      } else if (message.command === 'copied') {
+        vscode.window.showInformationMessage('✨ ADBSnap mockup copied to clipboard! Ready to paste into Figma, Slack, or GitHub PR.');
       }
     });
 
@@ -320,6 +322,11 @@ export class StudioWebviewManager {
     function openInBrowser() {
       vscode.postMessage({ command: 'openExternal', url: 'http://127.0.0.1:${port}/' });
     }
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'adbsnap-copied') {
+        vscode.postMessage({ command: 'copied' });
+      }
+    });
   </script>
 </body>
 </html>`;
